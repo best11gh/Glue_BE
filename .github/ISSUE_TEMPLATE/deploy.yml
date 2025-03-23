@@ -1,0 +1,17 @@
+name: 🚀 Deploy
+description: 배포 관련 작업
+title: "[Deploy] "
+labels: ["deploy"]
+body:
+  - type: textarea
+    attributes:
+      label: 어떤 배포 작업인가요?
+      description: 릴리즈 또는 배포 준비 사항을 정리해주세요.
+  - type: textarea
+    attributes:
+      label: 필요한 작업 목록
+      description: 체크리스트나 준비 항목을 나열해주세요.
+  - type: textarea
+    attributes:
+      label: 관련 이슈나 PR
+      description: 관련된 작업 링크를 남겨주세요.
