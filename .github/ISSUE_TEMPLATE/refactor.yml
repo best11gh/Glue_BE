@@ -1,0 +1,17 @@
+name: 🛠️ Refactor
+description: 리팩토링
+title: "[Refactor] "
+labels: ["refactor"]
+body:
+  - type: textarea
+    attributes:
+      label: 리팩토링 대상
+      description: 어떤 부분을 리팩토링하려고 하나요?
+  - type: textarea
+    attributes:
+      label: 목적
+      description: 성능 개선, 가독성 향상 등 리팩토링의 목적을 작성해주세요.
+  - type: textarea
+    attributes:
+      label: 영향 범위
+      description: 코드 변경이 어떤 부분에 영향을 미치는지 알려주세요.
