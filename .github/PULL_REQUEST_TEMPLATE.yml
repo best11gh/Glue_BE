@@ -39,6 +39,7 @@ body:
       label: 체크리스트
       description: 아래 항목을 참고하여 해당하는 항목은 완료 체크해주세요.
       placeholder: |
+        - [ ] ‼️PR base repository 확인 ‼️
         - [ ] 정상 동작 확인
         - [ ] 불필요한 코드(주석, 이전 코드 등) 제거
         - [ ] 문서 업데이트 (해당 시)
