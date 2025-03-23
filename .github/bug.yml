@@ -1,0 +1,21 @@
+name: 🐞 Bug
+description: 버그 제보
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    attributes:
+      label: 어떤 문제가 발생했나요?
+      description: 발생한 버그를 자세히 설명해주세요.
+  - type: textarea
+    attributes:
+      label: 재현 방법
+      description: 어떤 상황에서 발생했는지 단계별로 설명해주세요.
+  - type: textarea
+    attributes:
+      label: 기대했던 동작
+      description: 원래 기대했던 동작은 무엇인가요?
+  - type: textarea
+    attributes:
+      label: 기타 참고 사항
+      description: 스크린샷, 로그 등 추가 자료가 있다면 첨부해주세요.
