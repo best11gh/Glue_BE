@@ -18,11 +18,9 @@ public class ChatRoom {
 	@Column(name = "chatroom_id")
 	private Long id;
 
-
-	// chatroom은 meeting과 일대일 매핑관계이다. 단방향으로 가정.
-	// chatroom이 비즈니스적으로 meeting에 속할 때 FK는 전자가 가져야 한다고 한다
-	// cascade는 meeting과의 관계에 대해 명확히 알게되면 추가해야할듯
-	@OneToOne(fetch = FetchType.LAZY)
+	// chatroom이 비즈니스적으로 meeting에 속하기 때문에 여기가 FK를 가짐
+	// cascade는 meeting과의 관계에 대해 명확히 알게되면 추가해야 할 듯
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "meeting_id", unique = true, nullable = false)
 	private Meeting meeting;
 
