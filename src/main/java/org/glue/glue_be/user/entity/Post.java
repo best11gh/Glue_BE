@@ -45,6 +45,16 @@ public class Post {
     @OneToMany(mappedBy = "post")
     private List<Like> likes = new ArrayList<>();
 
+    @Builder
+    private Post(Meeting meeting, String title, String content, LocalDateTime bumpedAt) {
+        this.meeting = meeting;
+        this.title = title;
+        this.content = content;
+        this.viewCount = 0;
+        this.bumpedAt = bumpedAt != null ? bumpedAt : LocalDateTime.now();
+    }
+
+    // TODO: 컨벤션 확정짓기 (확정 후 주석 제거 예정)
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -54,20 +64,18 @@ public class Post {
         }
     }
 
+    // TODO: 컨벤션 확정짓기 (확정 후 주석 제거 예정)
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
     public static Post createPost(Meeting meeting, String title, String content) {
-        Post post = new Post();
-        post.meeting = meeting;
-        post.title = title;
-        post.content = content;
-        post.viewCount = 0;
-        post.createdAt = LocalDateTime.now();
-        post.updatedAt = LocalDateTime.now();
-        return post;
+        return Post.builder()
+                .meeting(meeting)
+                .title(title)
+                .content(content)
+                .build();
     }
 
     public void updatePost(String title, String content) {
@@ -78,5 +86,9 @@ public class Post {
 
     public void increaseViewCount() {
         this.viewCount++;
+    }
+
+    public void bump() {
+        this.bumpedAt = LocalDateTime.now();
     }
 }
