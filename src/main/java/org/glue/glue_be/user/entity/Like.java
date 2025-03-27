@@ -22,10 +22,16 @@ public class Like {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
+    @Builder
+    private Like(User user, Post post) {
+        this.user = user;
+        this.post = post;
+    }
+
     public static Like createLike(User user, Post post) {
-        Like like = new Like();
-        like.user = user;
-        like.post = post;
-        return like;
+        return Like.builder()
+                .user(user)
+                .post(post)
+                .build();
     }
 }
