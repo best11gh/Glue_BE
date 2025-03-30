@@ -2,7 +2,6 @@ package org.glue.glue_be.user.entity;
 
 import jakarta.persistence.*;
 import java.time.*;
-import jakarta.validation.constraints.*;
 import lombok.*;
 
 @Entity
@@ -33,7 +32,7 @@ public class User {
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
-    // 언어로 할 거면 변경 필요
+    // TODO: 언어로 할 거면 변경 필요 (+ 함수도)
     @Column(name = "nation", nullable = false)
     private String nation;
 
@@ -56,4 +55,40 @@ public class User {
         this.description = description;
         this.certified = certified;
     }
+
+    public void changeName(String name) {
+        if (name == null || name.isBlank() || name.length() > 20) {
+            throw new IllegalArgumentException("이름은 20자 이하의 빈 값이 아니어야 합니다.");
+        }
+        this.userName = name;
+    }
+
+    public void changeNickname(String nickname) {
+        if (nickname == null || nickname.isBlank() || nickname.length() > 10) {
+            throw new IllegalArgumentException("닉네임은 10자 이하의 빈 값이 아니어야 합니다.");
+        }
+        this.nickname = nickname;
+    }
+
+    public void changeNation(String nation) {
+        if (nation == null || nation.isBlank()) {
+            throw new IllegalArgumentException("국가는 빈 값이 아니어야 합니다.");
+        }
+        this.nation = nation;
+    }
+
+    public void changeDescription(String description) {
+        if (description == null || description.isBlank() || description.length() > 50) {
+            throw new IllegalArgumentException("한마디는 20자 이하의 빈 값이 아니어야 합니다.");
+        }
+        this.description = description;
+    }
+
+    public void changeCertified(int certified){
+        if (certified != 0 && certified != 1){
+            throw new IllegalArgumentException("인증 값은 0 또는 1이어야 합니다.");
+        }
+        this.certified = certified;
+    }
+
 }
