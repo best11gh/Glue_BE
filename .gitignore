@@ -37,3 +37,6 @@ out/
 
 ### Database ###
 *.db
+
+### MacOS ###
+.DS_Store
