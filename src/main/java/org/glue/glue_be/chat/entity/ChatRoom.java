@@ -35,4 +35,10 @@ public class ChatRoom {
 		this.meeting = meeting;
 	}
 
+	// userChatrooms에 넣고 userChatroom의 메서드에 this를 넣어 동기화
+	public void addUserChatroom(UserChatroom userChatroom){
+		this.userChatrooms.add(userChatroom);
+		userChatroom.updateChatRoom(this);
+	}
+
 }
