@@ -18,7 +18,6 @@ public class JoinRoute {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @NotNull
     @Column(name = "join_route_type", nullable = false)
     private Integer joinRoute;
 
