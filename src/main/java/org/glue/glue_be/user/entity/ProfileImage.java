@@ -2,9 +2,11 @@ package org.glue.glue_be.user.entity;
 
 import jakarta.persistence.*;
 import jakarta.persistence.GenerationType;
+import lombok.*;
 
 @Entity
 @Table(name = "profile_image")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProfileImage {
 
     @Id
@@ -19,9 +21,7 @@ public class ProfileImage {
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
-    protected ProfileImage() {
-    }
-
+    @Builder
     public ProfileImage(User user, String profileImageUrl) {
         this.user = user;
         this.profileImageUrl = profileImageUrl;

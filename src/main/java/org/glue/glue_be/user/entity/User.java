@@ -3,9 +3,11 @@ package org.glue.glue_be.user.entity;
 import jakarta.persistence.*;
 import java.time.*;
 import jakarta.validation.constraints.*;
+import lombok.*;
 
 @Entity
 @Table(name = "user")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
 
     @Id
@@ -53,9 +55,7 @@ public class User {
     @Column(name = "certified", nullable = false)
     private Integer certified = 0;
 
-    protected User() {
-    }
-
+    @Builder
     public User(String uuid, String oauthId, String userName, String nickname, Integer gender, LocalDate birth,
                 String nation, String description, Integer certified) {
         this.uuid = uuid;
@@ -69,5 +69,3 @@ public class User {
         this.certified = certified;
     }
 }
-
-

@@ -2,9 +2,11 @@ package org.glue.glue_be.user.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.*;
 
 @Entity
 @Table(name = "join_route")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class JoinRoute {
 
     @Id
@@ -20,10 +22,7 @@ public class JoinRoute {
     @Column(name = "join_route_type", nullable = false)
     private Integer joinRoute;
 
-
-    protected JoinRoute() {
-    }
-
+    @Builder
     public JoinRoute(User user, Integer joinRoute) {
         this.user = user;
         this.joinRoute = joinRoute;
