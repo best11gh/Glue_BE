@@ -16,6 +16,7 @@ import org.glue.glue_be.user.entity.User;
 @NoArgsConstructor
 @Table(name = "user_chatroom")
 public class UserChatroom {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "user_chatroom_id")
@@ -28,7 +29,5 @@ public class UserChatroom {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "chatRoom_id", nullable = false)
 	private ChatRoom chatRoom;
-
-
 
 }

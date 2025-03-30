@@ -28,5 +28,4 @@ public class ChatRoom {
 		this.meeting = meeting;
 	}
 
-
 }
