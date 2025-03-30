@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.user.entity.User;
 import lombok.Builder;
 
@@ -11,7 +12,7 @@ import lombok.Builder;
 @Table(name = "participant")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Participant {
+public class Participant extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,11 +39,5 @@ public class Participant {
 
     void updateUser(User user) {
         this.user = user;
-    }
-
-    public void cancelParticipation() {
-        if (this.meeting != null) {
-            this.meeting.removeParticipant(this);
-        }
     }
 }
