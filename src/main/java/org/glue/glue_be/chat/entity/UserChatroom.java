@@ -2,18 +2,15 @@ package org.glue.glue_be.chat.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.glue.glue_be.user.entity.User;
 
 
 @Entity
 @Getter
 @Builder(toBuilder = true)
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "user_chatroom")
 public class UserChatroom {
 

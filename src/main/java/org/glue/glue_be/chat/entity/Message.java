@@ -8,8 +8,8 @@ import lombok.*;
 @Entity
 @Getter
 @Builder(toBuilder = true)
-@AllArgsConstructor
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "message")
 public class Message {
 
