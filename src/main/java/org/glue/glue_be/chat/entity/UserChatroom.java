@@ -8,7 +8,7 @@ import org.glue.glue_be.user.entity.User;
 
 @Entity
 @Getter
-@Builder(toBuilder = true)
+@Builder
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "user_chatroom")
