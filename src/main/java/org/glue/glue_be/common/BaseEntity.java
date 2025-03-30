@@ -15,16 +15,4 @@ abstract public class BaseEntity {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    @Column(nullable = false)
-    private boolean isDeleted = false;
-
-    public void updateDeleted(){
-        this.isDeleted = true;
-    }
-
-    public void updateUnDeleted() {
-        this.isDeleted = false;
-    }
-
-    public abstract void delete();
 }
