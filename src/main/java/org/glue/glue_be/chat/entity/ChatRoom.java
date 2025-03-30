@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.glue.glue_be.meeting.entity.Meeting;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Entity
 @Getter
@@ -21,6 +24,10 @@ public class ChatRoom {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "meeting_id", nullable = false)
 	private Meeting meeting;
+
+	// ChatRoom과 UserChatroom 간의 일대다 관계 매핑
+	@OneToMany(mappedBy = "chatRoom")
+	private List<UserChatroom> userChatrooms = new ArrayList<>();
 
 	// 생성자를 따로 만들고 Builder를 붙임 -> Allargs 배제
 	@Builder
