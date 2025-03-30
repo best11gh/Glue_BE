@@ -16,7 +16,7 @@ public class UserChatroom extends BaseEntity {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "user_chatroom_id")
-	private Long id;
+	private Long userChatroomId;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)

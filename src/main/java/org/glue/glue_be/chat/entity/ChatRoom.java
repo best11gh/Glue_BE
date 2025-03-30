@@ -17,7 +17,7 @@ public class ChatRoom {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "chatroom_id")
-	private Long id;
+	private Long chatRoomId;
 
 	// chatroom이 비즈니스적으로 meeting에 속하기 때문에 여기가 FK를 가짐
 	// cascade는 meeting과의 관계에 대해 명확히 알게되면 추가해야 할 듯
