@@ -1,14 +1,15 @@
-package org.glue.glue_be.user.entity;
+package org.glue.glue_be.post.entity;
 
 import lombok.*;
 
 import jakarta.persistence.*;
+import org.glue.glue_be.common.BaseEntity;
 
 @Entity
 @Table(name = "post_image")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PostImage {
+public class PostImage extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "post_image_id")
@@ -29,14 +30,6 @@ public class PostImage {
         this.post = post;
         this.imageUrl = imageUrl;
         this.imageOrder = imageOrder;
-    }
-
-    public static PostImage createPostImage(Post post, String imageUrl, Integer imageOrder) {
-        return PostImage.builder()
-                .post(post)
-                .imageUrl(imageUrl)
-                .imageOrder(imageOrder)
-                .build();
     }
 
     public void updateImageUrl(String imageUrl) {
