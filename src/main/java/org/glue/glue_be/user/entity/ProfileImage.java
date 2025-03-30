@@ -3,11 +3,12 @@ package org.glue.glue_be.user.entity;
 import jakarta.persistence.*;
 import jakarta.persistence.GenerationType;
 import lombok.*;
+import org.glue.glue_be.common.BaseEntity;
 
 @Entity
 @Table(name = "profile_image")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProfileImage {
+public class ProfileImage extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
