@@ -29,7 +29,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.xerial:sqlite-jdbc:3.41.2.1' // sqlite jdbc
     implementation 'org.hibernate.orm:hibernate-community-dialects' // sqlite3 dialect
-    compileOnly 'org.projectlombok:lombok'
+	implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
