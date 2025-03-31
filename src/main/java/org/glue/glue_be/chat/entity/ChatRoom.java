@@ -10,14 +10,14 @@ import java.util.List;
 
 @Entity
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "chatroom")
 public class ChatRoom {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "chatroom_id")
-	private Long id;
+	private Long chatRoomId;
 
 	// chatroom이 비즈니스적으로 meeting에 속하기 때문에 여기가 FK를 가짐
 	// cascade는 meeting과의 관계에 대해 명확히 알게되면 추가해야 할 듯
@@ -33,6 +33,12 @@ public class ChatRoom {
 	@Builder
 	public ChatRoom(Meeting meeting){
 		this.meeting = meeting;
+	}
+
+	// userChatrooms에 넣고 userChatroom의 메서드에 this를 넣어 동기화
+	public void addUserChatroom(UserChatroom userChatroom){
+		this.userChatrooms.add(userChatroom);
+		userChatroom.updateChatRoom(this);
 	}
 
 }
