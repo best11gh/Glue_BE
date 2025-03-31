@@ -1,11 +1,9 @@
 package org.glue.glue_be.chat.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.user.entity.User;
-
 
 @Entity
 @Getter
@@ -32,12 +30,7 @@ public class UserChatroom extends BaseEntity {
 		this.chatRoom = chatRoom;
 	}
 
-	// user에서 쓸 양방향 동기화 메서드
 	void updateUser(User user){ this.user = user; }
 
-	// chatroom에서 쓸 양방향 동기화 메서드
 	void updateChatRoom(ChatRoom chatRoom) { this.chatRoom = chatRoom; }
-
-
-
 }

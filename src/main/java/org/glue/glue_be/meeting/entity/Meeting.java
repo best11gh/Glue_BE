@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import lombok.Builder;
 import org.glue.glue_be.common.BaseEntity;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
