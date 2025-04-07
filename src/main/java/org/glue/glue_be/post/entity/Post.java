@@ -20,7 +20,7 @@ public class Post {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @Column(name = "meeting_id", nullable = false)
+    @JoinColumn(name = "meeting_id", nullable = false)
     private Meeting meeting;
 
     @Column(name = "post_title", nullable = false)
