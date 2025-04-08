@@ -2,6 +2,8 @@ package org.glue.glue_be.user.entity;
 
 import jakarta.persistence.*;
 import java.time.*;
+import java.util.UUID;
+
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
 
@@ -15,11 +17,11 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "uuid", nullable = false, unique = true, length = 36)
-    private String uuid;
+    @Column(name = "user_uuid", nullable = false, unique = true, length = 36)
+    private UUID uuid;
 
     @Column(name = "oauth_id", nullable = false, unique = true)
-    private String oauthId;
+    private Long oauthId;
 
     @Column(name = "user_name", nullable = false, length = 20)
     private String userName;
@@ -35,7 +37,7 @@ public class User extends BaseEntity {
 
     // TODO: 언어로 할 거면 변경 필요 (+ 함수도)
     @Column(name = "nation", nullable = false)
-    private String nation;
+    private Integer nation;
 
     @Column(name = "description", length = 50)
     private String description;
@@ -43,9 +45,16 @@ public class User extends BaseEntity {
     @Column(name = "certified", nullable = false)
     private Integer certified = 0;
 
+    @Column(name = "major", nullable = false)
+    private Integer major;
+
+    @Column(name = "major_visibility", nullable = false)
+    private Integer majorVisibility;
+
+
     @Builder
-    public User(String uuid, String oauthId, String userName, String nickname, Integer gender, LocalDate birth,
-                String nation, String description, Integer certified) {
+    public User(UUID uuid, Long oauthId, String userName, String nickname, Integer gender, LocalDate birth,
+                Integer nation, String description, Integer certified, Integer major, Integer majorVisibility) {
         this.uuid = uuid;
         this.oauthId = oauthId;
         this.userName = userName;
@@ -55,6 +64,8 @@ public class User extends BaseEntity {
         this.nation = nation;
         this.description = description;
         this.certified = certified;
+        this.major = major;
+        this.majorVisibility = majorVisibility;
     }
 
     public void changeName(String name) {
@@ -65,7 +76,7 @@ public class User extends BaseEntity {
         this.nickname = nickname;
     }
 
-    public void changeNation(String nation) {
+    public void changeNation(Integer nation) {
         this.nation = nation;
     }
 
