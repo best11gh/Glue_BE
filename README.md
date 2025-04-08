@@ -36,9 +36,9 @@
 ## 👥 Members | 팀원  
 
 ### 🖥 Frontend (FE)  
-|<img src="https://avatars.githubusercontent.com/u/87095094?v=4" width="150" height="150"/>|<img src="https://avatars.githubusercontent.com/u/129269335?v=4" width="150" height="150"/>|<img src="https://avatars.githubusercontent.com/u/165051638?v=4" width="150" height="150"/>|  
-|:-:|:-:|:-:|  
-|김나림<br/>[@rlanafla](https://github.com/rlanafla)|손정훈<br/>[@SonJH7](https://github.com/SonJH7)|김정희<br/>[@lovelhee](https://github.com/lovelhee)|  
+|<img src="https://avatars.githubusercontent.com/u/57588269?v=4" width="150" height="150"/>|<img src="https://avatars.githubusercontent.com/u/129269335?v=4" width="150" height="150"/>|<img src="https://avatars.githubusercontent.com/u/165051638?v=4" width="150" height="150"/>|  
+|:-:|:-:|:-:|
+|박준이<br/>[@zune2222](https://github.com/zune2222)|손정훈<br/>[@SonJH7](https://github.com/SonJH7)|김정희<br/>[@lovelhee](https://github.com/lovelhee)| 
 
 ---
 
