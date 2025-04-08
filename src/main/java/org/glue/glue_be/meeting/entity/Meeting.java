@@ -31,11 +31,14 @@ public class Meeting extends BaseEntity {
     @Column(name = "meeting_time", nullable = false)
     private LocalDateTime meetingTime;
 
-    @Column(name = "min_ppl", nullable = false)
-    private Integer minPpl;
+    @Column(name = "current_participants", nullable = false)
+    private Integer currentParticipants;
 
-    @Column(name = "max_ppl", nullable = false)
-    private Integer maxPpl;
+    @Column(name = "min_participants", nullable = false)
+    private Integer minParticipants;
+
+    @Column(name = "max_participants", nullable = false)
+    private Integer maxParticipants;
 
     @Column(name = "status", nullable = false)
     private Integer status;
@@ -52,16 +55,18 @@ public class Meeting extends BaseEntity {
     @Builder
     private Meeting(String meetingTitle,
                     LocalDateTime meetingTime,
-                    Integer minPpl,
-                    Integer maxPpl,
+                    Integer currentParticipants,
+                    Integer minParticipants,
+                    Integer maxParticipants,
                     Integer status,
                     Double meetingPlaceLatitude,
                     Double meetingPlaceLongitude,
                     String meetingPlaceName) {
         this.meetingTitle = meetingTitle;
         this.meetingTime = meetingTime;
-        this.minPpl = minPpl;
-        this.maxPpl = maxPpl;
+        this.currentParticipants = currentParticipants;
+        this.minParticipants = minParticipants;
+        this.maxParticipants = maxParticipants;
         this.status = status;
         this.meetingPlaceLatitude = meetingPlaceLatitude;
         this.meetingPlaceLongitude = meetingPlaceLongitude;
@@ -85,11 +90,11 @@ public class Meeting extends BaseEntity {
 
 
     public void changeMinimumCapacity(int newMinPpl) {
-        this.minPpl = newMinPpl;
+        this.minParticipants = newMinPpl;
     }
 
     public void changeMaximumCapacity(int newMaxPpl) {
-        this.maxPpl = newMaxPpl;
+        this.maxParticipants = newMaxPpl;
     }
 
     public void rescheduleMeeting(LocalDateTime newTime) {
@@ -106,6 +111,6 @@ public class Meeting extends BaseEntity {
     }
 
     public boolean isMeetingFull() {
-        return this.participants.size() >= this.maxPpl;
+        return this.participants.size() >= this.maxParticipants;
     }
 }
