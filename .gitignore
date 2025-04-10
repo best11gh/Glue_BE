@@ -40,3 +40,6 @@ out/
 
 ### MacOS ###
 .DS_Store
+
+### application property ###
+*.yml
