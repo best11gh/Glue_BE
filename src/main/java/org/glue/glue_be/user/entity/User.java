@@ -7,6 +7,7 @@ import java.util.UUID;
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
 
+@Getter
 @Entity
 @Table(name = "user")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
