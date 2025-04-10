@@ -41,6 +41,7 @@ public class AuthService {
 	private final UserRepository userRepository;
 
 
+	// todo: 추후 리팩토링 시 과정 중 역할의 책임을 나눌만한 부분이 있는지 보기
 	public KakaoSignUpResponseDto kakaoSignUp(KakaoSignUpRequestDto requestDto) {
 
 		// 1. 중복되는 oauthID의 유저가 db에 있는지 재검증

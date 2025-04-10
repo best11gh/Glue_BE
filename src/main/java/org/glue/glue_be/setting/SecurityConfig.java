@@ -45,7 +45,7 @@ public class SecurityConfig {
 		http.authorizeHttpRequests(auth -> {
 			auth.requestMatchers(AUTH_WHITELIST).permitAll();
 //			auth.anyRequest().authenticated();
-			auth.anyRequest().permitAll(); // 개발단계에선 일단 모든 경로에 허용, 원랜 화이트리스트의 경로만 적용해야함
+			auth.anyRequest().permitAll(); // todo: 개발단계에선 일단 모든 경로에 허용, 원랜 화이트리스트의 경로만 적용해야함
 			})
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
