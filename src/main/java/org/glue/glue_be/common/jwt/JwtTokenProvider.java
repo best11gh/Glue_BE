@@ -43,7 +43,7 @@ public class JwtTokenProvider {
 			.setIssuedAt(now)
 			.setExpiration(new Date(now.getTime() + TOKEN_EXPIRATION_TIME));
 
-		// 2. 클레임의 memberId 키에 해당하는 값은 현재 로그인한 유저의 인증 주체(pk or Entity)를 넣는다.
+		// 2. 클레임의 memberId 키에 해당하는 값은 현재 로그인한 유저의 인증 주체(자체 서비스 PK)를 넣는다.
 		claims.put(MEMBER_ID, authentication.getPrincipal());
 
 		// 3. header, 방금 조립한 claim, 그리고 signature을 합쳐 JWT 빌드
