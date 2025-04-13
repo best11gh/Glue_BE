@@ -23,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.lang.reflect.Field;
-import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -40,35 +38,9 @@ public class InvitationService {
      */
     @Transactional
     public InvitationDto.Response createInvitation(InvitationDto.CreateRequest request, Long creatorId) {
-        // 실제 데이터베이스 조회를 시도
-        User creator;
-        try {
-            creator = userRepository.findById(creatorId)
-                    .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
-        } catch (Exception e) {
-            // 데이터베이스 조회 실패 시 임시 사용자 생성 (개발 환경에서만 사용)
-            creator = User.builder()
-                    .uuid(UUID.randomUUID())
-                    .oauthId(12345L)
-                    .userName("testUser")
-                    .nickname("testUser")
-                    .gender(1)
-                    .birth(LocalDate.of(2000, 1, 1))
-                    .nation(1)
-                    .certified(0)
-                    .major(1)
-                    .majorVisibility(1)
-                    .build();
-                    
-            // UserId 설정 시도 (Optional)
-            try {
-                Field userIdField = User.class.getDeclaredField("userId");
-                userIdField.setAccessible(true);
-                userIdField.set(creator, creatorId);
-            } catch (Exception ex) {
-                // 무시
-            }
-        }
+        // 사용자 조회
+        User creator = userRepository.findById(creatorId)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
         
         // 미팅 존재 확인 
         if (request.getMeetingId() == null) {
@@ -123,35 +95,9 @@ public class InvitationService {
         Invitation invitation = invitationRepository.findByCodeWithLock(code)
                 .orElseThrow(() -> new BaseException(InvitationResponseStatus.INVITATION_NOT_FOUND));
         
-        // 실제 데이터베이스 조회를 시도
-        User user;
-        try {
-            user = userRepository.findById(userId)
-                    .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
-        } catch (Exception e) {
-            // 데이터베이스 조회 실패 시 임시 사용자 생성 (개발 환경에서만 사용)
-            user = User.builder()
-                    .uuid(UUID.randomUUID())
-                    .oauthId(12345L)
-                    .userName("testUser")
-                    .nickname("testUser")
-                    .gender(1)
-                    .birth(LocalDate.of(2000, 1, 1))
-                    .nation(1)
-                    .certified(0)
-                    .major(1)
-                    .majorVisibility(1)
-                    .build();
-                    
-            // UserId 설정 시도 (Optional)
-            try {
-                Field userIdField = User.class.getDeclaredField("userId");
-                userIdField.setAccessible(true);
-                userIdField.set(user, userId);
-            } catch (Exception ex) {
-                // 무시
-            }
-        }
+        // 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
         
         // 초대장 유효성 검사
         if (!invitation.isValid()) {
@@ -204,35 +150,9 @@ public class InvitationService {
      */
     @Transactional(readOnly = true)
     public Page<InvitationDto.Response> getInvitations(Long creatorId, Pageable pageable) {
-        // 실제 데이터베이스 조회를 시도
-        User creator;
-        try {
-            creator = userRepository.findById(creatorId)
-                    .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
-        } catch (Exception e) {
-            // 데이터베이스 조회 실패 시 임시 사용자 생성 (개발 환경에서만 사용)
-            creator = User.builder()
-                    .uuid(UUID.randomUUID())
-                    .oauthId(12345L)
-                    .userName("testUser")
-                    .nickname("testUser")
-                    .gender(1)
-                    .birth(LocalDate.of(2000, 1, 1))
-                    .nation(1)
-                    .certified(0)
-                    .major(1)
-                    .majorVisibility(1)
-                    .build();
-                    
-            // UserId 설정 시도 (Optional)
-            try {
-                Field userIdField = User.class.getDeclaredField("userId");
-                userIdField.setAccessible(true);
-                userIdField.set(creator, creatorId);
-            } catch (Exception ex) {
-                // 무시
-            }
-        }
+        // 사용자 조회
+        User creator = userRepository.findById(creatorId)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
         
         return invitationRepository.findByCreator(creator, pageable)
                 .map(InvitationDto.Response::from);
