@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import lombok.Builder;
 import org.glue.glue_be.common.BaseEntity;
+import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +32,7 @@ public class Meeting extends BaseEntity {
     private List<Participant> participants = new ArrayList<>();
 
     @Column(name = "meeting_time", nullable = false)
+    @Convert(converter = LocalDateTimeStringConverter.class)
     private LocalDateTime meetingTime;
 
     @Column(name = "current_participants", nullable = false)
