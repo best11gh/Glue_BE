@@ -37,8 +37,9 @@ public class Invitation extends BaseEntity {
     @Column(name = "status", nullable = false)
     private Integer status = 1; // 1: ACTIVE, 2: EXPIRED, 3: FULLY_USED
     
-    @Column(name = "meeting_id", nullable = false)
-    private Long meetingId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "meeting_id")
+    private Meeting meeting;
     
     @Column(name = "invitee_id", nullable = true)
     private Long inviteeId; // 초대장을 수락할 수 있는 사용자 ID

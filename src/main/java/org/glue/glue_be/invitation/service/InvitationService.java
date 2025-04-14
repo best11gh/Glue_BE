@@ -33,9 +33,9 @@ public class InvitationService {
     private final MeetingRepository meetingRepository;
     private final ParticipantRepository participantRepository;
     
-    /**
-     * 미팅 초대장 생성
-     */
+    
+    //미팅 초대장 생성
+     
     @Transactional
     public InvitationDto.Response createInvitation(InvitationDto.CreateRequest request, Long creatorId) {
         // 사용자 조회
@@ -102,6 +102,7 @@ public class InvitationService {
         // 초대장 유효성 검사
         if (!invitation.isValid()) {
             if (LocalDateTime.now().isAfter(invitation.getExpiresAt())) {
+                invitation.expire(); // 상태를 EXPIRED로 변경
                 throw new BaseException(InvitationResponseStatus.INVITATION_EXPIRED);
             } else if (invitation.getUsedCount() >= invitation.getMaxUses()) {
                 throw new BaseException(InvitationResponseStatus.INVITATION_FULLY_USED);
