@@ -6,7 +6,6 @@ import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.invitation.dto.InvitationDto;
 import org.glue.glue_be.invitation.service.InvitationService;
 import org.glue.glue_be.meeting.dto.MeetingDto;
-import org.glue.glue_be.meeting.service.MeetingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 public class InvitationController {
 
     private final InvitationService invitationService;
-    private final MeetingService meetingService;
     
     // 모임 초대장 생성 API
     @PostMapping("/meeting/{meetingId}")
@@ -27,7 +25,16 @@ public class InvitationController {
             @PathVariable Long meetingId, 
             @Valid @RequestBody MeetingDto.InvitationRequest request) {
         Long currentUserId = getCurrentUserId();
-        return new BaseResponse<>(meetingService.createMeetingInvitation(meetingId, request.getInviteeId(), currentUserId));
+        
+        // InvitationService에 필요한 데이터 구성
+        InvitationDto.CreateRequest invitationRequest = InvitationDto.CreateRequest.builder()
+                .meetingId(meetingId)
+                .inviteeId(request.getInviteeId())
+                .maxUses(1) // 기본값: 한 번만 사용 가능
+                .expirationHours(6) // 기본값: 6시간 유효
+                .build();
+        
+        return new BaseResponse<>(invitationService.createInvitation(invitationRequest, currentUserId));
     }
     
     // 초대장 수락 API

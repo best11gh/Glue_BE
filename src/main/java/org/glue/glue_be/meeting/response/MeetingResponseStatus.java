@@ -19,7 +19,8 @@ public enum MeetingResponseStatus implements ResponseStatus {
     INVALID_MEETING_TIME(HttpStatus.BAD_REQUEST, false, 554, "모임 시간은 현재 시간 이후여야 합니다"),
     ALREADY_JOINED(HttpStatus.BAD_REQUEST, false, 555, "이미 모임에 참여 중입니다"),
     NON_PARTICIPANT_INVITATION(HttpStatus.FORBIDDEN, false, 556, "모임 참가자만 초대장을 생성할 수 있습니다"),
-    NOT_HOST_PERMISSION(HttpStatus.FORBIDDEN, false, 557, "모임 주최자만 이 작업을 수행할 수 있습니다");
+    NOT_HOST_PERMISSION(HttpStatus.FORBIDDEN, false, 557, "모임 주최자만 이 작업을 수행할 수 있습니다"),
+    NOT_JOINED(HttpStatus.FORBIDDEN, false, 558, "모임에 참여하지 않은 사용자입니다");
 
     private final HttpStatusCode httpStatusCode;
     private final boolean isSuccess;

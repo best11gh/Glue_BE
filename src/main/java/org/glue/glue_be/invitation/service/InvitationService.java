@@ -13,6 +13,7 @@ import org.glue.glue_be.meeting.entity.Participant;
 import org.glue.glue_be.meeting.repository.MeetingRepository;
 import org.glue.glue_be.meeting.repository.ParticipantRepository;
 import org.glue.glue_be.meeting.response.MeetingResponseStatus;
+import org.glue.glue_be.meeting.service.MeetingService;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
@@ -32,6 +33,7 @@ public class InvitationService {
     private final UserRepository userRepository;
     private final MeetingRepository meetingRepository;
     private final ParticipantRepository participantRepository;
+    private final MeetingService meetingService;
     
     
     //미팅 초대장 생성
@@ -50,6 +52,11 @@ public class InvitationService {
         Meeting meeting = meetingRepository.findById(request.getMeetingId())
                 .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
         
+        // 사용자가 해당 모임의 참가자인지 확인
+        if (!participantRepository.existsByUserAndMeeting(creator, meeting)) {
+            throw new BaseException(MeetingResponseStatus.NOT_JOINED);
+        }
+        
         // inviteeId가 있는 경우 해당 사용자가 유효한지 확인
         if (request.getInviteeId() != null) {
             userRepository.findById(request.getInviteeId())
@@ -61,17 +68,11 @@ public class InvitationService {
         // expiresAt 계산
         LocalDateTime expiresAt = LocalDateTime.now();
         
-        if (request.getExpirationDays() != null && request.getExpirationDays() > 0) {
-            expiresAt = expiresAt.plusDays(request.getExpirationDays());
-        }
-        
         if (request.getExpirationHours() != null && request.getExpirationHours() > 0) {
             expiresAt = expiresAt.plusHours(request.getExpirationHours());
-        }
-        
-        // 기본값: 기본 만료 시간이 설정되지 않은 경우 24시간으로 설정
-        if (request.getExpirationDays() == null && request.getExpirationHours() == null) {
-            expiresAt = expiresAt.plusDays(1);
+        } else {
+            // 기본값: 6시간으로 설정
+            expiresAt = expiresAt.plusHours(6);
         }
         
         Invitation invitation = Invitation.builder()
@@ -79,7 +80,7 @@ public class InvitationService {
                 .expiresAt(expiresAt)
                 .maxUses(request.getMaxUses())
                 .creator(creator)
-                .meetingId(request.getMeetingId())
+                .meeting(meeting)  // meeting 객체를 직접 설정
                 .inviteeId(request.getInviteeId())
                 .build();
         
@@ -120,30 +121,31 @@ public class InvitationService {
         invitation.incrementUsedCount();
         
         // 미팅 처리
-        Meeting meeting = meetingRepository.findById(invitation.getMeetingId())
-                .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
-        
-        // 미팅이 꽉 찬 경우 체크
-        if (meeting.isMeetingFull()) {
-            throw new BaseException(MeetingResponseStatus.MEETING_FULL);
+        Meeting meeting = invitation.getMeeting();
+        if (meeting == null) {
+            throw new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND);
         }
         
         // 이미 참여한 사용자인지 체크
         if (participantRepository.existsByUserAndMeeting(user, meeting)) {
-            throw new BaseException(InvitationResponseStatus.INVITATION_ALREADY_JOINED);  // 이미 참여 중
+            throw new BaseException(InvitationResponseStatus.INVITATION_ALREADY_JOINED);
         }
         
-        // 참가자 추가
-        Participant participant = Participant.builder()
-                .user(user)
-                .meeting(meeting)
-                .build();
-        
-        participantRepository.save(participant);
-        meeting.addParticipant(participant);
-        
-        // 현재 참여자 수 업데이트
-        meeting.changeStatus(1);  // 1: 활성화
+        try {
+            // MeetingService를 통해 참가자 추가
+            meetingService.joinMeeting(meeting.getMeetingId(), userId);
+            
+            // 미팅을 활성화 상태로 변경
+            meeting.activateMeeting();
+        } catch (BaseException e) {
+            // MeetingService에서 발생한 예외를 InvitationResponseStatus로 변환
+            if (e.getStatus().equals(MeetingResponseStatus.MEETING_FULL)) {
+                throw new BaseException(MeetingResponseStatus.MEETING_FULL);
+            } else if (e.getStatus().equals(MeetingResponseStatus.ALREADY_JOINED)) {
+                throw new BaseException(InvitationResponseStatus.INVITATION_ALREADY_JOINED);
+            }
+            throw e;
+        }
     }
     
     /**

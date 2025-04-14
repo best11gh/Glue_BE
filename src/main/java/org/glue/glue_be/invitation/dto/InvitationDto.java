@@ -1,5 +1,7 @@
 package org.glue.glue_be.invitation.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,9 +14,10 @@ public class InvitationDto {
     @Getter
     @Setter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     public static class CreateRequest {
         private Integer maxUses;
-        private Integer expirationDays;
         private Integer expirationHours;
         private Long meetingId;
         private Long inviteeId;
@@ -44,7 +47,7 @@ public class InvitationDto {
             response.maxUses = invitation.getMaxUses();
             response.usedCount = invitation.getUsedCount();
             response.status = invitation.getStatus();
-            response.meetingId = invitation.getMeetingId();
+            response.meetingId = invitation.getMeeting() != null ? invitation.getMeeting().getMeetingId() : null;
             response.inviteeId = invitation.getInviteeId();
             return response;
         }

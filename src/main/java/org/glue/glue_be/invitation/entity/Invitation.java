@@ -3,6 +3,7 @@ package org.glue.glue_be.invitation.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
+import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 
 import java.time.LocalDateTime;
@@ -45,14 +46,14 @@ public class Invitation extends BaseEntity {
     private Long inviteeId; // 초대장을 수락할 수 있는 사용자 ID
     
     @Builder
-    private Invitation(String code, LocalDateTime expiresAt, Integer maxUses, User creator, Long meetingId, Long inviteeId) {
+    private Invitation(String code, LocalDateTime expiresAt, Integer maxUses, User creator, Meeting meeting, Long inviteeId) {
         this.code = code;
         this.expiresAt = expiresAt;
         this.maxUses = maxUses;
         this.creator = creator;
         this.usedCount = 0;
         this.status = 1;
-        this.meetingId = meetingId;
+        this.meeting = meeting;
         this.inviteeId = inviteeId;
     }
     

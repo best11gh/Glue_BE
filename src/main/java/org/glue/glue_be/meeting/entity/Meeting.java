@@ -116,6 +116,14 @@ public class Meeting extends BaseEntity {
         this.status = newStatus;
     }
 
+    /**
+     * 미팅을 활성화 상태로 변경합니다.
+     * 상태 코드 1은 활성화 상태를 의미합니다.
+     */
+    public void activateMeeting() {
+        this.status = 1; // 1: 활성화 상태
+    }
+
     public void addParticipant(Participant participant) {
         this.participants.add(participant);
         participant.updateMeeting(this);

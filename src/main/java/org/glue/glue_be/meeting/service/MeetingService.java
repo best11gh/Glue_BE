@@ -3,9 +3,6 @@ package org.glue.glue_be.meeting.service;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.common.response.BaseResponseStatus;
-import org.glue.glue_be.invitation.dto.InvitationDto;
-import org.glue.glue_be.invitation.response.InvitationResponseStatus;
-import org.glue.glue_be.invitation.service.InvitationService;
 import org.glue.glue_be.meeting.dto.MeetingDto;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -27,7 +24,6 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
-    private final InvitationService invitationService;
 
     /**
      * 모임 생성
@@ -75,40 +71,6 @@ public class MeetingService {
         return MeetingDto.CreateResponse.builder()
                 .meetingId(savedMeeting.getMeetingId())
                 .build();
-    }
-
-    /**
-     * 모임 초대장 생성
-     */
-    @Transactional
-    public InvitationDto.Response createMeetingInvitation(Long meetingId, Long inviteeId, Long creatorId) {
-        // 모임 존재 확인
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
-
-        // 초대할 사용자 존재 확인
-        User invitee = userRepository.findById(inviteeId)
-                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
-
-        // 초대 생성자가 모임의 호스트인지 확인
-        if (!meeting.isHost(creatorId)) {
-            throw new BaseException(MeetingResponseStatus.NOT_HOST_PERMISSION);
-        }
-
-        // 이미 참가자인지 확인
-        if (participantRepository.existsByUserAndMeeting(invitee, meeting)) {
-            throw new BaseException(InvitationResponseStatus.INVITATION_ALREADY_JOINED);
-        }
-
-        // 초대장 생성
-        InvitationDto.CreateRequest invitationRequest = new InvitationDto.CreateRequest();
-        invitationRequest.setMeetingId(meetingId);
-        invitationRequest.setMaxUses(1); // 1회용 초대장
-        invitationRequest.setExpirationDays(0); // 6시간 후 만료 (0.25일)
-        invitationRequest.setExpirationHours(6); // 6시간
-        invitationRequest.setInviteeId(inviteeId); // 초대된 사용자 ID 설정
-
-        return invitationService.createInvitation(invitationRequest, creatorId);
     }
 
     /**
