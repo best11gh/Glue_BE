@@ -70,7 +70,7 @@ public class Invitation extends BaseEntity {
     public boolean canBeUsedBy(Long userId) {
         return !isForSpecificUser() || inviteeId.equals(userId);
     }
-    
+    // 초대장을 여러 번 사용할 수도 있을 것 같아서, 최대 사용 횟수를 유연하게 조절할 수 있도록 코드를 짜둔 상태
     public void incrementUsedCount() {
         this.usedCount++;
         if (this.usedCount >= this.maxUses) {
