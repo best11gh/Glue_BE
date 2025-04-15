@@ -7,6 +7,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
+import org.glue.glue_be.user.entity.User;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +31,10 @@ public class Meeting extends BaseEntity {
 
     @OneToMany(mappedBy = "meeting")
     private List<Participant> participants = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "host_id", nullable = false)
+    private User host;
 
     @Column(name = "meeting_time", nullable = false)
     @Convert(converter = LocalDateTimeStringConverter.class)
@@ -65,7 +70,8 @@ public class Meeting extends BaseEntity {
                     Integer status,
                     Double meetingPlaceLatitude,
                     Double meetingPlaceLongitude,
-                    String meetingPlaceName) {
+                    String meetingPlaceName,
+                    User host) {
         this.meetingTitle = meetingTitle;
         this.meetingTime = meetingTime;
         this.currentParticipants = currentParticipants;
@@ -75,6 +81,7 @@ public class Meeting extends BaseEntity {
         this.meetingPlaceLatitude = meetingPlaceLatitude;
         this.meetingPlaceLongitude = meetingPlaceLongitude;
         this.meetingPlaceName = meetingPlaceName;
+        this.host = host;
         this.participants = new ArrayList<>();
     }
 
@@ -109,6 +116,14 @@ public class Meeting extends BaseEntity {
         this.status = newStatus;
     }
 
+    /**
+     * 미팅을 활성화 상태로 변경합니다.
+     * 상태 코드 1은 활성화 상태를 의미합니다.
+     */
+    public void activateMeeting() {
+        this.status = 1; // 1: 활성화 상태
+    }
+
     public void addParticipant(Participant participant) {
         this.participants.add(participant);
         participant.updateMeeting(this);
@@ -116,5 +131,9 @@ public class Meeting extends BaseEntity {
 
     public boolean isMeetingFull() {
         return this.participants.size() >= this.maxParticipants;
+    }
+    
+    public boolean isHost(Long userId) {
+        return this.host.getUserId().equals(userId);
     }
 }
