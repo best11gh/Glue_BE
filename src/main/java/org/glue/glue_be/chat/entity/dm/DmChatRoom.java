@@ -1,4 +1,4 @@
-package org.glue.glue_be.chat.entity;
+package org.glue.glue_be.chat.entity.dm;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -10,29 +10,29 @@ import java.util.List;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "chatroom")
-public class ChatRoom extends BaseEntity {
+@Table(name = "dm_chatroom")
+public class DmChatRoom extends BaseEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "chatroom_id")
-	private Long chatRoomId;
+	@Column(name = "dm_chatroom_id")
+	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "meeting_id", nullable = false)
 	private Meeting meeting;
 
-	@OneToMany(mappedBy = "chatRoom")
-	private List<UserChatroom> userChatrooms = new ArrayList<>();
+	@OneToMany(mappedBy = "dmChatRoom")
+	private List<DmUserChatroom> dmUserChatrooms = new ArrayList<>();
 
 	@Builder
-	public ChatRoom(Meeting meeting){
+	public DmChatRoom(Meeting meeting){
 		this.meeting = meeting;
 	}
 
-	public void addUserChatroom(UserChatroom userChatroom){
-		this.userChatrooms.add(userChatroom);
-		userChatroom.updateChatRoom(this);
+	public void addUserChatroom(DmUserChatroom dmUserChatroom){
+		this.dmUserChatrooms.add(dmUserChatroom);
+		dmUserChatroom.updateChatRoom(this);
 	}
 
 }

@@ -1,4 +1,4 @@
-package org.glue.glue_be.chat.entity;
+package org.glue.glue_be.chat.entity.dm;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,29 +8,29 @@ import org.glue.glue_be.user.entity.User;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "user_chatroom")
-public class UserChatroom extends BaseEntity {
+@Table(name = "dm_user_chatroom")
+public class DmUserChatroom extends BaseEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "user_chatroom_id")
-	private Long userChatroomId;
+	@Column(name = "dm_user_chatroom_id")
+	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "chatRoom_id", nullable = false)
-	private ChatRoom chatRoom;
+	@JoinColumn(name = "dm_chatroom_id", nullable = false)
+	private DmChatRoom dmChatRoom;
 
 	@Builder
-	private UserChatroom(User user, ChatRoom chatRoom){
+	private DmUserChatroom(User user, DmChatRoom dmChatRoom){
 		this.user = user;
-		this.chatRoom = chatRoom;
+		this.dmChatRoom = dmChatRoom;
 	}
 
 	void updateUser(User user){ this.user = user; }
 
-	void updateChatRoom(ChatRoom chatRoom) { this.chatRoom = chatRoom; }
+	void updateChatRoom(DmChatRoom dmChatRoom) { this.dmChatRoom = dmChatRoom; }
 }
