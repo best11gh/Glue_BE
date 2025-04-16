@@ -26,15 +26,15 @@ public class Meeting extends BaseEntity {
     @Column(name = "meeting_id", nullable = false, updatable = false)
     private Long meetingId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "host_id", nullable = false)
+    private User host;
+
     @Column(name = "meeting_title", nullable = false)
     private String meetingTitle;
 
     @OneToMany(mappedBy = "meeting")
     private List<Participant> participants = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "host_id", nullable = false)
-    private User host;
 
     @Column(name = "meeting_time", nullable = false)
     @Convert(converter = LocalDateTimeStringConverter.class)
@@ -62,7 +62,8 @@ public class Meeting extends BaseEntity {
     private String meetingPlaceName;
 
     @Builder
-    private Meeting(String meetingTitle,
+    private Meeting(User host,
+                    String meetingTitle,
                     LocalDateTime meetingTime,
                     Integer currentParticipants,
                     Integer minParticipants,
@@ -70,8 +71,8 @@ public class Meeting extends BaseEntity {
                     Integer status,
                     Double meetingPlaceLatitude,
                     Double meetingPlaceLongitude,
-                    String meetingPlaceName,
-                    User host) {
+                    String meetingPlaceName) {
+        this.host = host;
         this.meetingTitle = meetingTitle;
         this.meetingTime = meetingTime;
         this.currentParticipants = currentParticipants;
@@ -81,7 +82,6 @@ public class Meeting extends BaseEntity {
         this.meetingPlaceLatitude = meetingPlaceLatitude;
         this.meetingPlaceLongitude = meetingPlaceLongitude;
         this.meetingPlaceName = meetingPlaceName;
-        this.host = host;
         this.participants = new ArrayList<>();
     }
 
@@ -132,7 +132,7 @@ public class Meeting extends BaseEntity {
     public boolean isMeetingFull() {
         return this.participants.size() >= this.maxParticipants;
     }
-    
+
     public boolean isHost(Long userId) {
         return this.host.getUserId().equals(userId);
     }
