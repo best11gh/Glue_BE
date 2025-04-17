@@ -43,3 +43,4 @@ out/
 
 ### application property ###
 *.yml
+!/src/main/resources/key/
