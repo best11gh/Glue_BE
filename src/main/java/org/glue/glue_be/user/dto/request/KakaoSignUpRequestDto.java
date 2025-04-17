@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @Getter
 public class KakaoSignUpRequestDto {
 
-	private Long oauthId;
+	private String oauthId;
 
 	private String userName;
 
