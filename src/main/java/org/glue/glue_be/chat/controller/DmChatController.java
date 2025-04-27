@@ -27,7 +27,7 @@ public class DmChatController {
     private final SimpMessagingTemplate messagingTemplate;
 
     // Dm 채팅방 생성
-    @PostMapping("/create")
+    @PostMapping("/rooms/create")
     public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request) {
         DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request);
         return ResponseEntity.status(result.getStatus().getCode()).body(result);
@@ -58,7 +58,7 @@ public class DmChatController {
     }
 
     // Dm방 나가기
-    @DeleteMapping("/{dmChatRoomId}/leave")
+    @DeleteMapping("/rooms/{dmChatRoomId}/leave")
     public ResponseEntity<List<DmActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @RequestParam Long userId
     ) {
         List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, userId);
