@@ -20,7 +20,7 @@ public record AppleSignUpRequestDto(
         @Past(message = "생년월일은 과거 날짜여야 합니다.")
         LocalDate birthDate,
 
-        @NotNull(message = "국기는 필수 입력값입니다.")
+        @NotNull(message = "국가는 필수 입력값입니다.")
         Integer nation,
 
         @NotBlank(message = "한마디는 필수 입력값입니다.")
