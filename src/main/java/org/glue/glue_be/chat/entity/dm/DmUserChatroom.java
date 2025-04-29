@@ -24,13 +24,21 @@ public class DmUserChatroom extends BaseEntity {
 	@JoinColumn(name = "dm_chatroom_id", nullable = false)
 	private DmChatRoom dmChatRoom;
 
+	@Column(name = "push_notification_on", nullable = false)
+	private Integer pushNotificationOn = 1;
+
 	@Builder
 	private DmUserChatroom(User user, DmChatRoom dmChatRoom){
 		this.user = user;
 		this.dmChatRoom = dmChatRoom;
+		this.pushNotificationOn = pushNotificationOn != null ? pushNotificationOn : 1;
 	}
 
 	void updateUser(User user){ this.user = user; }
 
 	void updateChatRoom(DmChatRoom dmChatRoom) { this.dmChatRoom = dmChatRoom; }
+
+	public void updatePushNotification(Integer pushNotificationOn) {
+		this.pushNotificationOn = pushNotificationOn;
+	}
 }
