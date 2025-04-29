@@ -8,6 +8,7 @@ import org.glue.glue_be.common.BaseEntity;
 @Entity
 @Table(name = "profile_image")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class ProfileImage extends BaseEntity {
 
     @Id
