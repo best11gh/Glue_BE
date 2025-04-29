@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>양방향 WebSocket DM 및 읽음 상태 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .user-panel {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        h1, h2, h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .message-input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        button {
+            padding: 10px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.blue {
+            background-color: #2196F3;
+        }
+        button.blue:hover {
+            background-color: #0b7dda;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .messages {
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            position: relative;
+            max-width: 80%;
+            word-break: break-word;
+        }
+        .sent {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            text-align: right;
+        }
+        .received {
+            background-color: #f5f5f5;
+            margin-right: auto;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 4px;
+        }
+        .read-status {
+            font-size: 0.8em;
+            color: #4CAF50;
+            margin-top: 2px;
+        }
+        .unread {
+            position: relative;
+        }
+        .unread::after {
+            content: "1";
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .log-panel {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            height: 150px;
+            overflow-y: auto;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .buttons-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+            background-color: #ccc;
+        }
+        .status-online {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+<h1>양방향 WebSocket DM 및 읽음 상태 테스트 (2번 채팅방)</h1>
+
+<div class="container">
+    <!-- 사용자 1번 패널 -->
+    <div class="user-panel">
+        <h2><span id="status1" class="status-indicator"></span> 사용자 1번</h2>
+        <textarea id="messageInput1" class="message-input" placeholder="메시지를 입력하세요..."></textarea>
+        <div class="buttons-row">
+            <button id="sendButton1" onclick="sendMessage(1, 3)">3번 사용자에게 보내기</button>
+            <button id="toggleButton1" class="blue" onclick="toggleUserStatus(1)">접속 상태 전환</button>
+        </div>
+        <div id="messages1" class="messages"></div>
+    </div>
+
+    <!-- 사용자 3번 패널 -->
+    <div class="user-panel">
+        <h2><span id="status3" class="status-indicator"></span> 사용자 3번</h2>
+        <textarea id="messageInput3" class="message-input" placeholder="메시지를 입력하세요..."></textarea>
+        <div class="buttons-row">
+            <button id="sendButton3" onclick="sendMessage(3, 1)">1번 사용자에게 보내기</button>
+            <button id="toggleButton3" class="blue" onclick="toggleUserStatus(3)">접속 상태 전환</button>
+        </div>
+        <div id="messages3" class="messages"></div>
+    </div>
+</div>
+
+<div class="log-panel">
+    <h3>이벤트 로그</h3>
+    <div id="eventLog"></div>
+</div>
+
+<script>
+    // 웹소켓 및 STOMP 클라이언트
+    let socket = null;
+    let stompClient = null;
+
+    // 각 사용자의 웹소켓 연결 상태
+    const userConnections = {
+        1: false,
+        3: false
+    };
+
+    // 각 사용자의 메시지 저장소
+    const messagesStore = {
+        1: [],
+        3: []
+    };
+
+    // 디버그 로그 비활성화 함수
+    function disableStompDebug() {
+        if (stompClient) {
+            stompClient.debug = null;
+        }
+    }
+
+    function logEvent(message) {
+        const logDiv = document.getElementById('eventLog');
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+
+        const timestamp = new Date();
+        const timeStr = `${timestamp.getHours()}:${String(timestamp.getMinutes()).padStart(2, '0')}:${String(timestamp.getSeconds()).padStart(2, '0')}`;
+
+        logEntry.textContent = `[${timeStr}] ${message}`;
+        logDiv.appendChild(logEntry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // 사용자 상태 업데이트 (UI만 변경)
+    function updateStatusIndicator(userId, isConnected) {
+        const indicator = document.getElementById(`status${userId}`);
+        if (isConnected) {
+            indicator.classList.add('status-online');
+        } else {
+            indicator.classList.remove('status-online');
+        }
+
+        // 버튼과 입력창 상태 업데이트
+        document.getElementById(`sendButton${userId}`).disabled = !isConnected;
+        document.getElementById(`messageInput${userId}`).disabled = !isConnected;
+    }
+
+    // 오프라인 메시지 저장소
+    const offlineMessages = {
+        1: [],
+        3: []
+    };
+
+    // 웹소켓 연결 초기화
+    function initializeConnection(userId) {
+        // 이미 연결된 경우 종료
+        if (userConnections[userId]) return;
+
+        logEvent(`${userId}번 사용자 WebSocket 연결 시도...`);
+
+        // 새 SockJS 인스턴스 생성
+        socket = new SockJS("/ws");
+        stompClient = Stomp.over(socket);
+        disableStompDebug();
+
+        stompClient.connect({}, function(frame) {
+            userConnections[userId] = true;
+            updateStatusIndicator(userId, true);
+            logEvent(`${userId}번 사용자 WebSocket 연결 성공`);
+
+            // 사용자별 메시지 구독
+            stompClient.subscribe(`/queue/dm/${userId}`, function(message) {
+                const data = JSON.parse(message.body);
+                logEvent(`${data.senderId}번 사용자가 ${userId}번 사용자에게 메시지 전송: "${data.content}"`);
+
+                // 메시지 저장소에 추가
+                messagesStore[userId].push({
+                    id: data.dmMessageId,
+                    sender: data.senderId,
+                    content: data.content,
+                    timestamp: data.createdAt || new Date().toISOString(),
+                    isRead: data.isRead || false
+                });
+
+                displayMessage(userId, data, false);
+
+                // 읽음 처리
+                setTimeout(() => {
+                    markAsRead(userId);
+                }, 1000);
+            });
+
+            // 읽음 상태 업데이트 구독
+            stompClient.subscribe(`/queue/dm/read/${userId}`, function(message) {
+                const data = JSON.parse(message.body);
+                const readMessages = data.readMessages || [];
+
+                const otherUserId = userId === 1 ? 3 : 1;
+                logEvent(`${otherUserId}번 사용자가 ${userId}번 사용자의 메시지 ${readMessages.length}개를 읽었습니다.`);
+
+                updateReadStatus(userId, data);
+            });
+
+            // 접속 시 자동으로 읽음 처리 요청 전송
+            markAsRead(userId);
+
+            // 오프라인 상태에서 받은 메시지가 있다면 표시
+            if (offlineMessages[userId].length > 0) {
+                logEvent(`${userId}번 사용자가 오프라인 상태에서 받은 메시지 ${offlineMessages[userId].length}개를 표시합니다.`);
+
+                // 오프라인 메시지 표시
+                offlineMessages[userId].forEach(msg => {
+                    displayMessage(userId, msg, false);
+
+                    // 메시지 저장소에 추가
+                    messagesStore[userId].push({
+                        id: msg.dmMessageId,
+                        sender: msg.senderId,
+                        content: msg.content,
+                        timestamp: msg.createdAt || new Date().toISOString(),
+                        isRead: false
+                    });
+                });
+
+                // 오프라인 메시지 저장소 비우기
+                offlineMessages[userId] = [];
+
+                // 모든 메시지 읽음 처리
+                setTimeout(() => {
+                    markAsRead(userId);
+                }, 1000);
+            }
+        }, function(error) {
+            logEvent(`${userId}번 사용자 WebSocket 연결 실패: ${error}`);
+            userConnections[userId] = false;
+            updateStatusIndicator(userId, false);
+        });
+    }
+
+    // 웹소켓 연결 끊기
+    function disconnectWebSocket(userId) {
+        if (!userConnections[userId] || !stompClient) return;
+
+        stompClient.disconnect(function() {
+            logEvent(`${userId}번 사용자 WebSocket 연결 해제`);
+            userConnections[userId] = false;
+            updateStatusIndicator(userId, false);
+        });
+    }
+
+    // 사용자 상태 토글 (실제 연결/연결해제)
+    function toggleUserStatus(userId) {
+        if (userConnections[userId]) {
+            // 연결 해제
+            disconnectWebSocket(userId);
+
+            // 읽지 않은 메시지 정보 업데이트 (UI에만 표시)
+            if (offlineMessages[userId].length > 0) {
+                const unreadCount = offlineMessages[userId].length;
+                logEvent(`${userId}번 사용자: 오프라인 상태에서 ${unreadCount}개의 읽지 않은 메시지가 있습니다.`);
+
+                // 상태 표시에 읽지 않은 메시지 표시
+                const indicator = document.getElementById(`status${userId}`);
+                indicator.setAttribute('title', `읽지 않은 메시지 ${unreadCount}개`);
+            }
+        } else {
+            // 연결
+            initializeConnection(userId);
+        }
+    }
+
+    function sendMessage(senderId, receiverId) {
+        const inputElement = document.getElementById(`messageInput${senderId}`);
+        const content = inputElement.value.trim();
+
+        if (!content) {
+            alert("메시지를 입력해주세요!");
+            return;
+        }
+
+        // 연결이 없으면 메시지를 보낼 수 없음
+        if (!userConnections[senderId]) {
+            alert("접속 상태가 아닙니다. 먼저 접속해주세요!");
+            return;
+        }
+
+        // 메시지 객체 생성
+        let msg = {
+            senderId: senderId,
+            content: content
+        };
+
+        // 채팅방 ID를 사용하여 메시지 전송
+        stompClient.send("/app/dm/2/sendMessage", {}, JSON.stringify(msg));
+
+        logEvent(`${senderId}번 사용자가 ${receiverId}번 사용자에게 메시지 전송: "${content}"`);
+
+        // 임시 메시지 ID 생성 (실제로는 서버에서 할당)
+        const tempId = Date.now();
+
+        const messageObj = {
+            dmMessageId: tempId,
+            senderId: senderId,
+            content: content,
+            createdAt: new Date().toISOString(),
+            isRead: false
+        };
+
+        // 저장소에 추가
+        messagesStore[senderId].push({
+            id: tempId,
+            sender: senderId,
+            content: content,
+            timestamp: new Date().toISOString(),
+            isRead: false
+        });
+
+        // 보낸 메시지 표시
+        displayMessage(senderId, messageObj, true);
+
+        // 입력창 초기화
+        inputElement.value = '';
+
+        // 상대방이 오프라인 상태인 경우 오프라인 메시지 저장소에 저장
+        if (!userConnections[receiverId]) {
+            logEvent(`${receiverId}번 사용자가 오프라인 상태입니다. 메시지를 저장합니다.`);
+            offlineMessages[receiverId].push(messageObj);
+        }
+    }
+
+    function markAsRead(userId) {
+        // 연결이 없으면 읽음 처리를 할 수 없음
+        if (!userConnections[userId]) return;
+
+        // 읽음 처리 요청 전송
+        const request = {
+            receiverId: userId
+        };
+
+        stompClient.send(`/app/dm/2/readMessage`, {}, JSON.stringify(request));
+        logEvent(`${userId}번 사용자가 모든 메시지 읽음 처리 요청`);
+    }
+
+    function updateReadStatus(userId, readStatusData) {
+        // 읽음 상태가 업데이트된 메시지들
+        const readMessages = readStatusData.readMessages;
+        if (!readMessages || readMessages.length === 0) return;
+
+        // 저장소 업데이트
+        readMessages.forEach(msg => {
+            const msgId = msg.dmMessageId;
+
+            // 저장소에서 메시지 찾기
+            const storedMsg = messagesStore[userId].find(m => m.id === msgId);
+            if (storedMsg) {
+                storedMsg.isRead = true;
+            }
+
+            // UI 업데이트
+            const msgElement = document.querySelector(`#messages${userId} [data-msg-id="${msgId}"]`);
+            if (msgElement) {
+                // 읽음 표시 추가
+                const readStatusEl = msgElement.querySelector('.read-status');
+                if (readStatusEl) {
+                    readStatusEl.textContent = '읽음';
+                    readStatusEl.style.display = 'block';
+                }
+
+                // 읽지 않음 표시 제거
+                msgElement.classList.remove('unread');
+            }
+        });
+    }
+
+    function displayMessage(userId, message, isSent) {
+        const messagesDiv = document.getElementById(`messages${userId}`);
+        const messageElement = document.createElement("div");
+        const messageId = message.dmMessageId || Date.now(); // 메시지 ID가 없으면 임시로 생성
+
+        // 메시지가 보낸 것인지 받은 것인지에 따라 클래스 추가
+        messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
+        if (isSent && !message.isRead) {
+            messageElement.classList.add('unread');
+        }
+
+        // 메시지 ID 속성 추가
+        messageElement.setAttribute('data-msg-id', messageId);
+
+        // 메시지 내용
+        const contentElement = document.createElement("div");
+        contentElement.textContent = message.content;
+        messageElement.appendChild(contentElement);
+
+        // 시간 표시
+        const timestampElement = document.createElement("div");
+        timestampElement.className = "timestamp";
+        const msgTime = message.createdAt ? new Date(message.createdAt) : new Date();
+        timestampElement.textContent = `${msgTime.getHours()}:${String(msgTime.getMinutes()).padStart(2, '0')}:${String(msgTime.getSeconds()).padStart(2, '0')}`;
+        messageElement.appendChild(timestampElement);
+
+        // 읽음 상태 표시 (보낸 메시지에만 표시)
+        if (isSent) {
+            const readStatusElement = document.createElement("div");
+            readStatusElement.className = "read-status";
+            readStatusElement.textContent = message.isRead ? "읽음" : "";
+            readStatusElement.style.display = message.isRead ? "block" : "none";
+            messageElement.appendChild(readStatusElement);
+        }
+
+        messagesDiv.appendChild(messageElement);
+
+        // 스크롤을 최신 메시지로 이동
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Enter 키로 메시지 보내기
+    document.getElementById('messageInput1').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage(1, 3);
+        }
+    });
+
+    document.getElementById('messageInput3').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage(3, 1);
+        }
+    });
+
+    // 페이지 로드 시 초기 상태 설정
+    window.onload = function() {
+        // 초기 상태는 연결되지 않음
+        updateStatusIndicator(1, false);
+        updateStatusIndicator(3, false);
+    };
+</script>
+</body>
+</html>
