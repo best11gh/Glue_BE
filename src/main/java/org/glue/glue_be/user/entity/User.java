@@ -54,6 +54,9 @@ public class User extends BaseEntity {
     @Column(name = "major_visibility", nullable = false)
     private Integer majorVisibility;
 
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private ProfileImage profileImage;
+
 
     @Builder
     public User(UUID uuid, Long oauthId, String userName, String nickname, Integer gender, LocalDate birth,
