@@ -235,7 +235,15 @@ public class DmChatService {
 
     // websocket: Dm 전송
     @Transactional
-    public DmMessageResponse saveDmMessage(Long dmChatRoomId, DmMessageSendRequest request) {
+    public void processDmMessage(Long dmChatRoomId, DmMessageSendRequest request) {
+        // 1. 메시지 저장
+        DmMessageResponse message = saveDmMessage(dmChatRoomId, request);
+
+        // 2. 메시지 전송
+        sendDmMessageToParticipants(dmChatRoomId, message, request.getSenderId());
+    }
+
+    private DmMessageResponse saveDmMessage(Long dmChatRoomId, DmMessageSendRequest request) {
         DmChatRoom dmChatRoom = dmChatRoomRepository.findById(dmChatRoomId)
                 .orElseThrow(() -> new ChatException("채팅방을 찾을 수 없습니다."));
 
@@ -258,6 +266,18 @@ public class DmChatService {
 
         // 응답 생성
         return responseMapper.toMessageResponse(dmMessage);
+    }
+
+    private void sendDmMessageToParticipants(Long dmChatRoomId, DmMessageResponse message, Long senderId) {
+        // 채팅방의 상세 정보 조회
+        DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(dmChatRoomId);
+
+        // 발신자를 제외한 참여자들에게 메시지 전송
+        for (DmChatRoomDetailResponse.ChatUserResponse participant : chatRoom.getParticipants()) {
+            if (!participant.getUserId().equals(senderId)) {
+                messagingTemplate.convertAndSend("/queue/dm/" + participant.getUserId(), message);
+            }
+        }
     }
 
     // websocket: 실시간 읽음 처리

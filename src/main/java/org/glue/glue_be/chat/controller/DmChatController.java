@@ -76,17 +76,7 @@ public class DmChatController {
     // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
     @MessageMapping("/dm/{dmChatRoomId}/sendMessage")
     public void sendDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageSendRequest request) {
-
-        DmMessageResponse message = dmChatService.saveDmMessage(dmChatRoomId, request);
-
-        // 1:1 채팅이므로 특정 사용자들에게만 메시지 전송
-        // 수신자에게 (채팅방의 다른 참여자)
-        DmChatRoomDetailResponse chatRoom = dmChatService.getDmChatRoomDetail(dmChatRoomId);
-        for (DmChatRoomDetailResponse.ChatUserResponse participant : chatRoom.getParticipants()) {
-            if (!participant.getUserId().equals(request.getSenderId())) {
-                messagingTemplate.convertAndSend("/queue/dm/" + participant.getUserId(), message);
-            }
-        }
+        dmChatService.processDmMessage(dmChatRoomId, request);
     }
 
     // Websocket: Dm창 동시 접속 시 곧바로 읽음 처리
