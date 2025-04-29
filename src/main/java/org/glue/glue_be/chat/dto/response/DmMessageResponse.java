@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.glue.glue_be.common.dto.UserSummary;
 
 import java.time.LocalDateTime;
 
@@ -14,8 +15,7 @@ import java.time.LocalDateTime;
 public class DmMessageResponse {
     private Long dmMessageId;
     private Long dmChatRoomId;
-    private Long senderId;
-    private String senderName;
+    private UserSummary sender;
     private String content;
     private Integer isRead;
     private LocalDateTime createdAt;

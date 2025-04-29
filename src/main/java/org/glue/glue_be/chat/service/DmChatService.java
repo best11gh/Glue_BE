@@ -11,6 +11,7 @@ import org.glue.glue_be.chat.exception.ChatException;
 import org.glue.glue_be.chat.repository.dm.DmChatRoomRepository;
 import org.glue.glue_be.chat.repository.dm.DmMessageRepository;
 import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
+import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.meeting.repository.ParticipantRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -100,9 +101,14 @@ public class DmChatService {
         );
     }
 
-    // Dm 채팅방 상세 정보 조회
-    @Transactional(readOnly = true)
+    // Dm 채팅방 상세 정보 조회: 알림 정보 필요없을 때
     public DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId) {
+        return getDmChatRoomDetail(dmChatRoomId, Optional.empty());
+    }
+
+    // Dm 채팅방 상세 정보 조회: 알림 정보 필요할 때
+    @Transactional(readOnly = true)
+    public DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId, Optional<Long> userId) {
         // 채팅방 ID로 dm방 조회 (없으면 예외 발생)
         DmChatRoom dmChatRoom = dmChatRoomRepository.findById(dmChatRoomId)
                 .orElseThrow(() -> new ChatException("채팅방을 찾을 수 없습니다."));
@@ -111,7 +117,7 @@ public class DmChatService {
         List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(dmChatRoom);
 
         // 응답 생성
-        return responseMapper.toChatRoomDetailResponse(dmChatRoom, participants);
+        return responseMapper.toChatRoomDetailResponse(dmChatRoom, participants, userId.orElse(null));
     }
 
     // 내가 호스트인 DM 채팅방 목록 조회
@@ -273,7 +279,7 @@ public class DmChatService {
         DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(dmChatRoomId);
 
         // 발신자를 제외한 참여자들에게 메시지 전송
-        for (DmChatRoomDetailResponse.ChatUserResponse participant : chatRoom.getParticipants()) {
+        for (UserSummary participant : chatRoom.getParticipants()) {
             if (!participant.getUserId().equals(senderId)) {
                 messagingTemplate.convertAndSend("/queue/dm/" + participant.getUserId(), message);
             }
@@ -322,7 +328,7 @@ public class DmChatService {
 
             // 메시지 발신자에게 WebSocket을 통해 읽음 상태 변경 정보 전송
             // 이는 발신자의 UI에서 메시지 읽음 표시를 업데이트하기 위함
-            for (DmChatRoomDetailResponse.ChatUserResponse participant : chatRoom.getParticipants()) {
+            for (UserSummary participant : chatRoom.getParticipants()) {
                 if (!participant.getUserId().equals(receiverId)) {
                     DmReadStatusUpdateResponse readStatus = new DmReadStatusUpdateResponse(
                             dmChatRoomId, receiverId, updatedMessages

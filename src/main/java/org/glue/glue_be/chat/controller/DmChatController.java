@@ -17,6 +17,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/dm")
@@ -33,11 +34,10 @@ public class DmChatController {
         return ResponseEntity.status(result.getStatus().getCode()).body(result);
     }
 
-    // Dm 채팅방 상세 정보 조회
-    // TODO: 필요한지 좀 더 생각해보기
+    // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 참여자 정보 확인 가능)
     @GetMapping("/rooms/{dmChatRoomId}")
-    public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId) {
-        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId);
+    public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @RequestParam Long userId) {
+        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(userId));
         return ResponseEntity.ok(response);
     }
 

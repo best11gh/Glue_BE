@@ -1,4 +1,4 @@
-package org.glue.glue_be.chat.dto.response;
+package org.glue.glue_be.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatUser {
+public class UserSummary {
     private Long userId;
     private String userName;
     private String profileImageUrl;
