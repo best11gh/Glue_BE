@@ -1,4 +1,4 @@
-package org.glue.glue_be.user.dto.request;
+package org.glue.glue_be.auth.dto.request;
 
 
 import lombok.Getter;

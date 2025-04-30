@@ -1,4 +1,4 @@
-package org.glue.glue_be.user.dto.response;
+package org.glue.glue_be.auth.dto.response;
 
 
 import lombok.AllArgsConstructor;

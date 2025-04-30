@@ -1,4 +1,4 @@
-package org.glue.glue_be.common.config;
+package org.glue.glue_be.auth.config;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -1,12 +1,10 @@
-package org.glue.glue_be.user.service;
+package org.glue.glue_be.auth.service;
 
 
 import io.netty.handler.codec.http.HttpHeaderValues;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.glue.glue_be.common.exception.BaseException;
-import org.glue.glue_be.common.response.BaseResponseStatus;
-import org.glue.glue_be.user.dto.response.KakaoUserInfoResponseDto;
+import org.glue.glue_be.auth.dto.response.KakaoUserInfoResponseDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;

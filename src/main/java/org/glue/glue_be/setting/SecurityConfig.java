@@ -2,7 +2,7 @@ package org.glue.glue_be.setting;
 
 
 import lombok.RequiredArgsConstructor;
-import org.glue.glue_be.common.jwt.JwtAuthenticationFilter;
+import org.glue.glue_be.auth.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
