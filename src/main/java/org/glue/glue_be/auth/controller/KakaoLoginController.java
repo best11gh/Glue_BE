@@ -1,16 +1,15 @@
-package org.glue.glue_be.user.controller;
+package org.glue.glue_be.auth.controller;
 
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.response.BaseResponse;
-import org.glue.glue_be.user.dto.request.KakaoSignInRequestDto;
-import org.glue.glue_be.user.dto.response.KakaoSignInResponseDto;
-import org.glue.glue_be.user.dto.request.KakaoSignUpRequestDto;
-import org.glue.glue_be.user.dto.response.KakaoSignUpResponseDto;
-import org.glue.glue_be.user.dto.response.KakaoUserInfoResponseDto;
-import org.glue.glue_be.user.service.AuthService;
-import org.glue.glue_be.user.service.KakaoService;
+import org.glue.glue_be.auth.dto.request.KakaoSignInRequestDto;
+import org.glue.glue_be.auth.dto.response.KakaoSignInResponseDto;
+import org.glue.glue_be.auth.dto.request.KakaoSignUpRequestDto;
+import org.glue.glue_be.auth.dto.response.KakaoSignUpResponseDto;
+import org.glue.glue_be.auth.service.AuthService;
+import org.glue.glue_be.auth.service.KakaoService;
 import org.springframework.web.bind.annotation.*;
 
 

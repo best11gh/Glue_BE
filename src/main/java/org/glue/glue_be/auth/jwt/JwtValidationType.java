@@ -1,4 +1,4 @@
-package org.glue.glue_be.common.jwt;
+package org.glue.glue_be.auth.jwt;
 
 
 public enum JwtValidationType {

@@ -1,4 +1,4 @@
-package org.glue.glue_be.common.config;
+package org.glue.glue_be.auth.config;
 
 import org.springframework.context.annotation.*;
 import org.springframework.http.*;

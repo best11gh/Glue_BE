@@ -1,4 +1,4 @@
-package org.glue.glue_be.user.service;
+package org.glue.glue_be.auth.service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.*;
@@ -24,10 +24,11 @@ import org.apache.commons.io.*;
 import org.bouncycastle.asn1.pkcs.*;
 import org.bouncycastle.openssl.jcajce.*;
 
-import org.glue.glue_be.common.config.*;
+import org.glue.glue_be.auth.config.AppleProperties;
+import org.glue.glue_be.auth.dto.response.AppleSocialTokenInfoResponseDto;
+import org.glue.glue_be.auth.dto.response.AppleUserInfoResponseDto;
 import org.glue.glue_be.common.exception.*;
 import org.glue.glue_be.common.response.*;
-import org.glue.glue_be.user.dto.response.*;
 
 import lombok.extern.slf4j.*;
 

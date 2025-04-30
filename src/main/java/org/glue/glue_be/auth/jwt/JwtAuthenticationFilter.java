@@ -1,4 +1,4 @@
-package org.glue.glue_be.common.jwt;
+package org.glue.glue_be.auth.jwt;
 
 
 import jakarta.servlet.FilterChain;
@@ -15,7 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-import static org.glue.glue_be.common.jwt.JwtValidationType.VALID_JWT;
+import static org.glue.glue_be.auth.jwt.JwtValidationType.VALID_JWT;
 
 
 
