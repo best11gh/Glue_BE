@@ -23,7 +23,7 @@ public class User extends BaseEntity {
     private UUID uuid;
 
     @Column(name = "oauth_id", nullable = false, unique = true)
-    private Long oauthId;
+    private String oauthId;
 
     @Column(name = "user_name", nullable = false, length = 20)
     private String userName;
@@ -59,7 +59,7 @@ public class User extends BaseEntity {
 
 
     @Builder
-    public User(UUID uuid, Long oauthId, String userName, String nickname, Integer gender, LocalDate birth,
+    public User(UUID uuid, String oauthId, String userName, String nickname, Integer gender, LocalDate birth,
                 Integer nation, String description, Integer certified, Integer major, Integer majorVisibility) {
         this.uuid = uuid;
         this.oauthId = oauthId;
