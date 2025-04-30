@@ -86,7 +86,7 @@ public class AppleService {
         return response.getBody();
     }
 
-    public void verifyIdentityToken(String idToken) {
+    private void verifyIdentityToken(String idToken) {
         SignedJWT signedJWT = parseToken(idToken);
         JWTClaimsSet claims = extractClaims(signedJWT);
 
