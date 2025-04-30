@@ -33,10 +33,11 @@ import lombok.extern.slf4j.*;
 
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.core.io.*;
-import org.springframework.http.*;
 import org.springframework.stereotype.*;
-
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
 
 
 @Slf4j
@@ -46,12 +47,12 @@ public class AppleService {
 //    private static final String NONCE = "20B20D-0S8-1K8"; // TODO: 프론트 쪽과 협의 필요 (지금은 임시 값)
 
     private final AppleProperties appleProperties;
-    private final SocialConfig socialConfig;
+    private final WebClient webClient;
 
     @Autowired
-    public AppleService(AppleProperties appleProperties, SocialConfig socialConfig) {
+    public AppleService(AppleProperties appleProperties, WebClient webClient) {
         this.appleProperties = appleProperties;
-        this.socialConfig = socialConfig;
+        this.webClient = webClient;
     }
 
 
@@ -67,23 +68,18 @@ public class AppleService {
     }
 
     private AppleSocialTokenInfoResponseDto requestToken(String code) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.valueOf(APPLICATION_FORM_URLENCODED_VALUE));
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("client_id", appleProperties.getAud());
+        formData.add("client_secret", generateClientSecret());
+        formData.add("grant_type", appleProperties.getGrantType());
+        formData.add("code", code);
 
-        String requestBody = "client_id=" + appleProperties.getAud()
-                + "&client_secret=" + generateClientSecret()
-                + "&grant_type=" + appleProperties.getGrantType()
-                + "&code=" + code;
-
-        HttpEntity<String> request = new HttpEntity<>(requestBody, headers);
-
-        ResponseEntity<AppleSocialTokenInfoResponseDto> response = socialConfig.restTemplate().exchange(
-                appleProperties.getAuth().getTokenUrl(),
-                HttpMethod.POST,
-                request,
-                AppleSocialTokenInfoResponseDto.class);
-
-        return response.getBody();
+        return webClient.post()
+                .body(BodyInserters.fromFormData(formData))
+                .retrieve()
+                .bodyToMono(AppleSocialTokenInfoResponseDto.class)
+                .doOnError(e -> log.error("애플 토큰 요청 실패", e))
+                .block();
     }
 
     private void verifyIdentityToken(String idToken) {
