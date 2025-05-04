@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -42,21 +43,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			if (jwtTokenProvider.validateToken(token) == VALID_JWT) {
 
 				// 2-1. 토큰에서 유저 PK값 추출
-				Long memberId = jwtTokenProvider.getUserFromJwt(token);
+				Long userOauthId = jwtTokenProvider.getUserFromJwt(token);
 
-				// 2-2. authentication 객체 생성 -> principal에 유저정보를 담는다.
-				UserAuthentication authentication = new UserAuthentication(memberId.toString(), null, null);
-				authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+				// 2-2. 유저정보를 담는 객체를 만들기 위해 userDetails 인터페이스에 따른 커스텀 객체를 초기화합니다.
+				CustomUserDetails userDetails = new CustomUserDetails(userOauthId);
 
-				// 2-3. 유저 정보를 담은 authentication 객체를 이후 필터, 컨트롤러에서 인식하게 spring security context에 넣는다.
-				SecurityContextHolder.getContext().setAuthentication(authentication);
+				// 유저 핵심정보를 넣는 principal은 추후 컨트롤러의 @AuthenticationPrincipal로 받게되는 타입이 됩니다.
+				// 따라서 우리가 컨트롤러에서 해당 어노테이션을 붙인 값의 타입은 CustomUserDetails가 돼야합니다! <- 2시간 시간 날린 원인
+				UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+					userDetails, null, null
+				);
+				auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+				// 2-3. 유저 정보를 담은 auth 객체를 이후 필터, 컨트롤러에서 인식하게 spring security context에 넣는다.
+				SecurityContextHolder.getContext().setAuthentication(auth);
+
 			}
 		} catch (Exception exception) {
-			try {
-				throw new Exception();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
+			throw new RuntimeException("JWT 인증 처리 중 오류 발생", exception);
 		}
 
 		// 3. 다음 필터로 요청 전달
