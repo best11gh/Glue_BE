@@ -6,24 +6,18 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-
 
 // Principal에 들어갈 유저 정보를 담고있는 객체
 public class CustomUserDetails implements UserDetails {
 
 	// 인증 객체에 들어갈 유저 정보들은 추후 협의하며 추가해갈 수 있음
-	private final UUID userUuid;
+	private final Long userOauthId;
 
-	public CustomUserDetails(UUID uuid) { this.userUuid = uuid; }
+	public CustomUserDetails(Long userOauthId) { this.userOauthId = userOauthId; }
 
-	// Spring Security가 내부적으로 사용하는 용도
 	// 인터페이스 따라가기에 함수명은 getUsername이지만 실제론 유저의 id를 리턴
 	@Override
-	public String getUsername() { return userUuid.toString(); }
-
-	// 실제 비즈니스 로직에서 사용할 것
-	public UUID getUserUuid() { return userUuid; }
+	public String getUsername() { return userOauthId.toString(); }
 
 
 
