@@ -21,6 +21,8 @@ public class CustomUserDetails implements UserDetails {
 	@Override
 	public String getUsername() { return userUuid.toString(); }
 
+	public UUID getUserUuid() { return userUuid; }
+
 
 
 	//--------- 하단 메서드들은 쓸모없지만 인터페이스 때문에 일단 구현은 필수라 적당히 넣어둔 것
