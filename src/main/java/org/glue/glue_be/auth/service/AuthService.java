@@ -68,13 +68,8 @@ public class AuthService {
         // 3. DB에 신규 유저 저장
         User newUser = userRepository.save(user);
 
-        // 4. 자체 엑세스 토큰 발급
-        UserAuthentication userAuthentication = new UserAuthentication(newUser.getUserId(), null, null);
-        String jwtToken = jwtTokenProvider.generateToken(userAuthentication);
-        log.info("[authservice - SignUpAPI] jwtToken => {}", jwtToken);
-
-        //5. dto에 토큰을 담아 리턴
-        return KakaoSignUpResponseDto.builder().accessToken(jwtToken).build();
+        // 4. 자체 엑세스 토큰 발급 및 리턴
+        return KakaoSignUpResponseDto.builder().accessToken(getToken(newUser.getUuid())).build();
 
 
     }
@@ -87,20 +82,12 @@ public class AuthService {
         // 2. oauthId를 가져와 유저가 있는지 db를 조회한다.
         String oauthId = userInfo.id();
 
-        log.info("[authService - signin API] oauthID -> {}", oauthId);
-
         // 2.5. 유저를 조회하고 없다면 401 예외 발생
         User user = userRepository.findByOauthId(oauthId).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "해당 사용자는 존재하지 않습니다."));
 
         // 3. 자체 엑세스 토큰을 발행 후 리턴
-        UserAuthentication userAuthentication = new UserAuthentication(user.getUserId(), null, null);
-
-        String jwtToken = jwtTokenProvider.generateToken(userAuthentication);
-
-        log.info("[authservice - SignInAPI] jwtToken => {}", jwtToken);
-
-        return KakaoSignInResponseDto.builder().accessToken(jwtToken).build();
+        return KakaoSignInResponseDto.builder().accessToken(getToken(user.getUuid())).build();
 
     }
 
@@ -130,9 +117,8 @@ public class AuthService {
 
         User newUser = userRepository.save(user);
 
-        UserAuthentication authentication = new UserAuthentication(newUser.getUserId(), null, null);
+        UserAuthentication authentication = new UserAuthentication(newUser.getUuid(), null, null);
         String jwtToken = jwtTokenProvider.generateToken(authentication);
-        log.info("[AuthService - AppleSignUp] JWT Token: {}", jwtToken);
 
         return AppleSignUpResponseDto.builder()
                 .accessToken(jwtToken)
@@ -146,14 +132,18 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "해당 Apple 계정 사용자가 존재하지 않습니다."));
 
-        UserAuthentication authentication = new UserAuthentication(user.getUserId(), null, null);
-
+        UserAuthentication authentication = new UserAuthentication(user.getUuid(), null, null);
         String jwtToken = jwtTokenProvider.generateToken(authentication);
-        log.info("[AuthService - AppleSignIn] JWT Token: {}", jwtToken);
 
         return AppleSignInResponseDto.builder()
                 .accessToken(jwtToken)
                 .build();
+    }
+
+    private String getToken(UUID uuid) {
+        UserAuthentication authentication = new UserAuthentication(uuid, null, null);
+
+	    return jwtTokenProvider.generateToken(authentication);
     }
 
 }
