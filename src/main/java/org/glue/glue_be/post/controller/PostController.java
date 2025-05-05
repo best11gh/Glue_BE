@@ -7,12 +7,10 @@ import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.response.CreatePostResponse;
+import org.glue.glue_be.post.dto.response.GetPostResponse;
 import org.glue.glue_be.post.service.PostService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -31,6 +29,11 @@ public class PostController {
 	}
 
 	// 2. 게시글 단건 조회
+	@GetMapping("/{postId}")
+	public BaseResponse<GetPostResponse> getPost(@PathVariable Long postId){
+		return new BaseResponse<>(postService.getPost(postId));
+	}
+
 
 	// 3. 게시글 수정 (로그인 필수)
 
