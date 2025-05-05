@@ -3,6 +3,7 @@ package org.glue.glue_be.post.service;
 
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -11,21 +12,28 @@ import org.glue.glue_be.meeting.repository.ParticipantRepository;
 import org.glue.glue_be.meeting.response.MeetingResponseStatus;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.response.CreatePostResponse;
+import org.glue.glue_be.post.dto.response.GetPostResponse;
 import org.glue.glue_be.post.entity.Post;
 import org.glue.glue_be.post.repository.PostRepository;
+import org.glue.glue_be.post.response.PostResponseStatus;
+import org.glue.glue_be.user.entity.ProfileImage;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
-import org.glue.glue_be.user.service.UserService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @Service
 @RequiredArgsConstructor
 @Builder
+@Slf4j
+@Transactional
 public class PostService {
 
 	private final PostRepository postRepository;
@@ -47,7 +55,6 @@ public class PostService {
 		// 2. 사용자 조회
 		User creator = userRepository.findByUuid(UUID.fromString(uuid))
 			.orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
-
 
 		// 3. 모임 생성
 		Meeting meeting = Meeting.builder()
@@ -88,6 +95,76 @@ public class PostService {
 		// 6. responseDto 생성 직후 리턴
 		return CreatePostResponse.builder()
 			.postId(savedPost.getId())
+			.build();
+
+	}
+
+	// 게시글 단건 조회
+	public GetPostResponse getPost(Long postId) {
+
+		// 1. post, meeting 객체 가져오기
+		Post post = postRepository.findById(postId)
+			.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+		Meeting meeting = post.getMeeting();
+
+		// 2. 응답 dto 구성
+		var participantDtos = meeting.getParticipants().stream()
+			.map(participant -> {
+				User user = participant.getUser();
+				String imageUrl = Optional.ofNullable(user.getProfileImage())
+					.map(ProfileImage::getProfileImageUrl)
+					.orElse(null);
+				return GetPostResponse.MeetingDto.ParticipantDto.builder()
+					.userId(user.getUserId())
+					.nickname(user.getNickname())
+					.profileImageUrl(imageUrl)
+					.build();
+				}
+			).collect(Collectors.toList());
+
+		// 2.5. null일 확률이 있는 값은 Optional로 분기처리
+		String creatorNickname = Optional.ofNullable(meeting.getHost())
+			.map(User::getNickname)
+			.orElse("알 수 없는 사용자");
+		String creatorImageUrl = Optional.ofNullable(meeting.getHost())
+			.map(User::getProfileImage)
+			.map(ProfileImage::getProfileImageUrl)
+			.orElse(null);
+
+
+		var meetingDto = GetPostResponse.MeetingDto.builder()
+			.meetingId(meeting.getMeetingId())
+			.categoryId(meeting.getCategoryId())
+			.creatorName(creatorNickname)
+			.creatorImageUrl(creatorImageUrl)
+			.meetingTime(meeting.getMeetingTime())
+			.currentParticipants(meeting.getCurrentParticipants())
+			.maxParticipants(meeting.getMaxParticipants())
+			.languageId(meeting.getLanguageId())
+			.meetingStatus(meeting.getStatus())
+			.participants(participantDtos)
+			.createdAt(meeting.getCreatedAt())
+			.updatedAt(meeting.getUpdatedAt())
+			.build();
+
+		var postDto = GetPostResponse.PostDto.builder()
+			.postId(post.getId())
+			.title(post.getTitle())
+			.content(post.getContent())
+			.viewCount(post.getViewCount())
+			.bumpedAt(post.getBumpedAt())
+			.likeCount(post.getLikes().size())
+			.postImageUrl(post.getImages())
+			.build();
+
+		// 3. 조회했으므로 ++
+		// todo: 일단은 조회마다 조회수 무조건 오르는 것으로 설정
+		post.increaseViewCount();
+
+		// 4. 조립이 완료된 응답 dto 리턴
+		return GetPostResponse.builder()
+			.meeting(meetingDto)
+			.post(postDto)
 			.build();
 
 	}
