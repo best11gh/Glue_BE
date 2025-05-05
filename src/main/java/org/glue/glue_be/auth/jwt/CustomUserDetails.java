@@ -17,10 +17,12 @@ public class CustomUserDetails implements UserDetails {
 
 	public CustomUserDetails(UUID uuid) { this.userUuid = uuid; }
 
+	// Spring Security가 내부적으로 사용하는 용도
 	// 인터페이스 따라가기에 함수명은 getUsername이지만 실제론 유저의 id를 리턴
 	@Override
 	public String getUsername() { return userUuid.toString(); }
 
+	// 실제 비즈니스 로직에서 사용할 것
 	public UUID getUserUuid() { return userUuid; }
 
 
