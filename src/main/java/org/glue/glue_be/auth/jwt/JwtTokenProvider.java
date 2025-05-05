@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
+import java.util.UUID;
 
 
 // Jwt Token 만드는 클래스
@@ -21,7 +22,7 @@ import java.util.Date;
 public class JwtTokenProvider {
 
 	private static final String MEMBER_ID = "memberId";
-	private static final Long TOKEN_EXPIRATION_TIME = 24 * 60 * 60 * 1000L;
+	private static final Long TOKEN_EXPIRATION_TIME = 24 * 60 * 60 * 1000L; // todo: 토큰 유효기간 논의, 현재는 24시간
 
 	@Value("${jwt.secret}")
 	private String JWT_SECRET;
@@ -90,9 +91,9 @@ public class JwtTokenProvider {
 	}
 
 	// claim에서 유저 인증주체 정보 파싱
-	public Long getUserFromJwt(String token) {
+	public UUID getUserFromJwt(String token) {
 		Claims claims = getBody(token);
-		return Long.valueOf(claims.get(MEMBER_ID).toString());
+		return UUID.fromString(claims.get(MEMBER_ID).toString());
 	}
 
 }
