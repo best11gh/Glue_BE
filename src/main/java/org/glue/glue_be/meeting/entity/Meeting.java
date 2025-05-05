@@ -64,6 +64,9 @@ public class Meeting extends BaseEntity {
     @Column(name = "category_id", nullable = false)
     private Integer categoryId;
 
+    @Column(name = "language_id", nullable = false)
+    private Integer languageId;
+
     @Builder
     private Meeting(User host,
                     String meetingTitle,
@@ -75,7 +78,8 @@ public class Meeting extends BaseEntity {
                     Double meetingPlaceLatitude,
                     Double meetingPlaceLongitude,
                     String meetingPlaceName,
-                    Integer categoryId) {
+                    Integer categoryId,
+                    Integer languageId) {
         this.host = host;
         this.meetingTitle = meetingTitle;
         this.meetingTime = meetingTime;
@@ -88,6 +92,7 @@ public class Meeting extends BaseEntity {
         this.meetingPlaceName = meetingPlaceName;
         this.participants = new ArrayList<>();
         this.categoryId = categoryId;
+        this.languageId = languageId;
     }
 
     public List<Participant> getParticipants() {
