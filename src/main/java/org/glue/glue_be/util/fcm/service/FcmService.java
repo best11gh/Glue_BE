@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class FcmService {
-    public void sendMessageByFcm(FcmSendDto fcmSendDto) {
+    public void sendMessage(FcmSendDto fcmSendDto) {
         Message message = Message.builder()
                 .setNotification(Notification.builder()
                         .setTitle(fcmSendDto.getTitle())
