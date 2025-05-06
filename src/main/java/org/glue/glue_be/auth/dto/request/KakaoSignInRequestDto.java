@@ -7,6 +7,7 @@ import lombok.Getter;
 @Getter
 public class KakaoSignInRequestDto {
 
-	String kakaoToken;
+    String kakaoToken;
+    String fcmToken;
 
 }
