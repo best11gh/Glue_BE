@@ -85,6 +85,7 @@ public class AuthService {
         // 2.5. 유저를 조회하고 없다면 401 예외 발생
         User user = userRepository.findByOauthId(oauthId).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "해당 사용자는 존재하지 않습니다."));
+        user.changeFcmToken(requestDto.getFcmToken());
 
         // 3. 자체 엑세스 토큰을 발행 후 리턴
         return KakaoSignInResponseDto.builder().accessToken(getToken(user.getUuid())).build();
@@ -131,6 +132,7 @@ public class AuthService {
         User user = userRepository.findByOauthId(appleUserInfo.getSubject())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                         "해당 Apple 계정 사용자가 존재하지 않습니다."));
+        user.changeFcmToken(requestDto.fcmToken());
 
         UserAuthentication authentication = new UserAuthentication(user.getUuid(), null, null);
         String jwtToken = jwtTokenProvider.generateToken(authentication);
