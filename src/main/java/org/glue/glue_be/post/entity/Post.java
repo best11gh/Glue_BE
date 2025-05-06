@@ -4,7 +4,9 @@ import lombok.*;
 
 import jakarta.persistence.*;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
+import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
+import org.glue.glue_be.post.response.PostResponseStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -57,8 +59,11 @@ public class Post {
         this.content = content;
     }
 
-    public void bumpPost() {
-        this.bumpedAt = bumpedAt != null ? bumpedAt : LocalDateTime.now();
+    public void bump(LocalDateTime now) {
+        if (bumpedAt != null && bumpedAt.plusDays(3).isAfter(now)) {
+            throw new BaseException(PostResponseStatus.POST_CANNOT_BUMP_YET);
+        }
+        this.bumpedAt = now;
     }
 
     public void increaseViewCount() {
