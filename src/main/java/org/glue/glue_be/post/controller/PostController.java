@@ -20,29 +20,32 @@ public class PostController {
 
 	private final PostService postService;
 
+
 	// 1. 게시글 작성 (로그인 필수)
 	@PostMapping
-	public BaseResponse<CreatePostResponse> createPost(@RequestBody @Valid CreatePostRequest req,
-		@AuthenticationPrincipal CustomUserDetails auth) {
+	public BaseResponse<CreatePostResponse> createPost(
+
+		@RequestBody @Valid CreatePostRequest req, @AuthenticationPrincipal CustomUserDetails auth) {
 		String uuid = auth.getUsername();
 		return new BaseResponse<>(postService.createPost(req, uuid));
+
 	}
+
 
 	// 2. 게시글 단건 조회
 	@GetMapping("/{postId}")
-	public BaseResponse<GetPostResponse> getPost(@PathVariable Long postId){
+	public BaseResponse<GetPostResponse> getPost(@PathVariable Long postId) {
 		return new BaseResponse<>(postService.getPost(postId));
 	}
-
 
 	// 3. 게시글 수정 (로그인 필수)
 
 	// 4. 게시글 삭제 (로그인 필수)
 
+
 	// 5. 게시글 끌올 (로그인 필수)
 	@GetMapping("/{postId}/bump")
-	public BaseResponse<Void> bumpPost(@PathVariable Long postId,
-		@AuthenticationPrincipal CustomUserDetails auth){
+	public BaseResponse<Void> bumpPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
 		postService.bumpPost(postId, auth.getUserUuid());
 		return new BaseResponse<>();
 	}
@@ -53,11 +56,13 @@ public class PostController {
 
 	// 8. 검색 결과 게시글 목록 조회
 
+
 	// 9. 좋아요 등록(토글) (로그인 필수)
+	@GetMapping("/{postId}/like")
+	public BaseResponse<Void> toggleLike(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
 
-
-
-
-
+		postService.toggleLike(postId, auth.getUserUuid());
+		return new BaseResponse<>();
+	}
 
 }
