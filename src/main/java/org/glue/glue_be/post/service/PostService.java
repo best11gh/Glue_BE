@@ -81,7 +81,7 @@ public class PostService {
 		participantRepository.save(participant);
 
 		// 4.5. onetomany로 관리하는 participants 리스트에 추가
-		// todo: 직접적인 연관관계 매핑 세팅이 너무 많아 생각보다 어려운듯 나중에 논의하기
+		// todo: 직접적인 연관관계 매핑이 너무 많아 생각보다 어려운듯 나중에 논의하기
 		savedMeeting.addParticipant(participant);
 
 		// 5. 게시글 생성
@@ -167,6 +167,19 @@ public class PostService {
 			.post(postDto)
 			.build();
 
+	}
+
+	// 게시글 끌올
+	public void bumpPost(Long postId, UUID userUuid) {
+
+		Post post = postRepository.findById(postId)
+			.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+
+		// 끌올은 게시글 작성자만 가능
+		if(!post.getMeeting().isHost(userUuid))
+			throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
+
+		post.bump(LocalDateTime.now());
 	}
 
 }
