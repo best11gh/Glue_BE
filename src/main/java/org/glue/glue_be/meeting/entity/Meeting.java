@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
+
 
 @Entity
 @Table(name = "meeting")
@@ -143,7 +145,7 @@ public class Meeting extends BaseEntity {
         return this.participants.size() >= this.maxParticipants;
     }
 
-    public boolean isHost(Long uuid) {
+    public boolean isHost(UUID uuid) {
         return this.host.getUuid().equals(uuid);
     }
 }
