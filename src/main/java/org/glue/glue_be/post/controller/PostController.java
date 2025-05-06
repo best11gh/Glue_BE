@@ -37,9 +37,15 @@ public class PostController {
 
 	// 3. 게시글 수정 (로그인 필수)
 
-	// 4. 게시글 삭세 (로그인 필수)
+	// 4. 게시글 삭제 (로그인 필수)
 
 	// 5. 게시글 끌올 (로그인 필수)
+	@GetMapping("/{postId}/bump")
+	public BaseResponse<Void> bumpPost(@PathVariable Long postId,
+		@AuthenticationPrincipal CustomUserDetails auth){
+		postService.bumpPost(postId, auth.getUserUuid());
+		return new BaseResponse<>();
+	}
 
 	// 6. 게시글 목록 조회
 
