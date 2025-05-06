@@ -23,7 +23,7 @@ public class FcmController {
     // 단일 기기로 fcm 발송
     @PostMapping("/single")
     public BaseResponse<Void> sendSingle(@RequestBody FcmSendDto dto) {
-        fcmService.sendMessageByFcm(dto);
+        fcmService.sendMessage(dto);
         return new BaseResponse<>(FcmResponseStatus.FCM_SEND_SUCCESS);
     }
 
