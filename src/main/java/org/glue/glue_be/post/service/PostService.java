@@ -4,6 +4,7 @@ package org.glue.glue_be.post.service;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -13,6 +14,7 @@ import org.glue.glue_be.meeting.response.MeetingResponseStatus;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.response.CreatePostResponse;
 import org.glue.glue_be.post.dto.response.GetPostResponse;
+import org.glue.glue_be.post.dto.response.GetPostsResponse;
 import org.glue.glue_be.post.entity.Like;
 import org.glue.glue_be.post.entity.Post;
 import org.glue.glue_be.post.repository.LikeRepository;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -156,6 +159,59 @@ public class PostService {
 			likeRepository.save(like);
 			post.getLikes().add(like);
 		}
+	}
+
+	@Transactional(readOnly = true)
+	public GetPostsResponse getPosts(Long lastPostId, int size) {
+
+		int limit = size + 1;
+		List<Post> result;
+
+		if(lastPostId == null){ // 이전 스크롤의 마지막 postId가 없다면 이는 첫 페이지 목록 랜딩을 의미
+			result = postRepository.fetchFirstPage(limit);
+		} else {
+			Post cursor = postRepository.findById(lastPostId)
+				.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+
+			LocalDateTime cursorSortAt = cursor.getBumpedAt() != null
+				? cursor.getBumpedAt()
+				: cursor.getMeeting().getCreatedAt();
+
+			String cursorSortAtString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorSortAt);
+
+			result = postRepository.fetchNextPage(cursorSortAtString, lastPostId, limit);
+		}
+
+		boolean hasNext = result.size() > size;
+		// 필요로 하는 size보다 1개를 더 가져와보는데 잘 받아와진다? == 다음 스크롤을 위한 게시글이 적어도 1개 존재 == hasNext is True
+
+		if(hasNext) result = result.subList(0, size);
+
+		return GetPostsResponse.builder()
+			.hasNext(hasNext)
+			.posts(result.stream()
+				.map(this::toItemDto)
+				.collect(Collectors.toList()))
+			.build();
+
+	}
+
+	// 엔티티 → 목록 itemDTO 변환용 메서드, 게시글 목록 서비스에서 쓰임
+	// todo: 서비스 레이어 코드 줄의 단축을 위해 Entity -> Dto 변환하는 메서드들을 각기 만들어서 다른 패키지에서 보관하는게 좋을 것 같기도
+	private GetPostsResponse.PostItem toItemDto(Post p) {
+		return GetPostsResponse.PostItem.builder()
+			.postId(p.getId())
+			.viewCount(p.getViewCount())
+			.categoryId(p.getMeeting().getCategoryId())
+			.title(p.getTitle())
+			.content(p.getContent())
+			.likeCount(p.getLikes().size()) // todo : 최적화할 부분 존재(N+1)
+			.currentParticipants(p.getMeeting().getCurrentParticipants())
+			.maxParticipants(p.getMeeting().getMaxParticipants())
+			.createdAt(p.getMeeting().getCreatedAt())
+			.thumbnailUrl(p.getImages().isEmpty() ? null
+				: p.getImages().get(0).getImageUrl())
+			.build();
 	}
 
 }

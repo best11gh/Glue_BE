@@ -8,6 +8,7 @@ import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.response.CreatePostResponse;
 import org.glue.glue_be.post.dto.response.GetPostResponse;
+import org.glue.glue_be.post.dto.response.GetPostsResponse;
 import org.glue.glue_be.post.service.PostService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,12 +24,9 @@ public class PostController {
 
 	// 1. 게시글 작성 (로그인 필수)
 	@PostMapping
-	public BaseResponse<CreatePostResponse> createPost(
-
-		@RequestBody @Valid CreatePostRequest req, @AuthenticationPrincipal CustomUserDetails auth) {
+	public BaseResponse<CreatePostResponse> createPost(@RequestBody @Valid CreatePostRequest req, @AuthenticationPrincipal CustomUserDetails auth) {
 		String uuid = auth.getUsername();
 		return new BaseResponse<>(postService.createPost(req, uuid));
-
 	}
 
 
@@ -50,9 +48,18 @@ public class PostController {
 		return new BaseResponse<>();
 	}
 
-	// 6. 게시글 목록 조회
+	// 6. 게시글 목록 조회 (무한 스크롤 / cursor 기반)
+	// - bumpedAt 가 있는 글이 먼저 우선적으로 내림차순으로 최근 끌올순 구현
+	// - bumpedAt 가 없는 글들 중에선 createdAt 순
+	@GetMapping
+	public BaseResponse<GetPostsResponse> getPosts(@RequestParam(required = false) Long lastPostId,
+		@RequestParam(defaultValue = "10") int size
+	) {
+		GetPostsResponse response = postService.getPosts(lastPostId, size);
+		return new BaseResponse<>(response);
+	}
 
-	// 7. 카테고리별 게시글 목록 조회
+	// 7. 카테고리별 게시글 목록 조회(6과 병합 가능할수도)
 
 	// 8. 검색 결과 게시글 목록 조회
 
@@ -60,7 +67,6 @@ public class PostController {
 	// 9. 좋아요 등록(토글) (로그인 필수)
 	@GetMapping("/{postId}/like")
 	public BaseResponse<Void> toggleLike(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
-
 		postService.toggleLike(postId, auth.getUserUuid());
 		return new BaseResponse<>();
 	}
