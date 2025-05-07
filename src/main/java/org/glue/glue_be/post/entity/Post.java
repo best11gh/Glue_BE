@@ -60,7 +60,10 @@ public class Post {
     }
 
     public void bump(LocalDateTime now) {
-        if (bumpedAt != null && bumpedAt.plusDays(3).isAfter(now)) {
+
+        final int BUMP_COOLTIME_DAYS = 3;
+
+        if (bumpedAt != null && bumpedAt.plusDays(BUMP_COOLTIME_DAYS).isAfter(now)) {
             throw new BaseException(PostResponseStatus.POST_CANNOT_BUMP_YET);
         }
         this.bumpedAt = now;
