@@ -10,5 +10,7 @@ public class KakaoSignInRequestDto {
 
 	@NotEmpty(message = "카카오 발급 토큰값은 필수입니다")
 	String kakaoToken;
+  
+  String fcmToken;
 
 }

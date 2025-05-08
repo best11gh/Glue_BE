@@ -57,10 +57,13 @@ public class User extends BaseEntity {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private ProfileImage profileImage;
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
 
     @Builder
     public User(UUID uuid, String oauthId, String userName, String nickname, Integer gender, LocalDate birth,
-                Integer nation, String description, Integer certified, Integer major, Integer majorVisibility) {
+                Integer nation, String description, Integer certified, Integer major, Integer majorVisibility
+    ) {
         this.uuid = uuid;
         this.oauthId = oauthId;
         this.userName = userName;
@@ -72,6 +75,7 @@ public class User extends BaseEntity {
         this.certified = certified;
         this.major = major;
         this.majorVisibility = majorVisibility;
+        this.fcmToken = null;
     }
 
     public void changeName(String name) {
@@ -90,8 +94,12 @@ public class User extends BaseEntity {
         this.description = description;
     }
 
-    public void changeCertified(int certified){
+    public void changeCertified(int certified) {
         this.certified = certified;
+    }
+
+    public void changeFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
     }
 
 }
