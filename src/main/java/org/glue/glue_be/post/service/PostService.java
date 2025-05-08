@@ -63,7 +63,10 @@ public class PostService {
 		User creator = userRepository.findByUuid(UUID.fromString(uuid)).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
 		// 3. 모임 생성
-		Meeting meeting = Meeting.builder().meetingTitle(meetingRequest.getMeetingTitle()).meetingTime(meetingRequest.getMeetingTime()).meetingPlaceName(meetingRequest.getMeetingPlaceName())
+		Meeting meeting = Meeting.builder() // todo: toEntity 팩토리 메서드로 대체
+			.meetingTitle(meetingRequest.getMeetingTitle())
+			.meetingTime(meetingRequest.getMeetingTime())
+			.meetingPlaceName(meetingRequest.getMeetingPlaceName())
 			.minParticipants(0) // 1.0에선 최소인원이 안쓰이기에 일단 0으로 고정
 			.maxParticipants(meetingRequest.getMaxParticipants()).currentParticipants(1).status(1).meetingPlaceLatitude(meetingRequest.getMeetingPlaceLatitude())
 			.meetingPlaceLongitude(meetingRequest.getMeetingPlaceLongitude()).categoryId(meetingRequest.getCategoryId()).languageId(meetingRequest.getLanguageId()).host(creator) // 호스트 설정
@@ -106,6 +109,7 @@ public class PostService {
 		String creatorNickname = Optional.ofNullable(meeting.getHost()).map(User::getNickname).orElse("알 수 없는 사용자");
 		String creatorImageUrl = Optional.ofNullable(meeting.getHost()).map(User::getProfileImage).map(ProfileImage::getProfileImageUrl).orElse(null);
 
+		// todo : ofEntity 팩토리 메서드로 대체
 		var meetingDto = GetPostResponse.MeetingDto.builder().meetingId(meeting.getMeetingId()).categoryId(meeting.getCategoryId()).creatorName(creatorNickname).creatorImageUrl(creatorImageUrl)
 			.meetingTime(meeting.getMeetingTime()).currentParticipants(meeting.getCurrentParticipants()).maxParticipants(meeting.getMaxParticipants()).languageId(meeting.getLanguageId())
 			.meetingStatus(meeting.getStatus()).participants(participantDtos).createdAt(meeting.getCreatedAt()).updatedAt(meeting.getUpdatedAt()).build();
@@ -208,28 +212,10 @@ public class PostService {
 		return GetPostsResponse.builder()
 				.hasNext(hasNext)
 				.posts(result.stream()
-						.map(this::toItemDto)
+						.map(GetPostsResponse::ofEntity)
 						.collect(Collectors.toList()))
 				.build();
 
-	}
-
-	// 엔티티 → 목록 itemDTO 변환용 메서드, 게시글 목록 서비스에서 쓰임
-	// todo: 서비스 레이어 코드 줄의 단축을 위해 Entity -> Dto 변환하는 메서드들을 각기 만들어서 다른 패키지에서 보관하는게 좋을 것 같기도
-	private GetPostsResponse.PostItem toItemDto(Post p) {
-		return GetPostsResponse.PostItem.builder()
-			.postId(p.getId())
-			.viewCount(p.getViewCount())
-			.categoryId(p.getMeeting().getCategoryId())
-			.title(p.getTitle())
-			.content(p.getContent())
-			.likeCount(p.getLikes().size()) // todo : 최적화할 부분 존재(N+1)
-			.currentParticipants(p.getMeeting().getCurrentParticipants())
-			.maxParticipants(p.getMeeting().getMaxParticipants())
-			.createdAt(p.getMeeting().getCreatedAt())
-			.thumbnailUrl(p.getImages().isEmpty() ? null
-				: p.getImages().get(0).getImageUrl())
-			.build();
 	}
 
 }
