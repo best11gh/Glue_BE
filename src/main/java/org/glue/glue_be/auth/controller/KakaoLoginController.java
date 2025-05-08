@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 public class KakaoLoginController {
 
 	private final AuthService authService;
-	private final KakaoService kakaoService;
 
 	// 회원가입
 	@PostMapping("/signup")
