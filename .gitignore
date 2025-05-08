@@ -43,5 +43,4 @@ out/
 
 ### application property ###
 *.yml
-/src/main/resources/key/**
-/src/main/resources/firebase/**
+/src/main/resources/key/
