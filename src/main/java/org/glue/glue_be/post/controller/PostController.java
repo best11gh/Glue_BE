@@ -53,18 +53,17 @@ public class PostController {
 	// - bumpedAt 가 없는 글들 중에선 createdAt 순
 	@GetMapping
 	public BaseResponse<GetPostsResponse> getPosts(@RequestParam(required = false) Long lastPostId,
-		@RequestParam(defaultValue = "10") int size
+		@RequestParam(defaultValue = "10") int size,
+		@RequestParam(required = false) Integer categoryId
 	) {
-		GetPostsResponse response = postService.getPosts(lastPostId, size);
+		GetPostsResponse response = postService.getPosts(lastPostId, size, categoryId);
 		return new BaseResponse<>(response);
 	}
 
-	// 7. 카테고리별 게시글 목록 조회(6과 병합 가능할수도)
-
-	// 8. 검색 결과 게시글 목록 조회
+	// 7. 검색 결과 게시글 목록 조회
 
 
-	// 9. 좋아요 등록(토글) (로그인 필수)
+	// 8. 좋아요 등록(토글) (로그인 필수)
 	@GetMapping("/{postId}/like")
 	public BaseResponse<Void> toggleLike(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
 		postService.toggleLike(postId, auth.getUserUuid());

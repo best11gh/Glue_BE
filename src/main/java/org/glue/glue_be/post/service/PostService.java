@@ -24,7 +24,6 @@ import org.glue.glue_be.user.entity.ProfileImage;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
-import org.glue.glue_be.user.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -162,37 +161,56 @@ public class PostService {
 	}
 
 	@Transactional(readOnly = true)
-	public GetPostsResponse getPosts(Long lastPostId, int size) {
+	public GetPostsResponse getPosts(Long lastPostId, int size, Integer categoryId) {
 
 		int limit = size + 1;
 		List<Post> result;
 
-		if(lastPostId == null){ // 이전 스크롤의 마지막 postId가 없다면 이는 첫 페이지 목록 랜딩을 의미
-			result = postRepository.fetchFirstPage(limit);
-		} else {
-			Post cursor = postRepository.findById(lastPostId)
-				.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+		if (categoryId == null) { // 카테고리 지정이 아닌 경우
 
-			LocalDateTime cursorSortAt = cursor.getBumpedAt() != null
-				? cursor.getBumpedAt()
-				: cursor.getMeeting().getCreatedAt();
+			if (lastPostId == null) { // 최초 페이지
+				result = postRepository.fetchFirstPage(limit);
+			} else { // 2번째 이상 페이지 -> 이전 페이지의 마지막 게시글을 커서로 삼아 다음 스크롤 fetch
+				Post cursor = postRepository.findById(lastPostId)
+						.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
-			String cursorSortAtString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorSortAt);
+				LocalDateTime cursorSortAt = cursor.getBumpedAt() != null
+						? cursor.getBumpedAt()
+						: cursor.getMeeting().getCreatedAt();
 
-			result = postRepository.fetchNextPage(cursorSortAtString, lastPostId, limit);
+				String cursorSortAtString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorSortAt);
+
+				result = postRepository.fetchNextPage(cursorSortAtString, lastPostId, limit);
+			}
+		} else { // 카테고리 지정!!
+
+			if (lastPostId == null) {
+				result = postRepository.fetchFirstPageByCategory(categoryId, limit);
+			} else {
+				Post cursor = postRepository.findById(lastPostId)
+						.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+
+				LocalDateTime cursorSortAt = cursor.getBumpedAt() != null
+						? cursor.getBumpedAt()
+						: cursor.getMeeting().getCreatedAt();
+
+				String cursorSortAtString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorSortAt);
+
+				result = postRepository.fetchNextPageByCategory(categoryId, cursorSortAtString, lastPostId, limit);
+			}
 		}
 
 		boolean hasNext = result.size() > size;
 		// 필요로 하는 size보다 1개를 더 가져와보는데 잘 받아와진다? == 다음 스크롤을 위한 게시글이 적어도 1개 존재 == hasNext is True
 
-		if(hasNext) result = result.subList(0, size);
+		if (hasNext) result = result.subList(0, size);
 
 		return GetPostsResponse.builder()
-			.hasNext(hasNext)
-			.posts(result.stream()
-				.map(this::toItemDto)
-				.collect(Collectors.toList()))
-			.build();
+				.hasNext(hasNext)
+				.posts(result.stream()
+						.map(this::toItemDto)
+						.collect(Collectors.toList()))
+				.build();
 
 	}
 
