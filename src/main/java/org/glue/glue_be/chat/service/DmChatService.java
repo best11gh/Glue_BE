@@ -241,12 +241,14 @@ public class DmChatService {
 
     // websocket: Dm 전송
     @Transactional
-    public void processDmMessage(Long dmChatRoomId, DmMessageSendRequest request) {
+    public DmMessageResponse processDmMessage(Long dmChatRoomId, DmMessageSendRequest request) {
         // 1. 메시지 저장
-        DmMessageResponse message = saveDmMessage(dmChatRoomId, request);
+        DmMessageResponse response = saveDmMessage(dmChatRoomId, request);
 
-        // 2. 메시지 전송
-        sendDmMessageToParticipants(dmChatRoomId, message, request.getSenderId());
+        // 2. 웹소켓 알림 전송
+        notifyIfOnline(dmChatRoomId, response, request.getSenderId());
+
+        return response;
     }
 
     private DmMessageResponse saveDmMessage(Long dmChatRoomId, DmMessageSendRequest request) {
@@ -274,11 +276,11 @@ public class DmChatService {
         return responseMapper.toMessageResponse(dmMessage);
     }
 
-    private void sendDmMessageToParticipants(Long dmChatRoomId, DmMessageResponse message, Long senderId) {
+    private void notifyIfOnline(Long dmChatRoomId, DmMessageResponse message, Long senderId) {
         // 채팅방의 상세 정보 조회
         DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(dmChatRoomId);
 
-        // 발신자를 제외한 참여자들에게 메시지 전송
+        // 발신자를 제외한 참여자들 중 온라인 상태인 사용자에게만 WebSocket 메시지 전송
         for (UserSummary participant : chatRoom.getParticipants()) {
             if (!participant.getUserId().equals(senderId)) {
                 messagingTemplate.convertAndSend("/queue/dm/" + participant.getUserId(), message);

@@ -256,6 +256,7 @@
             updateStatusIndicator(userId, true);
             logEvent(`${userId}번 사용자 WebSocket 연결 성공`);
 
+
             // 사용자별 메시지 구독
             stompClient.subscribe(`/queue/dm/${userId}`, function(message) {
                 const data = JSON.parse(message.body);
@@ -354,7 +355,119 @@
         } else {
             // 연결
             initializeConnection(userId);
+
+            // API 호출: PUT /api/dm/{dmChatRoomId}/all-messages?userId={userId}
+            fetch(`/api/dm/2/all-messages?userId=${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('모든 메시지 읽음 처리 실패');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    logEvent(`${userId}번 사용자가 채팅방 2번의 모든 메시지를 읽음 처리했습니다.`);
+
+                    // 받은 메시지 데이터를 UI에 표시
+                    displayMessagesHistory(userId, data);
+                })
+                .catch(error => {
+                    console.error('API 요청 오류:', error);
+                    logEvent(`${userId}번 사용자의 전체 메시지 읽음 처리 API 호출 실패: ${error.message}`);
+                });
         }
+    }
+
+    // 메시지 이력을 UI에 표시하는 함수
+    function displayMessagesHistory(userId, messagesData) {
+        // 메시지가 배열이 아니면 처리하지 않음
+        if (!Array.isArray(messagesData)) {
+            logEvent(`메시지 데이터 형식이 올바르지 않습니다.`);
+            return;
+        }
+
+        // 기존 메시지 저장소 초기화
+        messagesStore[userId] = [];
+
+        // 메시지 컨테이너 비우기
+        const messagesDiv = document.getElementById(`messages${userId}`);
+        messagesDiv.innerHTML = '';
+
+        logEvent(`${userId}번 사용자의 메시지 이력 ${messagesData.length}개를 표시합니다.`);
+
+        // 메시지 정렬 (시간순)
+        messagesData.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        // 각 메시지 표시
+        messagesData.forEach(message => {
+            const isSent = message.sender.userId === userId;
+
+            // 메시지 저장소에 추가
+            messagesStore[userId].push({
+                id: message.dmMessageId,
+                sender: message.sender.userId,
+                content: message.content,
+                timestamp: message.createdAt,
+                isRead: message.isRead === 1
+            });
+
+            // UI에 메시지 표시
+            displayMessage(userId, {
+                dmMessageId: message.dmMessageId,
+                senderId: message.sender.userId,
+                content: message.content,
+                createdAt: message.createdAt,
+                isRead: message.isRead === 1
+            }, isSent);
+        });
+
+        // 스크롤을 최신 메시지로 이동
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function displayMessage(userId, message, isSent) {
+        const messagesDiv = document.getElementById(`messages${userId}`);
+        const messageElement = document.createElement("div");
+        const messageId = message.dmMessageId || Date.now(); // 메시지 ID가 없으면 임시로 생성
+
+        // 메시지가 보낸 것인지 받은 것인지에 따라 클래스 추가
+        messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
+        if (isSent && !message.isRead) {
+            messageElement.classList.add('unread');
+        }
+
+        // 메시지 ID 속성 추가
+        messageElement.setAttribute('data-msg-id', messageId);
+
+        // 메시지 내용
+        const contentElement = document.createElement("div");
+        contentElement.textContent = message.content;
+        messageElement.appendChild(contentElement);
+
+        // 시간 표시
+        const timestampElement = document.createElement("div");
+        timestampElement.className = "timestamp";
+        const msgTime = message.createdAt ? new Date(message.createdAt) : new Date();
+        timestampElement.textContent = `${msgTime.getHours()}:${String(msgTime.getMinutes()).padStart(2, '0')}:${String(msgTime.getSeconds()).padStart(2, '0')}`;
+        messageElement.appendChild(timestampElement);
+
+        // 읽음 상태 표시 (보낸 메시지에만 표시)
+        if (isSent) {
+            const readStatusElement = document.createElement("div");
+            readStatusElement.className = "read-status";
+            readStatusElement.textContent = message.isRead ? "읽음" : "";
+            readStatusElement.style.display = message.isRead ? "block" : "none";
+            messageElement.appendChild(readStatusElement);
+        }
+
+        messagesDiv.appendChild(messageElement);
+
+        // 스크롤을 최신 메시지로 이동
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
     function sendMessage(senderId, receiverId) {
@@ -366,54 +479,54 @@
             return;
         }
 
-        // 연결이 없으면 메시지를 보낼 수 없음
-        if (!userConnections[senderId]) {
-            alert("접속 상태가 아닙니다. 먼저 접속해주세요!");
-            return;
-        }
-
         // 메시지 객체 생성
         let msg = {
             senderId: senderId,
+            receiverId: receiverId,
             content: content
         };
 
-        // 채팅방 ID를 사용하여 메시지 전송
-        stompClient.send("/app/dm/2/sendMessage", {}, JSON.stringify(msg));
+        // REST API로 메시지 저장 요청
+        fetch(`/api/dm/2/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(msg)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('메시지 저장 실패');
+                }
+                return response.json();
+            })
+            .then(savedMessage => {
+                logEvent(`${senderId}번 사용자가 ${receiverId}번 사용자에게 메시지 전송: "${content}"`);
 
-        logEvent(`${senderId}번 사용자가 ${receiverId}번 사용자에게 메시지 전송: "${content}"`);
+                // 저장소에 추가 및 화면에 표시
+                messagesStore[senderId].push({
+                    id: savedMessage.dmMessageId,
+                    sender: senderId,
+                    content: content,
+                    timestamp: savedMessage.createdAt,
+                    isRead: false
+                });
 
-        // 임시 메시지 ID 생성 (실제로는 서버에서 할당)
-        const tempId = Date.now();
+                // 보낸 메시지 표시
+                displayMessage(senderId, savedMessage, true);
 
-        const messageObj = {
-            dmMessageId: tempId,
-            senderId: senderId,
-            content: content,
-            createdAt: new Date().toISOString(),
-            isRead: false
-        };
+                // 상대방이 오프라인 상태인 경우 로깅
+                if (!userConnections[receiverId]) {
+                    logEvent(`${receiverId}번 사용자가 오프라인 상태입니다. 메시지가 저장되었습니다.`);
+                }
 
-        // 저장소에 추가
-        messagesStore[senderId].push({
-            id: tempId,
-            sender: senderId,
-            content: content,
-            timestamp: new Date().toISOString(),
-            isRead: false
-        });
-
-        // 보낸 메시지 표시
-        displayMessage(senderId, messageObj, true);
-
-        // 입력창 초기화
-        inputElement.value = '';
-
-        // 상대방이 오프라인 상태인 경우 오프라인 메시지 저장소에 저장
-        if (!userConnections[receiverId]) {
-            logEvent(`${receiverId}번 사용자가 오프라인 상태입니다. 메시지를 저장합니다.`);
-            offlineMessages[receiverId].push(messageObj);
-        }
+                // 입력창 초기화
+                inputElement.value = '';
+            })
+            .catch(error => {
+                console.error('메시지 전송 오류:', error);
+                alert('메시지 전송에 실패했습니다.');
+            });
     }
 
     function markAsRead(userId) {
@@ -460,46 +573,6 @@
         });
     }
 
-    function displayMessage(userId, message, isSent) {
-        const messagesDiv = document.getElementById(`messages${userId}`);
-        const messageElement = document.createElement("div");
-        const messageId = message.dmMessageId || Date.now(); // 메시지 ID가 없으면 임시로 생성
-
-        // 메시지가 보낸 것인지 받은 것인지에 따라 클래스 추가
-        messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
-        if (isSent && !message.isRead) {
-            messageElement.classList.add('unread');
-        }
-
-        // 메시지 ID 속성 추가
-        messageElement.setAttribute('data-msg-id', messageId);
-
-        // 메시지 내용
-        const contentElement = document.createElement("div");
-        contentElement.textContent = message.content;
-        messageElement.appendChild(contentElement);
-
-        // 시간 표시
-        const timestampElement = document.createElement("div");
-        timestampElement.className = "timestamp";
-        const msgTime = message.createdAt ? new Date(message.createdAt) : new Date();
-        timestampElement.textContent = `${msgTime.getHours()}:${String(msgTime.getMinutes()).padStart(2, '0')}:${String(msgTime.getSeconds()).padStart(2, '0')}`;
-        messageElement.appendChild(timestampElement);
-
-        // 읽음 상태 표시 (보낸 메시지에만 표시)
-        if (isSent) {
-            const readStatusElement = document.createElement("div");
-            readStatusElement.className = "read-status";
-            readStatusElement.textContent = message.isRead ? "읽음" : "";
-            readStatusElement.style.display = message.isRead ? "block" : "none";
-            messageElement.appendChild(readStatusElement);
-        }
-
-        messagesDiv.appendChild(messageElement);
-
-        // 스크롤을 최신 메시지로 이동
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
 
     // Enter 키로 메시지 보내기
     document.getElementById('messageInput1').addEventListener('keypress', function(e) {

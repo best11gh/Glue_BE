@@ -72,14 +72,18 @@ public class DmChatController {
         return ResponseEntity.ok(messages);
     }
 
-    // Websocket: Dm 전송
-    // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
-    @MessageMapping("/dm/{dmChatRoomId}/sendMessage")
-    public void sendDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageSendRequest request) {
-        dmChatService.processDmMessage(dmChatRoomId, request);
+    // 메시지 전송
+    @PostMapping("/{dmChatRoomId}/messages")
+    public ResponseEntity<DmMessageResponse> saveMessage(
+            @PathVariable Long dmChatRoomId,
+            @RequestBody DmMessageSendRequest request) {
+
+        DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request);
+        return ResponseEntity.ok(response);
     }
 
     // Websocket: Dm창 동시 접속 시 곧바로 읽음 처리
+    // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
     @MessageMapping("/dm/{dmChatRoomId}/readMessage")
     public void readDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageReadRequest request) {
         // 읽음 상태 처리
