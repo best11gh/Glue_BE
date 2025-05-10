@@ -1,6 +1,7 @@
 package org.glue.glue_be.chat.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.chat.dto.request.DmChatRoomCreateRequest;
 import org.glue.glue_be.chat.dto.request.DmChatRoomJoinRequest;
 import org.glue.glue_be.chat.dto.request.DmMessageReadRequest;
@@ -14,10 +15,12 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/dm")
@@ -26,18 +29,27 @@ public class DmChatController {
 
     private final DmChatService dmChatService;
     private final SimpMessagingTemplate messagingTemplate;
+    private static final UUID TEST_USER_UUID = UUID.fromString("b2d6f7c9-a842-41e5-b390-63487e10d9fc");
 
     // Dm 채팅방 생성
     @PostMapping("/rooms/create")
-    public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request) {
-        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request);
+    public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request, @AuthenticationPrincipal CustomUserDetails auth) {
+        // TODO: 테스트용이므로 제거
+        UUID userUuid = TEST_USER_UUID;
+        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request, userUuid);
+
+//        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request, auth.getUserUuid());
         return ResponseEntity.status(result.getStatus().getCode()).body(result);
     }
 
-    // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 참여자 정보 확인 가능)
+    // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 초대 여부, 참여자 정보 확인 가능)
     @GetMapping("/rooms/{dmChatRoomId}")
-    public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @RequestParam Long userId) {
-        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(userId));
+    public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
+        // TODO: 테스트용이므로 제거
+        UUID userUuid = TEST_USER_UUID;
+        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(userUuid));
+
+//        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(auth.getUserUuid()));
         return ResponseEntity.ok(response);
     }
 
@@ -73,8 +85,8 @@ public class DmChatController {
     }
 
     // 메시지 전송
-    @PostMapping("/{dmChatRoomId}/messages")
-    public ResponseEntity<DmMessageResponse> saveMessage(
+    @PostMapping("/{dmChatRoomId}/send-message")
+    public ResponseEntity<DmMessageResponse> sendMessage(
             @PathVariable Long dmChatRoomId,
             @RequestBody DmMessageSendRequest request) {
 

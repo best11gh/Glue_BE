@@ -20,5 +20,5 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
 
     void deleteByDmChatRoomAndUser(DmChatRoom dmChatRoom, User user);
 
-    Optional<Object> findByDmChatRoomAndUser(DmChatRoom dmChatRoom, User sender);
+    Optional<DmUserChatroom> findByDmChatRoomAndUser(DmChatRoom dmChatRoom, User sender);
 }
