@@ -12,6 +12,7 @@ import org.glue.glue_be.chat.repository.dm.DmChatRoomRepository;
 import org.glue.glue_be.chat.repository.dm.DmMessageRepository;
 import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
 import org.glue.glue_be.common.dto.UserSummary;
+import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.repository.ParticipantRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -25,9 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.glue.glue_be.chat.mapper.DmResponseMapper;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +40,7 @@ public class DmChatService {
     private final MeetingRepository meetingRepository;
     private final ParticipantRepository participantRepository;
     private final DmResponseMapper responseMapper;
+    private final InvitationRepository invitationRepository;
 
     // WebSocket 메시징을 처리하기 위한 도구
     @Autowired
@@ -53,7 +53,7 @@ public class DmChatService {
 
     // Dm 채팅방 생성
     @Transactional
-    public DmChatRoomCreateResult createDmChatRoom(DmChatRoomCreateRequest request) {
+    public DmChatRoomCreateResult createDmChatRoom(DmChatRoomCreateRequest request, UUID userUuid) {
         // 사용자가 정확히 2명인지 확인
         if (request.getUserIds().size() != 2) {
             throw new ChatException("Dm 채팅방은 정확히 2명의 사용자가 필요합니다.");
@@ -102,13 +102,13 @@ public class DmChatService {
     }
 
     // Dm 채팅방 상세 정보 조회: 알림 정보 필요없을 때
-    public DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId) {
+    private DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId) {
         return getDmChatRoomDetail(dmChatRoomId, Optional.empty());
     }
 
     // Dm 채팅방 상세 정보 조회: 알림 정보 필요할 때
     @Transactional(readOnly = true)
-    public DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId, Optional<Long> userId) {
+    public DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId, Optional<UUID> userUuId) {
         // 채팅방 ID로 dm방 조회 (없으면 예외 발생)
         DmChatRoom dmChatRoom = dmChatRoomRepository.findById(dmChatRoomId)
                 .orElseThrow(() -> new ChatException("채팅방을 찾을 수 없습니다."));
@@ -116,8 +116,43 @@ public class DmChatService {
         // 해당 dm방의 참여자 목록 조회
         List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(dmChatRoom);
 
+        // 초대장 로직 - 사용자가 로그인한 경우에만 초대 정보 확인
+        // invitationStatus = -1: "모임 초대하기"가 아예 필요 없는 상황
+        Integer invitationStatus = -1;
+        if (userUuId.isPresent()) {
+            invitationStatus = checkInvitationStatus(dmChatRoom, participants, userUuId.get());
+        }
+
         // 응답 생성
-        return responseMapper.toChatRoomDetailResponse(dmChatRoom, participants, userId.orElse(null));
+        return responseMapper.toChatRoomDetailResponse(dmChatRoom, participants, userUuId.orElse(null), invitationStatus);
+    }
+
+    private Integer checkInvitationStatus(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, UUID userUuId) {
+        // 1. 모임 id 추출
+        Long meetingId = dmChatRoom.getMeeting().getMeetingId();
+
+        // 2. 로그인한 사용자 == 모임의 호스트인지 확인
+        boolean isHost = dmChatRoom.getMeeting().getHost().getUuid().equals(userUuId);
+
+        // 2-1. !isHost일 경우 초대 상태를 확인할 필요 없음
+        if (!isHost) {
+            return -1;
+        }
+
+        // 3. 참여자 중 로그인한 사용자 빼고 추출
+        Optional<UUID> otherParticipantUuid = participants.stream()
+                .map(duc -> duc.getUser().getUuid())
+                .filter(id -> !id.equals(userUuId))
+                .findFirst();
+
+        // 3-1. 다른 참여자가 없으면 초대 상태를 확인할 필요 없음
+        if (otherParticipantUuid.isEmpty()) {
+            return -1;
+        }
+
+        // 4. 초대 상태 직접 조회 - UUID 사용
+        return invitationRepository.findStatusByMeetingAndParticipantUuids(
+                meetingId, userUuId, otherParticipantUuid.get());
     }
 
     // 내가 호스트인 DM 채팅방 목록 조회
