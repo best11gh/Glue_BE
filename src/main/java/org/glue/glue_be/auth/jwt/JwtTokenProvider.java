@@ -6,12 +6,14 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 
@@ -96,4 +98,14 @@ public class JwtTokenProvider {
 		return UUID.fromString(claims.get(MEMBER_ID).toString());
 	}
 
+	public Authentication getAuthentication(String token) {
+		UUID userUuid = getUserFromJwt(token);
+
+		// 사용자 정보를 기반으로 UserDetails 객체 생성
+		CustomUserDetails userDetails = new CustomUserDetails(userUuid);
+
+		// 인증 객체 생성 및 반환
+		return new UsernamePasswordAuthenticationToken(
+				userDetails, "", Collections.emptyList());
+	}
 }
