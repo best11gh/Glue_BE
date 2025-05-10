@@ -7,6 +7,7 @@ import java.util.UUID;
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.common.config.LocalDateStringConverter;
+import org.glue.glue_be.common.config.UUIDStringConverter;
 
 @Getter
 @Entity
@@ -20,6 +21,7 @@ public class User extends BaseEntity {
     private Long userId;
 
     @Column(name = "user_uuid", nullable = false, unique = true, length = 36)
+    @Convert(converter = UUIDStringConverter.class)
     private UUID uuid;
 
     @Column(name = "oauth_id", nullable = false, unique = true)
