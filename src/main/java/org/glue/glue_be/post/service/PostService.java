@@ -17,7 +17,9 @@ import org.glue.glue_be.post.dto.response.GetPostResponse;
 import org.glue.glue_be.post.dto.response.GetPostsResponse;
 import org.glue.glue_be.post.entity.Like;
 import org.glue.glue_be.post.entity.Post;
+import org.glue.glue_be.post.entity.PostImage;
 import org.glue.glue_be.post.repository.LikeRepository;
+import org.glue.glue_be.post.repository.PostImageRepository;
 import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.post.response.PostResponseStatus;
 import org.glue.glue_be.user.entity.ProfileImage;
@@ -46,6 +48,7 @@ public class PostService {
 	private final ParticipantRepository participantRepository;
 	private final UserRepository userRepository;
 	private final LikeRepository likeRepository;
+	private final PostImageRepository postImageRepository;
 
 
 	// 게시글 추가
@@ -68,8 +71,14 @@ public class PostService {
 			.meetingTime(meetingRequest.getMeetingTime())
 			.meetingPlaceName(meetingRequest.getMeetingPlaceName())
 			.minParticipants(0) // 1.0에선 최소인원이 안쓰이기에 일단 0으로 고정
-			.maxParticipants(meetingRequest.getMaxParticipants()).currentParticipants(1).status(1).meetingPlaceLatitude(meetingRequest.getMeetingPlaceLatitude())
-			.meetingPlaceLongitude(meetingRequest.getMeetingPlaceLongitude()).categoryId(meetingRequest.getCategoryId()).languageId(meetingRequest.getLanguageId()).host(creator) // 호스트 설정
+			.maxParticipants(meetingRequest.getMaxParticipants())
+			.currentParticipants(1)
+			.status(1)
+			.meetingPlaceLatitude(meetingRequest.getMeetingPlaceLatitude())
+			.meetingPlaceLongitude(meetingRequest.getMeetingPlaceLongitude())
+			.categoryId(meetingRequest.getCategoryId())
+			.languageId(meetingRequest.getLanguageId())
+			.host(creator)
 			.build();
 		Meeting savedMeeting = meetingRepository.save(meeting);
 
@@ -84,6 +93,23 @@ public class PostService {
 		// 5. 게시글 생성
 		Post post = Post.builder().meeting(savedMeeting).title(postRequest.getTitle()).content(postRequest.getContent()).build();
 		Post savedPost = postRepository.save(post);
+
+		// 5.5. 게시글 생성 시 이미지주소 있다면 DB에 저장 후 양방향 매핑 작업도 수행
+		List<String> imageUrls = postRequest.getImageUrls();
+
+		if(imageUrls != null && !imageUrls.isEmpty()) {
+			int order = 0;
+			for (String imageUrl : imageUrls) {
+				PostImage postImage = PostImage.builder()
+					.post(savedPost)
+					.imageUrl(imageUrl)
+					.imageOrder(order++)
+					.build();
+
+				postImageRepository.save(postImage);
+				savedPost.getImages().add(postImage); // 양방향 추가 처리
+			}
+		}
 
 		// 6. responseDto 생성 직후 리턴
 		return CreatePostResponse.builder().postId(savedPost.getId()).build();
@@ -101,28 +127,66 @@ public class PostService {
 		// 2. 응답 dto 구성
 		var participantDtos = meeting.getParticipants().stream().map(participant -> {
 			User user = participant.getUser();
-			String imageUrl = Optional.ofNullable(user.getProfileImage()).map(ProfileImage::getProfileImageUrl).orElse(null);
-			return GetPostResponse.MeetingDto.ParticipantDto.builder().userId(user.getUserId()).nickname(user.getNickname()).profileImageUrl(imageUrl).build();
+			String imageUrl = Optional.ofNullable(user.getProfileImage())
+				.map(ProfileImage::getProfileImageUrl)
+				.orElse(null); // 사용자 이미지 없는 경우 null 리턴
+
+			return GetPostResponse.MeetingDto.ParticipantDto.builder()
+				.userId(user.getUserId())
+				.nickname(user.getNickname())
+				.profileImageUrl(imageUrl).build();
 		}).collect(Collectors.toList());
 
-		// 2.5. null일 확률이 있는 값은 Optional로 분기처리
 		String creatorNickname = Optional.ofNullable(meeting.getHost()).map(User::getNickname).orElse("알 수 없는 사용자");
-		String creatorImageUrl = Optional.ofNullable(meeting.getHost()).map(User::getProfileImage).map(ProfileImage::getProfileImageUrl).orElse(null);
 
-		// todo : ofEntity 팩토리 메서드로 대체
-		var meetingDto = GetPostResponse.MeetingDto.builder().meetingId(meeting.getMeetingId()).categoryId(meeting.getCategoryId()).creatorName(creatorNickname).creatorImageUrl(creatorImageUrl)
-			.meetingTime(meeting.getMeetingTime()).currentParticipants(meeting.getCurrentParticipants()).maxParticipants(meeting.getMaxParticipants()).languageId(meeting.getLanguageId())
-			.meetingStatus(meeting.getStatus()).participants(participantDtos).createdAt(meeting.getCreatedAt()).updatedAt(meeting.getUpdatedAt()).build();
+		String creatorImageUrl = Optional.ofNullable(meeting.getHost()).map(User::getProfileImage).map(ProfileImage::getProfileImageUrl).orElse(null); // 기본 이미지 지정으로 할수도 있을듯
 
-		var postDto = GetPostResponse.PostDto.builder().postId(post.getId()).title(post.getTitle()).content(post.getContent()).viewCount(post.getViewCount()).bumpedAt(post.getBumpedAt())
-			.likeCount(post.getLikes().size()).postImageUrl(post.getImages()).build();
+		UUID creatorUuid = Optional.ofNullable(meeting.getHost()).map(User::getUuid).orElse(null);
 
-		// 3. 조회했으므로 ++
-		// todo: 일단은 조회마다 조회수 무조건 오르는 것으로 설정
+		List<GetPostResponse.PostDto.PostImageDto> imageUrls = post.getImages().stream()
+			.map(pi -> GetPostResponse.PostDto.PostImageDto.builder()
+				.postImageId(pi.getId())
+				.imageUrl(pi.getImageUrl())
+				.imageOrder(pi.getImageOrder())
+				.build())
+			.toList(); // 게시글 이미지
+
+		var meetingDto = GetPostResponse.MeetingDto.builder().
+			meetingId(meeting.getMeetingId())
+			.categoryId(meeting.getCategoryId())
+			.creatorName(creatorNickname)
+			.creatorUuid(creatorUuid)
+			.creatorImageUrl(creatorImageUrl)
+			.meetingTime(meeting.getMeetingTime())
+			.currentParticipants(meeting.getCurrentParticipants())
+			.maxParticipants(meeting.getMaxParticipants())
+			.languageId(meeting.getLanguageId())
+			.meetingStatus(meeting.getStatus())
+			.participants(participantDtos)
+			.createdAt(meeting.getCreatedAt())
+			.updatedAt(meeting.getUpdatedAt())
+			.build();
+
+		var postDto = GetPostResponse.PostDto.builder()
+			.postId(post.getId())
+			.title(post.getTitle())
+			.content(post.getContent())
+			.viewCount(post.getViewCount())
+			.bumpedAt(post.getBumpedAt())
+			.likeCount(post.getLikes().size())
+			.postImageUrl(imageUrls)
+			.build();
+
+		// 3. dto 조립
+		GetPostResponse response = GetPostResponse.builder()
+			.meeting(meetingDto)
+			.post(postDto)
+			.build();
+
+		// 4. 조회수 증가 후 리턴
 		post.increaseViewCount();
 
-		// 4. 조립이 완료된 응답 dto 리턴
-		return GetPostResponse.builder().meeting(meetingDto).post(postDto).build();
+		return response;
 
 	}
 
