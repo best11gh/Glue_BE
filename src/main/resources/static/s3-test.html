@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Upload Test</title>
+</head>
+<body>
+<h1>Image Upload</h1>
+<input type="file" id="imageInput" accept="image/*">
+<button id="uploadButton">Upload</button>
+
+<h2>응답값</h2>
+<textarea id="demotext" readonly
+          style="width:400px; height:80px;"></textarea>
+
+<h2>미리보기</h2>
+<img id="previewImage" src="" alt="Uploaded" width="200">
+
+<script>
+    const demotext = document.getElementById('demotext');
+    const previewImage = document.getElementById('previewImage');
+
+    document.getElementById('uploadButton')
+        .addEventListener('click', async () => {
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+            if (!file) { alert('파일을 선택하세요.'); return; }
+
+            try {
+                // 1) 확장자 추출
+                const ext = file.name.split('.').pop();
+
+                // 버킷 폴더명 지정 (예: "post_images" 또는 "profile_images")
+                const bucketObject = 'post_images';
+
+                // 2) presigned URL 요청
+                const presignRes = await fetch(
+                    `http://localhost:8080/api/aws/presigned-url?bucketObject=${bucketObject}&extension=${ext}`,
+                    {
+                        method: 'POST'
+                    }
+                );
+                if (!presignRes.ok)
+                    throw new Error('Presign 요청 실패: ' + presignRes.statusText);
+                const { presignedUrl, publicUrl } = await presignRes.json();
+
+                // 3) S3에 PUT 업로드
+                const uploadRes = await fetch(presignedUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': file.type
+                    },
+                    body: file
+                });
+                if (!uploadRes.ok)
+                    throw new Error('S3 업로드 실패: ' + uploadRes.statusText);
+
+                // 4) 결과 화면에 표시
+                demotext.value = publicUrl;
+                previewImage.src = publicUrl;
+
+            } catch (err) {
+                console.error(err);
+                demotext.value = err.toString();
+            }
+        });
+</script>
+</body>
+</html>
