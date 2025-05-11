@@ -8,6 +8,7 @@ import org.glue.glue_be.post.entity.PostImage;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 
 @Getter
@@ -28,6 +29,8 @@ public class GetPostResponse {
 
 		private String creatorName;
 
+		private UUID creatorUuid;
+
 		private String creatorImageUrl;
 
 		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
@@ -43,6 +46,13 @@ public class GetPostResponse {
 
 		private List<ParticipantDto> participants;
 
+		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+		private LocalDateTime createdAt;
+
+		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+		private LocalDateTime updatedAt;
+
+
 		@Getter
 		@Builder
 		public static class ParticipantDto {
@@ -54,12 +64,6 @@ public class GetPostResponse {
 			private String profileImageUrl;
 
 		}
-
-		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-		private LocalDateTime createdAt;
-
-		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-		private LocalDateTime updatedAt;
 	}
 
 	@Getter
@@ -79,7 +83,19 @@ public class GetPostResponse {
 
 		private Integer likeCount;
 
-		private List<PostImage> postImageUrl;
+		private List<PostImageDto> postImageUrl;
+
+
+		@Getter
+		@Builder
+		public static class PostImageDto {
+			private Long postImageId;
+			private String imageUrl;
+			private Integer imageOrder;
+
+		}
 
 	}
+
+
 }
