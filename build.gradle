@@ -59,6 +59,17 @@ dependencies {
 
 	// fcm
 	implementation 'com.google.firebase:firebase-admin:9.1.1'
+
+	// gmail
+	implementation group: 'org.springframework.boot', name: 'spring-boot-starter-mail', version: '3.0.5'
+
+	// aws
+	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+	implementation 'com.amazonaws:aws-java-sdk-s3:1.12.767'
+	implementation 'software.amazon.awssdk:s3:2.27.3'
+	implementation 'software.amazon.awssdk:s3control:2.27.3'
+	implementation 'software.amazon.awssdk:s3outposts:2.27.3'
+
 }
 
 tasks.named('test') {
