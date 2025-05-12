@@ -23,6 +23,7 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
     
     Page<Invitation> findByCreator(User creator, Pageable pageable);
 
+    // 미팅과 참여자 기반으로 초대 status 조회 (쪽지에 필요)
     @Query("SELECT i.status FROM Invitation i " +
             "JOIN i.meeting m " +
             "JOIN m.participants p " +
