@@ -32,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -52,7 +51,7 @@ public class PostService {
 
 
 	// 게시글 추가
-	public CreatePostResponse createPost(CreatePostRequest request, String uuid) {
+	public CreatePostResponse createPost(CreatePostRequest request, Long userId) {
 
 		CreatePostRequest.MeetingDto meetingRequest = request.getMeeting();
 		CreatePostRequest.PostDto postRequest = request.getPost();
@@ -63,7 +62,7 @@ public class PostService {
 		}
 
 		// 2. 사용자 조회
-		User creator = userRepository.findByUuid(UUID.fromString(uuid)).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+		User creator = userRepository.findById(userId).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
 		// 3. 모임 생성
 		Meeting meeting = Meeting.builder() // todo: toEntity 팩토리 메서드로 대체
@@ -141,7 +140,7 @@ public class PostService {
 
 		String creatorImageUrl = Optional.ofNullable(meeting.getHost()).map(User::getProfileImage).map(ProfileImage::getProfileImageUrl).orElse(null); // 기본 이미지 지정으로 할수도 있을듯
 
-		UUID creatorUuid = Optional.ofNullable(meeting.getHost()).map(User::getUuid).orElse(null);
+		Long creatorId = Optional.ofNullable(meeting.getHost()).map(User::getUserId).orElse(null);
 
 		List<GetPostResponse.PostDto.PostImageDto> imageUrls = post.getImages().stream()
 			.map(pi -> GetPostResponse.PostDto.PostImageDto.builder()
@@ -155,7 +154,7 @@ public class PostService {
 			meetingId(meeting.getMeetingId())
 			.categoryId(meeting.getCategoryId())
 			.creatorName(creatorNickname)
-			.creatorUuid(creatorUuid)
+			.creatorId(creatorId)
 			.creatorImageUrl(creatorImageUrl)
 			.meetingTime(meeting.getMeetingTime())
 			.currentParticipants(meeting.getCurrentParticipants())
@@ -192,24 +191,24 @@ public class PostService {
 
 
 	// 게시글 끌올
-	public void bumpPost(Long postId, UUID userUuid) {
+	public void bumpPost(Long postId, Long userId) {
 
 		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
 		// 끌올은 게시글 작성자만 가능
-		if (!post.getMeeting().isHost(userUuid)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
+		if (!post.getMeeting().isHost(userId)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
 
 		post.bump(LocalDateTime.now());
 	}
 
 
 	// 게시글 좋아요 토글
-	public void toggleLike(Long postId, UUID userUuid) {
+	public void toggleLike(Long postId, Long userId) {
 
 		Post post = postRepository.findById(postId)
 			.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
-		User user = userRepository.findByUuid(userUuid)
+		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
 		// 처음이면 좋아요 생성, 이미 좋아요 누른 상태면 좋아요 취소

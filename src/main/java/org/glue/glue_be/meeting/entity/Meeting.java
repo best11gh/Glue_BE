@@ -145,7 +145,7 @@ public class Meeting extends BaseEntity {
         return this.participants.size() >= this.maxParticipants;
     }
 
-    public boolean isHost(UUID uuid) {
-        return this.host.getUuid().equals(uuid);
+    public boolean isHost(Long userId) {
+        return this.host.getUserId().equals(userId);
     }
 }

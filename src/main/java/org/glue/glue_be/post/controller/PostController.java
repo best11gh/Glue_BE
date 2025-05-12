@@ -25,8 +25,7 @@ public class PostController {
 	// 1. 게시글 작성 (로그인 필수)
 	@PostMapping
 	public BaseResponse<CreatePostResponse> createPost(@RequestBody @Valid CreatePostRequest req, @AuthenticationPrincipal CustomUserDetails auth) {
-		String uuid = auth.getUsername();
-		return new BaseResponse<>(postService.createPost(req, uuid));
+		return new BaseResponse<>(postService.createPost(req, auth.getUserId()));
 	}
 
 
@@ -44,7 +43,7 @@ public class PostController {
 	// 5. 게시글 끌올 (로그인 필수)
 	@GetMapping("/{postId}/bump")
 	public BaseResponse<Void> bumpPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
-		postService.bumpPost(postId, auth.getUserUuid());
+		postService.bumpPost(postId, auth.getUserId());
 		return new BaseResponse<>();
 	}
 
@@ -66,7 +65,7 @@ public class PostController {
 	// 8. 좋아요 등록(토글) (로그인 필수)
 	@GetMapping("/{postId}/like")
 	public BaseResponse<Void> toggleLike(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
-		postService.toggleLike(postId, auth.getUserUuid());
+		postService.toggleLike(postId, auth.getUserId());
 		return new BaseResponse<>();
 	}
 

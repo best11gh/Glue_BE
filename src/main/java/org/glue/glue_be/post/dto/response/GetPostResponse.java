@@ -4,11 +4,9 @@ package org.glue.glue_be.post.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Getter;
-import org.glue.glue_be.post.entity.PostImage;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 
 @Getter
@@ -29,7 +27,7 @@ public class GetPostResponse {
 
 		private String creatorName;
 
-		private UUID creatorUuid;
+		private Long creatorId;
 
 		private String creatorImageUrl;
 
@@ -86,6 +84,7 @@ public class GetPostResponse {
 		private List<PostImageDto> postImageUrl;
 
 
+		// todo: common으로 옮기기
 		@Getter
 		@Builder
 		public static class PostImageDto {
