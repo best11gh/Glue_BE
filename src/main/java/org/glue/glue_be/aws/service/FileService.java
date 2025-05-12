@@ -27,10 +27,10 @@ public class FileService {
     private String region;
 
 
-    public GetPresignedUrlResponse getPreSignedUrl(String bucketObject, String imageExtension) {
+    public GetPresignedUrlResponse getPreSignedUrl(String bucketObject, String imageExtension, String userNickname) {
 
         // 1) 고유성 보장위해 UUID를 사용해 이미지 파일키 제작 (주의: 경로도 key값 만들때 같이 지정해야하기 때문에 bucketObject 경로를 여기에 넣음)
-        String keyName = bucketObject + "/" + UUID.randomUUID().toString().replace("-", "") + "." + imageExtension;
+        String keyName = bucketObject + "/" + userNickname + "_" + UUID.randomUUID().toString().replace("-", "") + "." + imageExtension;
 
         // 2) content-type
         String contentType;
