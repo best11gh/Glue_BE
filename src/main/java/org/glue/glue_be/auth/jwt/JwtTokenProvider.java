@@ -24,7 +24,9 @@ import java.util.UUID;
 public class JwtTokenProvider {
 
 	private static final String MEMBER_ID = "memberId";
+	private static final String MEMBER_NICKNAME = "memberNickname";
 	private static final Long TOKEN_EXPIRATION_TIME = 24 * 60 * 60 * 1000L; // todo: 토큰 유효기간 논의, 현재는 24시간
+
 
 	@Value("${jwt.secret}")
 	private String JWT_SECRET;
@@ -39,6 +41,8 @@ public class JwtTokenProvider {
 	}
 
 	public String generateToken(Authentication authentication) {
+
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 		final Date now = new Date();
 
 		// 1. 클레임 생성. jwt의 claims엔 여러개가 있는데 우선 토큰 발급시각과 토큰 만료시간 지정
@@ -46,8 +50,9 @@ public class JwtTokenProvider {
 			.setIssuedAt(now)
 			.setExpiration(new Date(now.getTime() + TOKEN_EXPIRATION_TIME));
 
-		// 2. 클레임의 memberId 키에 해당하는 값은 현재 로그인한 유저의 인증 주체(자체 서비스 PK)를 넣는다.
-		claims.put(MEMBER_ID, authentication.getPrincipal());
+		// 2. userId와 nickname을 JWT 클레임에 삽입
+		claims.put(MEMBER_ID, userDetails.getUserId());
+		claims.put(MEMBER_NICKNAME, userDetails.getUserNickname());
 
 		// 3. header, 방금 조립한 claim, 그리고 signature을 합쳐 JWT 빌드
 		return Jwts.builder()
@@ -92,10 +97,15 @@ public class JwtTokenProvider {
 			.getBody();
 	}
 
-	// claim에서 유저 인증주체 정보 파싱
-	public UUID getUserFromJwt(String token) {
+	// claim에서 유저 인증주체 정보 파싱 메서드
+	public Long getUserIdFromJwt(String token) {
 		Claims claims = getBody(token);
-		return UUID.fromString(claims.get(MEMBER_ID).toString());
+		return Long.valueOf(claims.get(MEMBER_ID).toString());
+	}
+
+	public String getUserNicknameFromJwt(String token) {
+		Claims claims = getBody(token);
+		return claims.get(MEMBER_NICKNAME).toString();
 	}
 
 	public Authentication getAuthentication(String token) {
