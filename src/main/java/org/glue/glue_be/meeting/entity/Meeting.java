@@ -9,12 +9,10 @@ import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.user.entity.User;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 
 @Entity
