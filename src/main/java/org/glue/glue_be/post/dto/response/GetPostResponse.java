@@ -4,6 +4,7 @@ package org.glue.glue_be.post.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Getter;
+import org.glue.glue_be.common.dto.UserSummary;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,11 +26,7 @@ public class GetPostResponse {
 
 		private Integer categoryId;
 
-		private String creatorName;
-
-		private Long creatorId;
-
-		private String creatorImageUrl;
+		private UserSummary creator;
 
 		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 		private LocalDateTime meetingTime;

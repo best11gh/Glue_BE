@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
+import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -136,11 +137,16 @@ public class PostService {
 				.profileImageUrl(imageUrl).build();
 		}).collect(Collectors.toList());
 
-		String creatorNickname = Optional.ofNullable(meeting.getHost()).map(User::getNickname).orElse("알 수 없는 사용자");
-
-		String creatorImageUrl = Optional.ofNullable(meeting.getHost()).map(User::getProfileImage).map(ProfileImage::getProfileImageUrl).orElse(null); // 기본 이미지 지정으로 할수도 있을듯
-
-		Long creatorId = Optional.ofNullable(meeting.getHost()).map(User::getUserId).orElse(null);
+		// creator 정보는 common dto인 UserSummary 사용
+		UserSummary creator = Optional.ofNullable(meeting.getHost())
+			.map(host -> UserSummary.builder()
+				.userId(host.getUserId())
+				.userName(host.getNickname())
+				.profileImageUrl(Optional.ofNullable(host.getProfileImage())
+					.map(ProfileImage::getProfileImageUrl)
+					.orElse(null))
+				.build())
+			.orElse(null);
 
 		List<GetPostResponse.PostDto.PostImageDto> imageUrls = post.getImages().stream()
 			.map(pi -> GetPostResponse.PostDto.PostImageDto.builder()
@@ -153,9 +159,7 @@ public class PostService {
 		var meetingDto = GetPostResponse.MeetingDto.builder().
 			meetingId(meeting.getMeetingId())
 			.categoryId(meeting.getCategoryId())
-			.creatorName(creatorNickname)
-			.creatorId(creatorId)
-			.creatorImageUrl(creatorImageUrl)
+			.creator(creator)
 			.meetingTime(meeting.getMeetingTime())
 			.currentParticipants(meeting.getCurrentParticipants())
 			.maxParticipants(meeting.getMaxParticipants())
