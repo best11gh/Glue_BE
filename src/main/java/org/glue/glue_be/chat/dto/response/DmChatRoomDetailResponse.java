@@ -22,6 +22,9 @@ public class DmChatRoomDetailResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer isPushNotificationOn;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer invitationStatus;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

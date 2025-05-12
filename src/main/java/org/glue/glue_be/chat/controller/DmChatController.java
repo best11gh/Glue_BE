@@ -1,23 +1,24 @@
 package org.glue.glue_be.chat.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.chat.dto.request.DmChatRoomCreateRequest;
 import org.glue.glue_be.chat.dto.request.DmChatRoomJoinRequest;
 import org.glue.glue_be.chat.dto.request.DmMessageReadRequest;
 import org.glue.glue_be.chat.dto.request.DmMessageSendRequest;
 import org.glue.glue_be.chat.dto.response.*;
-import org.glue.glue_be.chat.entity.dm.DmChatRoom;
 import org.glue.glue_be.chat.service.DmChatService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/dm")
@@ -25,60 +26,59 @@ import java.util.Optional;
 public class DmChatController {
 
     private final DmChatService dmChatService;
-    private final SimpMessagingTemplate messagingTemplate;
 
     // Dm 채팅방 생성
     @PostMapping("/rooms/create")
-    public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request) {
-        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request);
+    public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request, @AuthenticationPrincipal CustomUserDetails auth) {
+        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request, auth.getUserUuid());
         return ResponseEntity.status(result.getStatus().getCode()).body(result);
     }
 
-    // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 참여자 정보 확인 가능)
+    // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 초대 여부, 참여자 정보 확인 가능)
     @GetMapping("/rooms/{dmChatRoomId}")
-    public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @RequestParam Long userId) {
-        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(userId));
+    public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
+        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(auth.getUserUuid()));
         return ResponseEntity.ok(response);
     }
 
     // 내가 호스트인 DM 채팅방 목록 조회
     @GetMapping("/rooms/hosted")
     public ResponseEntity<List<DmChatRoomListResponse>> getHostedDmChatRooms(
-            @RequestParam Long userId) {
-        List<DmChatRoomListResponse> chatRooms = dmChatService.getHostedDmChatRooms(userId);
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        List<DmChatRoomListResponse> chatRooms = dmChatService.getHostedDmChatRooms(auth.getUserUuid());
         return ResponseEntity.ok(chatRooms);
     }
 
     // 내가 참석자인 DM 채팅방 목록 조회
     @GetMapping("/rooms/participated")
     public ResponseEntity<List<DmChatRoomListResponse>> getParticipatedDmChatRooms(
-            @RequestParam Long userId) {
-        List<DmChatRoomListResponse> chatRooms = dmChatService.getParticipatedDmChatRooms(userId);
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        List<DmChatRoomListResponse> chatRooms = dmChatService.getParticipatedDmChatRooms(auth.getUserUuid());
         return ResponseEntity.ok(chatRooms);
     }
 
     // Dm방 나가기
     @DeleteMapping("/rooms/{dmChatRoomId}/leave")
-    public ResponseEntity<List<DmActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @RequestParam Long userId
+    public ResponseEntity<List<DmActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth
     ) {
-        List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, userId);
+        List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserUuid());
         return ResponseEntity.ok(response);
     }
 
     // Dm방 클릭 시, 대화 이력을 불러오면서 + 읽지 않은 메시지들 읽음으로 처리
     @PutMapping("/{dmChatRoomId}/all-messages")
-    public ResponseEntity<List<DmMessageResponse>> getDmMessages(@PathVariable Long dmChatRoomId, @RequestParam Long userId) {
-        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, userId);
+    public ResponseEntity<List<DmMessageResponse>> getDmMessages(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
+        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, auth.getUserUuid());
         return ResponseEntity.ok(messages);
     }
 
     // 메시지 전송
-    @PostMapping("/{dmChatRoomId}/messages")
-    public ResponseEntity<DmMessageResponse> saveMessage(
+    @PostMapping("/{dmChatRoomId}/send-message")
+    public ResponseEntity<DmMessageResponse> sendMessage(
             @PathVariable Long dmChatRoomId,
-            @RequestBody DmMessageSendRequest request) {
-
-        DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request);
+            @RequestBody DmMessageSendRequest request,
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request, auth.getUserUuid());
         return ResponseEntity.ok(response);
     }
 

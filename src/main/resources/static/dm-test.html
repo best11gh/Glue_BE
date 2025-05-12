@@ -6,6 +6,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
+        /* 스타일 부분은 변경 없음 */
         body {
             font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
             max-width: 1000px;
@@ -156,7 +157,7 @@
 <div class="container">
     <!-- 사용자 1번 패널 -->
     <div class="user-panel">
-        <h2><span id="status1" class="status-indicator"></span> 사용자 1번</h2>
+        <h2><span id="status1" class="status-indicator"></span> 사용자 1번 (UUID: b2d6f7c9-a842-41e5-b390-63487e10d9fc)</h2>
         <textarea id="messageInput1" class="message-input" placeholder="메시지를 입력하세요..."></textarea>
         <div class="buttons-row">
             <button id="sendButton1" onclick="sendMessage(1, 3)">3번 사용자에게 보내기</button>
@@ -167,7 +168,7 @@
 
     <!-- 사용자 3번 패널 -->
     <div class="user-panel">
-        <h2><span id="status3" class="status-indicator"></span> 사용자 3번</h2>
+        <h2><span id="status3" class="status-indicator"></span> 사용자 3번 (UUID: d4f8f9e1-c064-53a7-d5b2-85609a32f1be)</h2>
         <textarea id="messageInput3" class="message-input" placeholder="메시지를 입력하세요..."></textarea>
         <div class="buttons-row">
             <button id="sendButton3" onclick="sendMessage(3, 1)">1번 사용자에게 보내기</button>
@@ -199,6 +200,22 @@
         3: []
     };
 
+    // 사용자 UUID 매핑
+    const userUuids = {
+        1: "b2d6f7c9-a842-41e5-b390-63487e10d9fc",
+        3: "d4f8f9e1-c064-53a7-d5b2-85609a32f1be"
+    };
+
+    // 서버에서 생성된 JWT 토큰 매핑 - 서버에서 생성한 실제 토큰으로 교체 필요
+    const userTokens = {
+        1: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDY4NjkyNTksImV4cCI6MTc0Njk1NTY1OSwibWVtYmVySWQiOiJiMmQ2ZjdjOS1hODQyLTQxZTUtYjM5MC02MzQ4N2UxMGQ5ZmMifQ.T6Fy9-MXru9-1vc2CS7YfPo3y9ois0ar8NzjAxVuYY95hFFEETLvazleNrcxk3b2ich1nTp8jfRiHgWzcehZpw", // 서버에서 생성한 실제 JWT 토큰으로 교체
+        3: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDY4NjkyNTksImV4cCI6MTc0Njk1NTY1OSwibWVtYmVySWQiOiJkNGY4ZjllMS1jMDY0LTUzYTctZDViMi04NTYwOWEzMmYxYmUifQ.ZO90dMvwuC49_phd8XMHUU_jd-7HSFulpyoQw3TIiTEOKKO4xsgr3A0HvFvTnbjgtiOakEzdEB-9vcgdJOAu3A"  // 서버에서 생성한 실제 JWT 토큰으로 교체
+    };
+
+    // 현재 로그인된 사용자 UUID (테스트용으로 전환 가능)
+    let currentUserUuid = userUuids[1];
+    let currentUserToken = userTokens[1];
+
     // 디버그 로그 비활성화 함수
     function disableStompDebug() {
         if (stompClient) {
@@ -224,6 +241,10 @@
         const indicator = document.getElementById(`status${userId}`);
         if (isConnected) {
             indicator.classList.add('status-online');
+            // 로그인된 사용자 UUID 및 토큰 업데이트
+            currentUserUuid = userUuids[userId];
+            currentUserToken = userTokens[userId];
+            logEvent(`현재 인증된 사용자 UUID: ${currentUserUuid}`);
         } else {
             indicator.classList.remove('status-online');
         }
@@ -244,18 +265,22 @@
         // 이미 연결된 경우 종료
         if (userConnections[userId]) return;
 
-        logEvent(`${userId}번 사용자 WebSocket 연결 시도...`);
+        logEvent(`${userId}번 사용자 WebSocket 연결 시도... (UUID: ${userUuids[userId]})`);
 
         // 새 SockJS 인스턴스 생성
         socket = new SockJS("/ws");
         stompClient = Stomp.over(socket);
         disableStompDebug();
 
-        stompClient.connect({}, function(frame) {
+        // STOMP 헤더에 실제 JWT 토큰 추가
+        const headers = {
+            "Authorization": `Bearer ${userTokens[userId]}`
+        };
+
+        stompClient.connect(headers, function(frame) {
             userConnections[userId] = true;
             updateStatusIndicator(userId, true);
-            logEvent(`${userId}번 사용자 WebSocket 연결 성공`);
-
+            logEvent(`${userId}번 사용자 WebSocket 연결 성공 (UUID: ${userUuids[userId]})`);
 
             // 사용자별 메시지 구독
             stompClient.subscribe(`/queue/dm/${userId}`, function(message) {
@@ -331,7 +356,7 @@
         if (!userConnections[userId] || !stompClient) return;
 
         stompClient.disconnect(function() {
-            logEvent(`${userId}번 사용자 WebSocket 연결 해제`);
+            logEvent(`${userId}번 사용자 WebSocket 연결 해제 (UUID: ${userUuids[userId]})`);
             userConnections[userId] = false;
             updateStatusIndicator(userId, false);
         });
@@ -356,11 +381,12 @@
             // 연결
             initializeConnection(userId);
 
-            // API 호출: PUT /api/dm/{dmChatRoomId}/all-messages?userId={userId}
-            fetch(`/api/dm/2/all-messages?userId=${userId}`, {
+            // API 호출: PUT /api/dm/{dmChatRoomId}/all-messages (userId는 토큰을 통해 얻음)
+            fetch(`/api/dm/2/all-messages`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userTokens[userId]}` // 실제 JWT 토큰 사용
                 }
             })
                 .then(response => {
@@ -370,7 +396,7 @@
                     return response.json();
                 })
                 .then(data => {
-                    logEvent(`${userId}번 사용자가 채팅방 2번의 모든 메시지를 읽음 처리했습니다.`);
+                    logEvent(`${userId}번 사용자(UUID: ${userUuids[userId]})가 채팅방 2번의 모든 메시지를 읽음 처리했습니다.`);
 
                     // 받은 메시지 데이터를 UI에 표시
                     displayMessagesHistory(userId, data);
@@ -479,18 +505,21 @@
             return;
         }
 
+        // 실제 JWT 토큰 사용
+        const token = userTokens[senderId];
+
         // 메시지 객체 생성
         let msg = {
-            senderId: senderId,
             receiverId: receiverId,
             content: content
         };
 
         // REST API로 메시지 저장 요청
-        fetch(`/api/dm/2/messages`, {
+        fetch(`/api/dm/2/send-message`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // 실제 JWT 토큰 사용
             },
             body: JSON.stringify(msg)
         })
@@ -501,7 +530,7 @@
                 return response.json();
             })
             .then(savedMessage => {
-                logEvent(`${senderId}번 사용자가 ${receiverId}번 사용자에게 메시지 전송: "${content}"`);
+                logEvent(`${senderId}번 사용자(UUID: ${userUuids[senderId]})가 ${receiverId}번 사용자에게 메시지 전송: "${content}"`);
 
                 // 저장소에 추가 및 화면에 표시
                 messagesStore[senderId].push({
@@ -533,13 +562,16 @@
         // 연결이 없으면 읽음 처리를 할 수 없음
         if (!userConnections[userId]) return;
 
-        // 읽음 처리 요청 전송
+        // 읽음 처리 요청 전송 (JWT 토큰 사용)
         const request = {
             receiverId: userId
         };
 
-        stompClient.send(`/app/dm/2/readMessage`, {}, JSON.stringify(request));
-        logEvent(`${userId}번 사용자가 모든 메시지 읽음 처리 요청`);
+        stompClient.send(`/app/dm/2/readMessage`, {
+            "Authorization": `Bearer ${userTokens[userId]}`
+        }, JSON.stringify(request));
+
+        logEvent(`${userId}번 사용자(UUID: ${userUuids[userId]})가 모든 메시지 읽음 처리 요청`);
     }
 
     function updateReadStatus(userId, readStatusData) {
@@ -594,6 +626,11 @@
         // 초기 상태는 연결되지 않음
         updateStatusIndicator(1, false);
         updateStatusIndicator(3, false);
+
+        // UUID 정보 로깅
+        logEvent("사용자 UUID 매핑:");
+        logEvent(`사용자 1번: ${userUuids[1]}`);
+        logEvent(`사용자 3번: ${userUuids[3]}`);
     };
 </script>
 </body>

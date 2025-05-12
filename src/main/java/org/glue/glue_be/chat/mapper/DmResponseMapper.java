@@ -13,6 +13,7 @@ import org.glue.glue_be.user.repository.ProfileImageRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -38,7 +39,7 @@ public class DmResponseMapper {
     }
 
     //DmChatRoom 엔티티와 참여자 목록을 DmChatRoomDetailResponse DTO로 변환
-    public DmChatRoomDetailResponse toChatRoomDetailResponse(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, Long userId) {
+    public DmChatRoomDetailResponse toChatRoomDetailResponse(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, UUID userUuId, Integer invitationStatus) {
         List<UserSummary> participantResponses = participants.stream()
                 .map(dmUserChatroom -> toChatUserResponse(dmUserChatroom.getUser()))
                 .collect(Collectors.toList());
@@ -50,13 +51,18 @@ public class DmResponseMapper {
                 .createdAt(dmChatRoom.getCreatedAt())
                 .updatedAt(dmChatRoom.getUpdatedAt());
 
-        if (userId != null) {
-            Integer pushOn = dmChatRoom.getDmUserChatrooms().stream()
-                    .filter(duc -> duc.getUser().getUserId().equals(userId))
+        if (userUuId != null) {
+            Integer isPushNotificationOn = dmChatRoom.getDmUserChatrooms().stream()
+                    .filter(duc -> duc.getUser().getUuid().equals(userUuId))
                     .findFirst()
                     .map(DmUserChatroom::getPushNotificationOn)
-                    .orElse(0);
-            builder.isPushNotificationOn(pushOn);
+                    .orElse(1); //default: 1
+
+            builder.isPushNotificationOn(isPushNotificationOn);
+        }
+
+        if (invitationStatus != -1) {
+            builder.invitationStatus(invitationStatus);
         }
 
         return builder.build();
