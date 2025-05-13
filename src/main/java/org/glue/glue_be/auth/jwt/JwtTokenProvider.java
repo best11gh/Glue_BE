@@ -108,10 +108,11 @@ public class JwtTokenProvider {
 	}
 
 	public Authentication getAuthentication(String token) {
-		UUID userUuid = getUserFromJwt(token);
+		Long userId = getUserIdFromJwt(token);
+		String userNickname = getUserNicknameFromJwt(token);
 
 		// 사용자 정보를 기반으로 UserDetails 객체 생성
-		CustomUserDetails userDetails = new CustomUserDetails(userUuid);
+		CustomUserDetails userDetails = new CustomUserDetails(userId, userNickname);
 
 		// 인증 객체 생성 및 반환
 		return new UsernamePasswordAuthenticationToken(
