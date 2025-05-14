@@ -5,9 +5,9 @@ import lombok.Getter;
 @Getter
 public class DmChatRoomCreateResult {
     private DmChatRoomDetailResponse detail;
-    private DmActionResponse status;
+    private ActionResponse status;
 
-    public DmChatRoomCreateResult(DmChatRoomDetailResponse detail, DmActionResponse status) {
+    public DmChatRoomCreateResult(DmChatRoomDetailResponse detail, ActionResponse status) {
         this.detail = detail;
         this.status = status;
     }

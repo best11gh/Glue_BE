@@ -60,9 +60,9 @@ public class DmChatController {
 
     // Dm방 나가기
     @DeleteMapping("/rooms/{dmChatRoomId}/leave")
-    public ResponseEntity<List<DmActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth
+    public ResponseEntity<List<ActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth
     ) {
-        List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserId());
+        List<ActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserId());
         return ResponseEntity.ok(response);
     }
 
