@@ -271,8 +271,6 @@ public class DmChatService extends CommonChatService {
                 .orElseThrow(() -> new ChatException("채팅방에 참여하지 않은 사용자입니다."));
     }
 
-    // ========
-
     private DmChatRoomDetailResponse getDmChatRoomDetail(Long dmChatRoomId) {
         return getDmChatRoomDetail(dmChatRoomId, Optional.empty());
     }
