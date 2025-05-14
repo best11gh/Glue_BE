@@ -16,7 +16,6 @@ public class DmChatWebSocketController {
 
     @MessageMapping("/dm/{dmChatRoomId}/read-message")
     public void readDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageReadRequest request) {
-        System.out.println("읽음 처리 요청 - 채팅방: " + dmChatRoomId + ", 사용자: " + request.getReceiverId());
         dmChatService.markMessagesAsRead(dmChatRoomId, request.getReceiverId());
     }
 }
