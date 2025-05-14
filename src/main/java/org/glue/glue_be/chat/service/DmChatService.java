@@ -172,10 +172,10 @@ public class DmChatService extends CommonChatService {
     @Transactional
     public DmMessageResponse processDmMessage(Long dmChatRoomId, DmMessageSendRequest request, Long userId) {
         // 1. 메시지 저장
-        DmMessageResponse response = saveDmMessage(dmChatRoomId, request.getSenderId(), request.getContent());
+        DmMessageResponse response = saveDmMessage(dmChatRoomId, userId, request.getContent());
 
         // 2. 웹소켓 알림 전송
-        notifyIfOnline(dmChatRoomId, response, request.getSenderId());
+        notifyIfOnline(dmChatRoomId, response, userId);
 
         return response;
     }
