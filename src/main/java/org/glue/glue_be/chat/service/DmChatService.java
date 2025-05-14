@@ -29,9 +29,13 @@ import org.glue.glue_be.chat.mapper.DmResponseMapper;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
 @Service
 @RequiredArgsConstructor
 public class DmChatService extends CommonChatService {
+
+    final int INVITE_AVAILABLE = 1;
+    final int INVITE_NOT_NECESSARY = -1;
 
     private final DmChatRoomRepository dmChatRoomRepository;
     private final DmUserChatroomRepository dmUserChatroomRepository;
@@ -285,10 +289,15 @@ public class DmChatService extends CommonChatService {
         List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(dmChatRoom);
 
         // 초대장 로직 - 사용자가 로그인한 경우에만 초대 정보 확인
-        // invitationStatus = -1: "모임 초대하기"가 아예 필요 없는 상황
-        Integer invitationStatus = -1;
+        // "모임 초대하기"가 아예 필요 없는 상황
+        Integer invitationStatus = INVITE_NOT_NECESSARY;
         if (userId.isPresent()) {
             invitationStatus = checkInvitationStatus(dmChatRoom, participants, userId.get());
+        }
+
+        // 아직 초대장이 한 번도 안 만들어진 상태일 때: 무조건 초대 가능하도록
+        if (invitationStatus == null) {
+            invitationStatus = INVITE_AVAILABLE;
         }
 
         // 응답 생성
@@ -304,7 +313,7 @@ public class DmChatService extends CommonChatService {
 
         // 2-1. !isHost일 경우 초대 상태를 확인할 필요 없음
         if (!isHost) {
-            return -1;
+            return INVITE_NOT_NECESSARY;
         }
 
         // 3. 참여자 중 로그인한 사용자 빼고 추출
@@ -315,7 +324,7 @@ public class DmChatService extends CommonChatService {
 
         // 3-1. 다른 참여자가 없으면 초대 상태를 확인할 필요 없음
         if (otherParticipantUserId.isEmpty()) {
-            return -1;
+            return INVITE_NOT_NECESSARY;
         }
 
         // 4. 초대 상태 직접 조회
