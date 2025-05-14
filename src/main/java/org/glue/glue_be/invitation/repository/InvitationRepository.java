@@ -30,10 +30,10 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
             "JOIN i.creator c " +
             "JOIN p.user u " +
             "WHERE m.meetingId = :meetingId " +
-            "AND c.uuid = :creatorUuid " +
-            "AND u.uuid = :inviteeUuid")
-    Integer findStatusByMeetingAndParticipantUuids(
+            "AND c.userId = :creatorUserId " +
+            "AND u.userId = :inviteeUserId")
+    Integer findStatusByMeetingAndParticipantIds(
             @Param("meetingId") Long meetingId,
-            @Param("creatorUuid") UUID creatorUuid,
-            @Param("inviteeUuid") UUID inviteeUuid);
+            @Param("creatorUuid") Long creatorUserId,
+            @Param("inviteeUuid") Long inviteeUserId);
 } 
