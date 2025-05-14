@@ -15,6 +15,9 @@ import org.glue.glue_be.auth.dto.response.AppleUserInfoResponseDto;
 import org.glue.glue_be.auth.dto.response.KakaoSignInResponseDto;
 import org.glue.glue_be.auth.dto.response.KakaoSignUpResponseDto;
 import org.glue.glue_be.auth.dto.response.KakaoUserInfoResponseDto;
+import org.glue.glue_be.auth.response.AuthResponseStatus;
+import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.redis.RedisUtil;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -22,6 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.naming.AuthenticationException;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -37,9 +43,11 @@ public class AuthService {
 
     // utils
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisUtil redisUtil;
 
     // repositories
     private final UserRepository userRepository;
+    private final MailService mailService;
 
 
     // todo: 추후 리팩토링 시 과정 중 역할의 책임을 나눌만한 부분이 있는지 보기
@@ -142,6 +150,37 @@ public class AuthService {
         UserAuthentication authentication = new UserAuthentication(customUserDetails, null, null);
 
 	    return jwtTokenProvider.generateToken(authentication);
+    }
+
+    public void sendCode(String email){
+
+        // 1. 이미 해당 email 유저가 있는지 검증
+
+        // 2. 코드 생성
+        String code = redisUtil.createdCertifyNum();
+
+        // 3. 이메일 송신
+        mailService.sendCodeEmail(email, code);
+
+        // 4. Redis에 이메일-코드 데이터 저장
+        redisUtil.setCodeData(email, code);
+
+    }
+
+
+    public void verifyCode(String email, String code) {
+
+        // 1. redis에서 null을 받아오면 코드값이 만료했다 판단
+        String redisCode = Optional.ofNullable(redisUtil.getData(email))
+            .orElseThrow(() -> new BaseException(AuthResponseStatus.EXPIRE_CODE));
+
+        // 2. 가져온 코드값과 입력 코드값이 다르면 예외 발생
+        if (!redisCode.equals(code))
+            throw new BaseException(AuthResponseStatus.FALSE_CODE);
+
+        // 3. 코드가 통과됐으므로 재사용 방지하게끔 기존 코드 삭제
+        redisUtil.deleteData(email);
+
     }
 
 }
