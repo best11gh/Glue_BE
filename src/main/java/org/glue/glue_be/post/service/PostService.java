@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
+import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -17,7 +18,9 @@ import org.glue.glue_be.post.dto.response.GetPostResponse;
 import org.glue.glue_be.post.dto.response.GetPostsResponse;
 import org.glue.glue_be.post.entity.Like;
 import org.glue.glue_be.post.entity.Post;
+import org.glue.glue_be.post.entity.PostImage;
 import org.glue.glue_be.post.repository.LikeRepository;
+import org.glue.glue_be.post.repository.PostImageRepository;
 import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.post.response.PostResponseStatus;
 import org.glue.glue_be.user.entity.ProfileImage;
@@ -30,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -46,10 +48,11 @@ public class PostService {
 	private final ParticipantRepository participantRepository;
 	private final UserRepository userRepository;
 	private final LikeRepository likeRepository;
+	private final PostImageRepository postImageRepository;
 
 
 	// 게시글 추가
-	public CreatePostResponse createPost(CreatePostRequest request, String uuid) {
+	public CreatePostResponse createPost(CreatePostRequest request, Long userId) {
 
 		CreatePostRequest.MeetingDto meetingRequest = request.getMeeting();
 		CreatePostRequest.PostDto postRequest = request.getPost();
@@ -60,7 +63,7 @@ public class PostService {
 		}
 
 		// 2. 사용자 조회
-		User creator = userRepository.findByUuid(UUID.fromString(uuid)).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+		User creator = userRepository.findById(userId).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
 		// 3. 모임 생성
 		Meeting meeting = Meeting.builder() // todo: toEntity 팩토리 메서드로 대체
@@ -68,8 +71,14 @@ public class PostService {
 			.meetingTime(meetingRequest.getMeetingTime())
 			.meetingPlaceName(meetingRequest.getMeetingPlaceName())
 			.minParticipants(0) // 1.0에선 최소인원이 안쓰이기에 일단 0으로 고정
-			.maxParticipants(meetingRequest.getMaxParticipants()).currentParticipants(1).status(1).meetingPlaceLatitude(meetingRequest.getMeetingPlaceLatitude())
-			.meetingPlaceLongitude(meetingRequest.getMeetingPlaceLongitude()).categoryId(meetingRequest.getCategoryId()).languageId(meetingRequest.getLanguageId()).host(creator) // 호스트 설정
+			.maxParticipants(meetingRequest.getMaxParticipants())
+			.currentParticipants(1)
+			.status(1)
+			.meetingPlaceLatitude(meetingRequest.getMeetingPlaceLatitude())
+			.meetingPlaceLongitude(meetingRequest.getMeetingPlaceLongitude())
+			.categoryId(meetingRequest.getCategoryId())
+			.languageId(meetingRequest.getLanguageId())
+			.host(creator)
 			.build();
 		Meeting savedMeeting = meetingRepository.save(meeting);
 
@@ -84,6 +93,23 @@ public class PostService {
 		// 5. 게시글 생성
 		Post post = Post.builder().meeting(savedMeeting).title(postRequest.getTitle()).content(postRequest.getContent()).build();
 		Post savedPost = postRepository.save(post);
+
+		// 5.5. 게시글 생성 시 이미지주소 있다면 DB에 저장 후 양방향 매핑 작업도 수행
+		List<String> imageUrls = postRequest.getImageUrls();
+
+		if(imageUrls != null && !imageUrls.isEmpty()) {
+			int order = 0;
+			for (String imageUrl : imageUrls) {
+				PostImage postImage = PostImage.builder()
+					.post(savedPost)
+					.imageUrl(imageUrl)
+					.imageOrder(order++)
+					.build();
+
+				postImageRepository.save(postImage);
+				savedPost.getImages().add(postImage); // 양방향 추가 처리
+			}
+		}
 
 		// 6. responseDto 생성 직후 리턴
 		return CreatePostResponse.builder().postId(savedPost.getId()).build();
@@ -101,51 +127,92 @@ public class PostService {
 		// 2. 응답 dto 구성
 		var participantDtos = meeting.getParticipants().stream().map(participant -> {
 			User user = participant.getUser();
-			String imageUrl = Optional.ofNullable(user.getProfileImage()).map(ProfileImage::getProfileImageUrl).orElse(null);
-			return GetPostResponse.MeetingDto.ParticipantDto.builder().userId(user.getUserId()).nickname(user.getNickname()).profileImageUrl(imageUrl).build();
+			String imageUrl = Optional.ofNullable(user.getProfileImage())
+				.map(ProfileImage::getProfileImageUrl)
+				.orElse(null); // 사용자 이미지 없는 경우 null 리턴
+
+			return GetPostResponse.MeetingDto.ParticipantDto.builder()
+				.userId(user.getUserId())
+				.nickname(user.getNickname())
+				.profileImageUrl(imageUrl).build();
 		}).collect(Collectors.toList());
 
-		// 2.5. null일 확률이 있는 값은 Optional로 분기처리
-		String creatorNickname = Optional.ofNullable(meeting.getHost()).map(User::getNickname).orElse("알 수 없는 사용자");
-		String creatorImageUrl = Optional.ofNullable(meeting.getHost()).map(User::getProfileImage).map(ProfileImage::getProfileImageUrl).orElse(null);
+		// creator 정보는 common dto인 UserSummary 사용
+		UserSummary creator = Optional.ofNullable(meeting.getHost())
+			.map(host -> UserSummary.builder()
+				.userId(host.getUserId())
+				.userName(host.getNickname())
+				.profileImageUrl(Optional.ofNullable(host.getProfileImage())
+					.map(ProfileImage::getProfileImageUrl)
+					.orElse(null))
+				.build())
+			.orElse(null);
 
-		// todo : ofEntity 팩토리 메서드로 대체
-		var meetingDto = GetPostResponse.MeetingDto.builder().meetingId(meeting.getMeetingId()).categoryId(meeting.getCategoryId()).creatorName(creatorNickname).creatorImageUrl(creatorImageUrl)
-			.meetingTime(meeting.getMeetingTime()).currentParticipants(meeting.getCurrentParticipants()).maxParticipants(meeting.getMaxParticipants()).languageId(meeting.getLanguageId())
-			.meetingStatus(meeting.getStatus()).participants(participantDtos).createdAt(meeting.getCreatedAt()).updatedAt(meeting.getUpdatedAt()).build();
+		List<GetPostResponse.PostDto.PostImageDto> imageUrls = post.getImages().stream()
+			.map(pi -> GetPostResponse.PostDto.PostImageDto.builder()
+				.postImageId(pi.getId())
+				.imageUrl(pi.getImageUrl())
+				.imageOrder(pi.getImageOrder())
+				.build())
+			.toList(); // 게시글 이미지
 
-		var postDto = GetPostResponse.PostDto.builder().postId(post.getId()).title(post.getTitle()).content(post.getContent()).viewCount(post.getViewCount()).bumpedAt(post.getBumpedAt())
-			.likeCount(post.getLikes().size()).postImageUrl(post.getImages()).build();
+		var meetingDto = GetPostResponse.MeetingDto.builder().
+			meetingId(meeting.getMeetingId())
+			.categoryId(meeting.getCategoryId())
+			.creator(creator)
+			.meetingTime(meeting.getMeetingTime())
+			.currentParticipants(meeting.getCurrentParticipants())
+			.maxParticipants(meeting.getMaxParticipants())
+			.languageId(meeting.getLanguageId())
+			.meetingStatus(meeting.getStatus())
+			.participants(participantDtos)
+			.createdAt(meeting.getCreatedAt())
+			.updatedAt(meeting.getUpdatedAt())
+			.build();
 
-		// 3. 조회했으므로 ++
-		// todo: 일단은 조회마다 조회수 무조건 오르는 것으로 설정
+		var postDto = GetPostResponse.PostDto.builder()
+			.postId(post.getId())
+			.title(post.getTitle())
+			.content(post.getContent())
+			.viewCount(post.getViewCount())
+			.bumpedAt(post.getBumpedAt())
+			.likeCount(post.getLikes().size())
+			.postImageUrl(imageUrls)
+			.build();
+
+		// 3. dto 조립
+		GetPostResponse response = GetPostResponse.builder()
+			.meeting(meetingDto)
+			.post(postDto)
+			.build();
+
+		// 4. 조회수 증가 후 리턴
 		post.increaseViewCount();
 
-		// 4. 조립이 완료된 응답 dto 리턴
-		return GetPostResponse.builder().meeting(meetingDto).post(postDto).build();
+		return response;
 
 	}
 
 
 	// 게시글 끌올
-	public void bumpPost(Long postId, UUID userUuid) {
+	public void bumpPost(Long postId, Long userId) {
 
 		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
 		// 끌올은 게시글 작성자만 가능
-		if (!post.getMeeting().isHost(userUuid)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
+		if (!post.getMeeting().isHost(userId)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
 
 		post.bump(LocalDateTime.now());
 	}
 
 
 	// 게시글 좋아요 토글
-	public void toggleLike(Long postId, UUID userUuid) {
+	public void toggleLike(Long postId, Long userId) {
 
 		Post post = postRepository.findById(postId)
 			.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
-		User user = userRepository.findByUuid(userUuid)
+		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
 		// 처음이면 좋아요 생성, 이미 좋아요 누른 상태면 좋아요 취소

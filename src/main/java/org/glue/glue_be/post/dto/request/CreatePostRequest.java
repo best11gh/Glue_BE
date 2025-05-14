@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
+
 
 @Getter
 public class CreatePostRequest {
@@ -47,6 +49,8 @@ public class CreatePostRequest {
 
 		@NotBlank(message = "게시글 내용은 필수값입니다.")
 		private String content;
+
+		private List<String> imageUrls;
 
 	}
 }

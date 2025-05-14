@@ -4,7 +4,7 @@ package org.glue.glue_be.post.dto.response;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Getter;
-import org.glue.glue_be.post.entity.PostImage;
+import org.glue.glue_be.common.dto.UserSummary;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,9 +26,7 @@ public class GetPostResponse {
 
 		private Integer categoryId;
 
-		private String creatorName;
-
-		private String creatorImageUrl;
+		private UserSummary creator;
 
 		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 		private LocalDateTime meetingTime;
@@ -43,6 +41,13 @@ public class GetPostResponse {
 
 		private List<ParticipantDto> participants;
 
+		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+		private LocalDateTime createdAt;
+
+		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+		private LocalDateTime updatedAt;
+
+
 		@Getter
 		@Builder
 		public static class ParticipantDto {
@@ -54,12 +59,6 @@ public class GetPostResponse {
 			private String profileImageUrl;
 
 		}
-
-		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-		private LocalDateTime createdAt;
-
-		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-		private LocalDateTime updatedAt;
 	}
 
 	@Getter
@@ -79,7 +78,20 @@ public class GetPostResponse {
 
 		private Integer likeCount;
 
-		private List<PostImage> postImageUrl;
+		private List<PostImageDto> postImageUrl;
+
+
+		// todo: common으로 옮기기
+		@Getter
+		@Builder
+		public static class PostImageDto {
+			private Long postImageId;
+			private String imageUrl;
+			private Integer imageOrder;
+
+		}
 
 	}
+
+
 }

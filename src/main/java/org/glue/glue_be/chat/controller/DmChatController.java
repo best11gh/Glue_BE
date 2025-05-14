@@ -16,6 +16,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,14 +31,14 @@ public class DmChatController {
     // Dm 채팅방 생성
     @PostMapping("/rooms/create")
     public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request, @AuthenticationPrincipal CustomUserDetails auth) {
-        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request, auth.getUserUuid());
+        DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request, auth.getUserId());
         return ResponseEntity.status(result.getStatus().getCode()).body(result);
     }
 
     // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 초대 여부, 참여자 정보 확인 가능)
     @GetMapping("/rooms/{dmChatRoomId}")
     public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
-        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(auth.getUserUuid()));
+        DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(auth.getUserId()));
         return ResponseEntity.ok(response);
     }
 
@@ -45,7 +46,7 @@ public class DmChatController {
     @GetMapping("/rooms/hosted")
     public ResponseEntity<List<DmChatRoomListResponse>> getHostedDmChatRooms(
             @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmChatRoomListResponse> chatRooms = dmChatService.getHostedDmChatRooms(auth.getUserUuid());
+        List<DmChatRoomListResponse> chatRooms = dmChatService.getHostedDmChatRooms(auth.getUserId());
         return ResponseEntity.ok(chatRooms);
     }
 
@@ -53,7 +54,7 @@ public class DmChatController {
     @GetMapping("/rooms/participated")
     public ResponseEntity<List<DmChatRoomListResponse>> getParticipatedDmChatRooms(
             @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmChatRoomListResponse> chatRooms = dmChatService.getParticipatedDmChatRooms(auth.getUserUuid());
+        List<DmChatRoomListResponse> chatRooms = dmChatService.getParticipatedDmChatRooms(auth.getUserId());
         return ResponseEntity.ok(chatRooms);
     }
 
@@ -61,14 +62,14 @@ public class DmChatController {
     @DeleteMapping("/rooms/{dmChatRoomId}/leave")
     public ResponseEntity<List<DmActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth
     ) {
-        List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserUuid());
+        List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserId());
         return ResponseEntity.ok(response);
     }
 
     // Dm방 클릭 시, 대화 이력을 불러오면서 + 읽지 않은 메시지들 읽음으로 처리
     @PutMapping("/{dmChatRoomId}/all-messages")
     public ResponseEntity<List<DmMessageResponse>> getDmMessages(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, auth.getUserUuid());
+        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, auth.getUserId());
         return ResponseEntity.ok(messages);
     }
 
@@ -78,7 +79,7 @@ public class DmChatController {
             @PathVariable Long dmChatRoomId,
             @RequestBody DmMessageSendRequest request,
             @AuthenticationPrincipal CustomUserDetails auth) {
-        DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request, auth.getUserUuid());
+        DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request, auth.getUserId());
         return ResponseEntity.ok(response);
     }
 

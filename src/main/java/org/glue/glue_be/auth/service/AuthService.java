@@ -2,6 +2,7 @@ package org.glue.glue_be.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.auth.jwt.JwtTokenProvider;
 import org.glue.glue_be.auth.jwt.UserAuthentication;
 import org.glue.glue_be.auth.dto.request.AppleSignInRequestDto;
@@ -69,7 +70,7 @@ public class AuthService {
         User newUser = userRepository.save(user);
 
         // 4. 자체 엑세스 토큰 발급 및 리턴
-        return KakaoSignUpResponseDto.builder().accessToken(getToken(newUser.getUuid())).build();
+        return KakaoSignUpResponseDto.builder().accessToken(getToken(newUser)).build();
 
 
     }
@@ -88,7 +89,7 @@ public class AuthService {
         user.changeFcmToken(requestDto.getFcmToken());
 
         // 3. 자체 엑세스 토큰을 발행 후 리턴
-        return KakaoSignInResponseDto.builder().accessToken(getToken(user.getUuid())).build();
+        return KakaoSignInResponseDto.builder().accessToken(getToken(user)).build();
 
     }
 
@@ -118,11 +119,8 @@ public class AuthService {
 
         User newUser = userRepository.save(user);
 
-        UserAuthentication authentication = new UserAuthentication(newUser.getUuid(), null, null);
-        String jwtToken = jwtTokenProvider.generateToken(authentication);
-
         return AppleSignUpResponseDto.builder()
-                .accessToken(jwtToken)
+                .accessToken(getToken(newUser))
                 .build();
     }
 
@@ -134,16 +132,14 @@ public class AuthService {
                         "해당 Apple 계정 사용자가 존재하지 않습니다."));
         user.changeFcmToken(requestDto.fcmToken());
 
-        UserAuthentication authentication = new UserAuthentication(user.getUuid(), null, null);
-        String jwtToken = jwtTokenProvider.generateToken(authentication);
-
         return AppleSignInResponseDto.builder()
-                .accessToken(jwtToken)
+                .accessToken(getToken(user))
                 .build();
     }
 
-    private String getToken(UUID uuid) {
-        UserAuthentication authentication = new UserAuthentication(uuid, null, null);
+    private String getToken(User user) {
+        CustomUserDetails customUserDetails = new CustomUserDetails(user.getUserId(), user.getNickname());
+        UserAuthentication authentication = new UserAuthentication(customUserDetails, null, null);
 
 	    return jwtTokenProvider.generateToken(authentication);
     }

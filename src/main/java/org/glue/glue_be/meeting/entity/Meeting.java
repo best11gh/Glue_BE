@@ -9,12 +9,10 @@ import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.user.entity.User;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 
 @Entity
@@ -145,7 +143,7 @@ public class Meeting extends BaseEntity {
         return this.participants.size() >= this.maxParticipants;
     }
 
-    public boolean isHost(UUID uuid) {
-        return this.host.getUuid().equals(uuid);
+    public boolean isHost(Long userId) {
+        return this.host.getUserId().equals(userId);
     }
 }
