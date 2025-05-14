@@ -88,10 +88,7 @@ public class DmChatService extends CommonChatService {
         return getChatRooms(
                 userId,
                 this::getUserById,
-                user -> {
-                    List<Meeting> hostedMeetings = meetingRepository.findByHost_UserId(user.getUserId());
-                    return dmChatRoomRepository.findByMeetingIn(hostedMeetings);
-                },
+                dmChatRoomRepository::findByHost,
                 this::convertToChatRoomResponses
         );
     }
