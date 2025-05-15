@@ -2,12 +2,11 @@ package org.glue.glue_be.chat.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.chat.dto.response.ActionResponse;
-import org.glue.glue_be.chat.exception.ChatException;
 import org.glue.glue_be.meeting.entity.Meeting;
-import org.glue.glue_be.meeting.entity.Participant;
 import org.glue.glue_be.meeting.repository.MeetingRepository;
 import org.glue.glue_be.meeting.repository.ParticipantRepository;
 import org.glue.glue_be.user.entity.User;
+import org.glue.glue_be.user.exception.UserException;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -16,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 public abstract class CommonChatService {
@@ -32,7 +30,7 @@ public abstract class CommonChatService {
 
     protected User getUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ChatException("사용자를 찾을 수 없습니다. ID: " + userId));
+                .orElseThrow(() -> new UserException.UserNotFoundException(userId));
     }
 
     protected Meeting getMeetingById(Long meetingId) {
