@@ -101,32 +101,14 @@ public class AuthService {
 
         AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.authorizationCode());
 
-        userRepository.findByOauthId(appleUserInfo.getSubject())
+        String appleOauthId = appleUserInfo.getSubject();
+
+        userRepository.findByOauthId(appleOauthId)
             .ifPresent(user -> {
                 throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "이미 해당 소셜 로그인으로 가입한 유저가 존재합니다.");
             });
 
-        User user = User.builder()
-            .oauthId(appleUserInfo.getSubject())
-            .nickname(requestDto.nickname())
-            .gender(requestDto.gender())
-            .birthDate(requestDto.birthDate())
-            .description(requestDto.description())
-            .major(requestDto.major())
-            .majorVisibility(requestDto.majorVisibility())
-            .email(requestDto.email())
-            .school(requestDto.school())
-            .systemLanguage(requestDto.systemLanguage())
-            .languageMain(requestDto.languageMain())
-            .languageMainLevel(requestDto.languageMainLevel())
-            .languageLearn(requestDto.languageLearn())
-            .languageLearnLevel(requestDto.languageLearnLevel())
-            .profileImageUrl(requestDto.profileImageUrl())
-            .meetingVisibility(requestDto.meetingVisibility())
-            .likeVisibility(requestDto.likeVisibility())
-            .guestbooksVisibility(requestDto.guestbooksVisibility())
-            .build();
-
+        User user = requestDto.toEntity(appleOauthId);
 
         User newUser = userRepository.save(user);
 

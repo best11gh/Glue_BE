@@ -1,6 +1,8 @@
 package org.glue.glue_be.auth.dto.request;
 
 import jakarta.validation.constraints.*;
+import org.glue.glue_be.user.entity.User;
+
 import java.time.LocalDate;
 
 
@@ -50,4 +52,29 @@ public record AppleSignUpRequestDto(
     Integer meetingVisibility,
     Integer likeVisibility,
     Integer guestbooksVisibility
-) {}
+) {
+
+    // Apple의 경우 oauthId(subject)를 서비스에서 받아 사용!
+    public User toEntity(String oauthId) {
+        return User.builder()
+            .oauthId(oauthId)
+            .nickname(nickname())
+            .gender(gender())
+            .birthDate(birthDate())
+            .description(description())
+            .major(major())
+            .majorVisibility(majorVisibility())
+            .email(email())
+            .school(school())
+            .systemLanguage(systemLanguage())
+            .languageMain(languageMain())
+            .languageMainLevel(languageMainLevel())
+            .languageLearn(languageLearn())
+            .languageLearnLevel(languageLearnLevel())
+            .profileImageUrl(profileImageUrl())
+            .meetingVisibility(meetingVisibility())
+            .likeVisibility(likeVisibility())
+            .guestbooksVisibility(guestbooksVisibility())
+            .build();
+    }
+}
