@@ -191,9 +191,9 @@ public abstract class CommonChatService {
     }
 
     // 사용자의 웹소켓 연결 상태를 확인
-    protected boolean isUserConnectedToWebSocket(Long userId, String chatType) {
+    public boolean isUserConnectedToWebSocket(Long userId, String deliveryType) {
         // 사용자의 구독 주소 확인
-        String destination = "/queue/" + chatType + "/" + userId;
+        String destination = deliveryType + "/" + userId;
 
         // 모든 사용자 순회
         for (SimpUser user : simpUserRegistry.getUsers()) {
@@ -259,11 +259,11 @@ public abstract class CommonChatService {
     }
 
     // FCM 알림 전송
-    protected <C, M, UC, NT> void sendPushNotificationsToOfflineReceivers(
+    public <C, M, UC, NT> void sendPushNotificationsToOfflineReceivers(
             M message,
             C chatRoom,
             Long senderId,
-            String chatType,
+            String deliveryType,
             Function<M, String> contentExtractor,
             Function<M, User> senderExtractor,
             Function<C, List<UC>> participantsGetter,
@@ -303,7 +303,7 @@ public abstract class CommonChatService {
             }
 
             // 웹소켓 연결 상태 확인 (연결되어 있지 않은 경우에만 알림 전송)
-            if (isUserConnected.test(recipientId, chatType)) {
+            if (isUserConnected.test(recipientId, deliveryType)) {
                 continue;
             }
 
