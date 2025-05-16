@@ -136,6 +136,23 @@ public class DmChatService extends CommonChatService {
     // =====
 
 
+    // ===== 채팅방 알림 상태 토글 =====
+    @Transactional
+    public Integer toggleDmPushNotification(Long dmChatRoomId, Long userId) {
+        return processTogglePushNotification(
+                dmChatRoomId,
+                userId,
+                this::getChatRoomById,                   // 채팅방 조회
+                this::getUserById,                       // 사용자 조회
+                this::validateChatRoomMember,            // 채팅방 멤버 검증
+                DmUserChatroom::getPushNotificationOn,   // 현재 알림 상태 조회
+                DmUserChatroom::updatePushNotification,  // 알림 상태 업데이트
+                dmUserChatroomRepository::save           // 업데이트된 항목 저장
+        );
+    }
+    // =====
+
+
     // === 내가 호스트/참석자인 DM 채팅방 목록 조회 ===
     // 내가 호스트인 DM 채팅방 목록 조회
     @Transactional(readOnly = true)

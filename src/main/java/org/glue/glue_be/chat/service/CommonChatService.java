@@ -104,6 +104,38 @@ public abstract class CommonChatService {
         return responseConverter.apply(chatRooms, currentUser);
     }
 
+    // 채팅방 알림 토글
+    protected <C, UC> Integer processTogglePushNotification(
+            Long chatroomId,
+            Long userId,
+            Function<Long, C> chatRoomFinder,
+            Function<Long, User> userFinder,
+            BiFunction<C, User, UC> memberValidator,
+            Function<UC, Integer> notificationStatusGetter,
+            BiConsumer<UC, Integer> notificationStatusSetter,
+            Function<UC, UC> userChatroomSaver
+    ) {
+        // 채팅방 및 사용자 조회
+        C chatRoom = chatRoomFinder.apply(chatroomId);
+        User user = userFinder.apply(userId);
+
+        // 사용자가 채팅방 멤버인지 확인
+        UC userChatroom = memberValidator.apply(chatRoom, user);
+
+        // 현재 알림 상태 확인
+        Integer currentStatus = notificationStatusGetter.apply(userChatroom);
+
+        // 알림 상태 토글 (1→0, 0→1)
+        Integer newStatus = (currentStatus == 1) ? 0 : 1;
+
+        // 업데이트된 알림 상태 설정
+        notificationStatusSetter.accept(userChatroom, newStatus);
+
+        userChatroomSaver.apply(userChatroom);
+
+        return newStatus;
+    }
+
     // 채팅방 나가기
     protected <C, UC, M> List<? extends ActionResponse> processLeaveChatRoom(
             Long chatRoomId,
