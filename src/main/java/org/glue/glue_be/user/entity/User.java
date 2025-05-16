@@ -2,12 +2,11 @@ package org.glue.glue_be.user.entity;
 
 import jakarta.persistence.*;
 import java.time.*;
-import java.util.UUID;
 
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.common.config.LocalDateStringConverter;
-import org.glue.glue_be.common.config.UUIDStringConverter;
+
 
 @Getter
 @Entity
@@ -20,15 +19,8 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "user_uuid", nullable = false, unique = true, length = 36)
-    @Convert(converter = UUIDStringConverter.class)
-    private UUID uuid;
-
     @Column(name = "oauth_id", nullable = false, unique = true)
     private String oauthId;
-
-    @Column(name = "user_name", nullable = false, length = 20)
-    private String userName;
 
     @Column(name = "nickname", nullable = false, length = 10, unique = true)
     private String nickname;
@@ -40,68 +32,135 @@ public class User extends BaseEntity {
     @Convert(converter = LocalDateStringConverter.class)
     private LocalDate birthDate;
 
-    // TODO: 언어로 할 거면 변경 필요 (+ 함수도)
-    @Column(name = "nation", nullable = false)
-    private Integer nation;
-
     @Column(name = "description", length = 50)
     private String description;
-
-    @Column(name = "certified", nullable = false)
-    private Integer certified = 0;
 
     @Column(name = "major", nullable = false)
     private Integer major;
 
-    @Column(name = "major_visibility", nullable = false)
-    private Integer majorVisibility;
+    @Column(name = "school", nullable = false) // default = 272
+    private Integer school;
 
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
-    private ProfileImage profileImage;
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
+    @Column(name = "profileImageUrl")
+    private String profileImageUrl;
+
+    @Column(name = "language_main", nullable = false) // default = 1
+    private Integer languageMain;
+
+    @Column(name = "language_main_level", nullable = false) // default = 3
+    private Integer languageMainLevel;
+
+    @Column(name = "language_learn", nullable = false) // default = 2
+    private Integer languageLearn;
+
+    @Column(name = "language_learn_level", nullable = false) // default = 3
+    private Integer languageLearnLevel;
+
+    @Column(name = "system_language", nullable = false) // default = 1
+    private Integer systemLanguage;
 
     @Column(name = "fcm_token")
     private String fcmToken;
 
+    @Column(name = "major_visibility", nullable = false) // default = 1
+    private Integer majorVisibility;
+
+    @Column(name = "meeting_visibility", nullable = false) // default = 1
+    private Integer meetingVisibility;
+
+    @Column(name = "like_visibility", nullable = false) // default = 1
+    private Integer likeVisibility;
+
+    @Column(name = "guestbooks_visibility", nullable = false) // default = 1
+    private Integer guestbooksVisibility;
+
+
     @Builder
-    public User(UUID uuid, String oauthId, String userName, String nickname, Integer gender, LocalDate birth,
-                Integer nation, String description, Integer certified, Integer major, Integer majorVisibility
-    ) {
-        this.uuid = uuid;
+    public User(String oauthId, String nickname, Integer gender, LocalDate birthDate, String description, Integer major, Integer school, String email, Integer systemLanguage, Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel, String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility, Integer guestbooksVisibility) {
         this.oauthId = oauthId;
-        this.userName = userName;
         this.nickname = nickname;
         this.gender = gender;
-        this.birthDate = birth;
-        this.nation = nation;
+        this.birthDate = birthDate;
         this.description = description;
-        this.certified = certified;
         this.major = major;
-        this.majorVisibility = majorVisibility;
-        this.fcmToken = null;
+        this.school = (school == null) ? 272 : school;
+        this.email = email;
+        this.systemLanguage = (systemLanguage == null) ? 1 : systemLanguage;
+        this.languageMain = (languageMain == null) ? 1 : languageMain;
+        this.languageLearn = (languageLearn == null) ? 2 : languageLearn;
+        this.languageMainLevel = (languageMainLevel == null) ? 3 : languageMainLevel;
+        this.languageLearnLevel = (languageLearnLevel == null) ? 3 : languageLearnLevel;
+        this.profileImageUrl = profileImageUrl;
+        this.majorVisibility = (majorVisibility == null) ? 1 : majorVisibility;
+        this.meetingVisibility = (meetingVisibility == null) ? 1 : meetingVisibility;
+        this.likeVisibility = (likeVisibility == null) ? 1 : likeVisibility;
+        this.guestbooksVisibility = (guestbooksVisibility == null) ? 1 : guestbooksVisibility;
     }
 
-    public void changeName(String name) {
-        this.userName = name;
-    }
 
     public void changeNickname(String nickname) {
         this.nickname = nickname;
-    }
-
-    public void changeNation(Integer nation) {
-        this.nation = nation;
     }
 
     public void changeDescription(String description) {
         this.description = description;
     }
 
-    public void changeCertified(int certified) {
-        this.certified = certified;
-    }
-
     public void changeFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
+    }
+
+
+    public void changeProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+
+    public void changeLanguageMain(Integer languageMain) {
+        this.languageMain = languageMain;
+    }
+
+
+    public void changeLanguageMainLevel(Integer languageMainLevel) {
+        this.languageMainLevel = languageMainLevel;
+    }
+
+
+    public void changeLanguageLearn(Integer languageLearn) {
+        this.languageLearn = languageLearn;
+    }
+
+
+    public void changeLanguageLearnLevel(Integer languageLearnLevel) {
+        this.languageLearnLevel = languageLearnLevel;
+    }
+
+
+    public void changeSystemLanguage(Integer systemLanguage) {
+        this.systemLanguage = systemLanguage;
+    }
+
+
+    public void changeMajorVisibility(Integer majorVisibility) {
+        this.majorVisibility = majorVisibility;
+    }
+
+
+    public void changeMeetingVisibility(Integer meetingVisibility) {
+        this.meetingVisibility = meetingVisibility;
+    }
+
+
+    public void changeLikeVisibility(Integer likeVisibility) {
+        this.likeVisibility = likeVisibility;
+    }
+
+
+    public void changeGuestbooksVisibility(Integer guestbooksVisibility) {
+        this.guestbooksVisibility = guestbooksVisibility;
     }
 
 }
