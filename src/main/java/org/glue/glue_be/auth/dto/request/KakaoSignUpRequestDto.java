@@ -1,32 +1,78 @@
 package org.glue.glue_be.auth.dto.request;
 
-
-import lombok.Getter;
+import jakarta.validation.constraints.*;
+import org.glue.glue_be.user.entity.User;
 
 import java.time.LocalDate;
 
 
-@Getter
-public class KakaoSignUpRequestDto {
+// dto에 record를 쓰면 좋은점
+// 자체적으로 getter 내장, 불변 객체라 데이터 신뢰성-일관성 보장
 
-	private String oauthId;
+public record KakaoSignUpRequestDto(
 
-	private String userName;
+	@NotBlank(message = "OAuth ID는 필수 입력값입니다.")
+	String oauthId,
 
-	private String nickName;
+	@NotBlank(message = "닉네임은 필수 입력값입니다.")
+	String nickname,
 
-	private Integer gender;
+	@NotNull(message = "성별은 필수 입력값입니다.")
+	Integer gender,
 
-	private LocalDate birthDate;
+	@NotNull(message = "생년월일은 필수 입력값입니다.")
+	@Past(message = "생년월일은 과거 날짜여야 합니다.")
+	LocalDate birthDate,
 
-	private Integer nation;
+	String description,
 
-	private String description;
+	@NotNull(message = "전공은 필수 입력값입니다.")
+	Integer major,
 
-	// certified는 default가 0이라 dto에 없음. 회원가입단에서 필드에 직접 0 박아넣음.
+	@NotNull(message = "전공 노출 여부는 필수 입력값입니다.")
+	Integer majorVisibility,
 
-	private Integer major;
+	@NotBlank(message = "이메일은 필수 입력값입니다.")
+	@Email(message = "이메일 형식이 올바르지 않습니다.")
+	String email,
 
-	private Integer majorVisibility;
+	Integer school,
+
+	String profileImageUrl,
+
+	Integer systemLanguage,
+	Integer languageMain,
+	Integer languageMainLevel,
+	Integer languageLearn,
+	Integer languageLearnLevel,
+
+	Integer meetingVisibility,
+	Integer likeVisibility,
+	Integer guestbooksVisibility
+) {
+
+	// record는 값을 가져오는데에 속성명과 이름이 같은 getter 메서드를 사용!
+	public User toEntity() {
+		return User.builder()
+			.oauthId(oauthId())
+			.nickname(nickname())
+			.gender(gender())
+			.birthDate(birthDate())
+			.description(description())
+			.major(major())
+			.majorVisibility(majorVisibility())
+			.email(email())
+			.school(school())
+			.systemLanguage(systemLanguage())
+			.languageMain(languageMain())
+			.languageMainLevel(languageMainLevel())
+			.languageLearn(languageLearn())
+			.languageLearnLevel(languageLearnLevel())
+			.profileImageUrl(profileImageUrl())
+			.meetingVisibility(meetingVisibility())
+			.likeVisibility(likeVisibility())
+			.guestbooksVisibility(guestbooksVisibility())
+			.build();
+	}
 
 }
