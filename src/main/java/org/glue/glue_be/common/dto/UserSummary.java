@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserSummary {
     private Long userId;
-    private String userName;
+    private String userNickname;
     private String profileImageUrl;
 }

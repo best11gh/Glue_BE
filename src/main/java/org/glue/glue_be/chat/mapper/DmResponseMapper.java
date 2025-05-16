@@ -7,12 +7,11 @@ import org.glue.glue_be.chat.entity.dm.DmChatRoom;
 import org.glue.glue_be.chat.entity.dm.DmMessage;
 import org.glue.glue_be.chat.entity.dm.DmUserChatroom;
 import org.glue.glue_be.common.dto.UserSummary;
-import org.glue.glue_be.user.entity.ProfileImage;
 import org.glue.glue_be.user.entity.User;
-import org.glue.glue_be.user.repository.ProfileImageRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -20,20 +19,14 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DmResponseMapper {
-    private final ProfileImageRepository profileImageRepository;
-
-    public DmResponseMapper(ProfileImageRepository profileImageRepository) {
-        this.profileImageRepository = profileImageRepository;
-    }
 
     // User 엔티티를 ChatUserResponse DTO로 변환
     public UserSummary toChatUserResponse(User user) {
-        ProfileImage profileImage = profileImageRepository.findByUser_UserId(user.getUserId());
 
         return UserSummary.builder()
                 .userId(user.getUserId())
-                .userName(user.getUserName())
-                .profileImageUrl(profileImage != null ? profileImage.getProfileImageUrl() : null)
+                .userNickname(user.getNickname())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
 
@@ -75,10 +68,8 @@ public class DmResponseMapper {
                 .meetingId(chatRoom.getMeeting().getMeetingId())
                 .otherUser(UserSummary.builder()
                         .userId(otherUser.getUserId())
-                        .userName(otherUser.getUserName())
-                        .profileImageUrl(otherUser.getProfileImage() != null
-                                ? otherUser.getProfileImage().getProfileImageUrl()
-                                : null)
+                        .userNickname(otherUser.getNickname())
+                        .profileImageUrl(otherUser.getProfileImageUrl())
                         .build())
                 .lastMessage(lastMessage != null ? lastMessage.getDmMessageContent() : null)
                 .lastMessageTime(lastMessage != null ? lastMessage.getCreatedAt() : null)
@@ -95,10 +86,8 @@ public class DmResponseMapper {
                 .dmChatRoomId(dmMessage.getDmChatRoom().getId())
                 .sender(UserSummary.builder()
                         .userId(sender.getUserId())
-                        .userName(sender.getUserName())
-                        .profileImageUrl(sender.getProfileImage() != null
-                                ? sender.getProfileImage().getProfileImageUrl()
-                                : null)
+                        .userNickname(sender.getNickname())
+                        .profileImageUrl(sender.getProfileImageUrl())
                         .build())
                 .content(dmMessage.getDmMessageContent())
                 .createdAt(dmMessage.getCreatedAt())
