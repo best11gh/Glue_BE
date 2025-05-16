@@ -16,12 +16,14 @@ import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
 import org.glue.glue_be.user.entity.User;
+import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.glue.glue_be.chat.mapper.DmResponseMapper;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.glue.glue_be.util.fcm.service.FcmService;
 
 
 @Service
@@ -36,6 +38,7 @@ public class DmChatService extends CommonChatService {
     private final DmMessageRepository dmMessageRepository;
     private final DmResponseMapper responseMapper;
     private final InvitationRepository invitationRepository;
+    private final FcmService fcmService;
 
     @Override
     protected void validateChatRoomUsers(List<Long> userIds, Long currentUserId) {
@@ -168,8 +171,8 @@ public class DmChatService extends CommonChatService {
         // 1. 메시지 저장
         DmMessageResponse response = saveDmMessage(dmChatRoomId, userId, request.getContent());
 
-        // 2. 웹소켓 알림 전송
-        notifyIfOnline(dmChatRoomId, response, userId);
+        // 2. 메시지 전송 관리(온라인-웹소켓, 오프라인-푸시알림)
+        broadcastMessage(dmChatRoomId, response, userId);
 
         return response;
     }
@@ -192,19 +195,45 @@ public class DmChatService extends CommonChatService {
         );
     }
 
-    private void notifyIfOnline(Long dmChatRoomId, DmMessageResponse message, Long senderId) {
-        // 채팅방의 상세 정보 조회
+    private void broadcastMessage(Long dmChatRoomId, DmMessageResponse messageResponse, Long senderId) {
+        // 채팅방 정보 가져오기
         DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(dmChatRoomId);
 
-        // 공통 메서드 활용: 발신자를 제외한 참여자들에게 WebSocket 메시지 전송
-        notifyParticipantsExceptSender(
+        // 1. 모든 참여자에게 웹소켓으로 메시지 전송 시도 (온라인 상태인 참여자만 받게 됨)
+        // sendWebSocketMessageToOnlineReceivers 내부의 convertAndSend() 매소드가 연결 상태를 자체적으로 확인한다!
+        sendWebSocketMessageToOnlineReceivers(
                 chatRoom.getParticipants(),
                 senderId,
                 "/queue/dm/",
-                message,
+                messageResponse,
                 UserSummary::getUserId
         );
+
+        // 2. 오프라인 참여자에게 푸시 알림 전송
+        DmChatRoom dmChatRoom = getChatRoomById(dmChatRoomId);
+        DmMessage message = dmMessageRepository.findById(messageResponse.getDmMessageId())
+                .orElseThrow(() -> new ChatException("메시지를 찾을 수 없습니다."));
+
+        // 이 매소드 내부에서 조건 필터링
+        sendPushNotificationsToOfflineReceivers(
+                message,
+                dmChatRoom,
+                senderId,
+                DmMessage::getDmMessageContent,                      // 메시지 내용 추출
+                DmMessage::getUser,                                  // 발신자 정보 추출
+                dmUserChatroomRepository::findByDmChatRoom,          // 참여자 목록 조회
+                DmUserChatroom::getUser,                             // 사용자 정보 추출
+                DmUserChatroom::getPushNotificationOn,               // 알림 설정 조회
+                this::isUserConnectedToWebSocket,                    // 웹소켓 연결 확인
+                (sender, recipient, content) -> FcmSendDto.builder() // 알림 객체 생성
+                        .title(sender.getUserName() + "님의 메시지")
+                        .body(content)
+                        .token(recipient.getFcmToken())
+                        .build(),
+                fcmService::sendMessage                              // 알림 전송
+        );
     }
+
     // 읽음 처리
     @Transactional
     public void markMessagesAsRead(Long dmChatRoomId, Long userId) {
@@ -320,4 +349,6 @@ public class DmChatService extends CommonChatService {
         return invitationRepository.findStatusByMeetingAndParticipantIds(
                 meetingId, userId, otherParticipantUserId.get());
     }
+
+
 }

@@ -82,13 +82,4 @@ public class DmChatController {
         DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request, auth.getUserId());
         return ResponseEntity.ok(response);
     }
-
-//    // Websocket: Dm창 동시 접속 시 곧바로 읽음 처리
-//    // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
-//    @MessageMapping("/dm/{dmChatRoomId}/readMessage")
-//    public void readDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageReadRequest request) {
-//        // 읽음 상태 처리
-//        System.out.println("읽음 처리 요청 - 채팅방: " + dmChatRoomId + ", 사용자: " + request.getReceiverId());
-//        dmChatService.markMessagesAsRead(dmChatRoomId, request.getReceiverId());
-//    }
 }
