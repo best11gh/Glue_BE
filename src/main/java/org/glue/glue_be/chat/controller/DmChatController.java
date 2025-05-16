@@ -60,9 +60,9 @@ public class DmChatController {
 
     // Dm방 나가기
     @DeleteMapping("/rooms/{dmChatRoomId}/leave")
-    public ResponseEntity<List<DmActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth
+    public ResponseEntity<List<ActionResponse>> leaveChatRoom(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth
     ) {
-        List<DmActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserId());
+        List<ActionResponse> response = dmChatService.leaveDmChatRoom(dmChatRoomId, auth.getUserId());
         return ResponseEntity.ok(response);
     }
 
@@ -83,11 +83,12 @@ public class DmChatController {
         return ResponseEntity.ok(response);
     }
 
-    // Websocket: Dm창 동시 접속 시 곧바로 읽음 처리
-    // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
-    @MessageMapping("/dm/{dmChatRoomId}/readMessage")
-    public void readDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageReadRequest request) {
-        // 읽음 상태 처리
-        dmChatService.markMessagesAsRead(dmChatRoomId, request.getReceiverId());
-    }
+//    // Websocket: Dm창 동시 접속 시 곧바로 읽음 처리
+//    // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
+//    @MessageMapping("/dm/{dmChatRoomId}/readMessage")
+//    public void readDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageReadRequest request) {
+//        // 읽음 상태 처리
+//        System.out.println("읽음 처리 요청 - 채팅방: " + dmChatRoomId + ", 사용자: " + request.getReceiverId());
+//        dmChatService.markMessagesAsRead(dmChatRoomId, request.getReceiverId());
+//    }
 }

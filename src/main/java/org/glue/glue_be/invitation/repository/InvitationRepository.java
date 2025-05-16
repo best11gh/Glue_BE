@@ -34,6 +34,6 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
             "AND u.userId = :inviteeUserId")
     Integer findStatusByMeetingAndParticipantIds(
             @Param("meetingId") Long meetingId,
-            @Param("creatorUuid") Long creatorUserId,
-            @Param("inviteeUuid") Long inviteeUserId);
+            @Param("creatorUserId") Long creatorUserId,
+            @Param("inviteeUserId") Long inviteeUserId);
 } 

@@ -2,6 +2,7 @@ package org.glue.glue_be.chat.repository.dm;
 
 import org.glue.glue_be.chat.entity.dm.DmChatRoom;
 import org.glue.glue_be.meeting.entity.Meeting;
+import org.glue.glue_be.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +31,8 @@ public interface DmChatRoomRepository extends JpaRepository<DmChatRoom, Long> {
             @Param("userId2") Long userId2);
 
     List<DmChatRoom> findByMeetingIn(List<Meeting> hostedMeetings);
+
+    @Query("SELECT d FROM DmChatRoom d JOIN d.meeting m WHERE m.host = :host")
+    List<DmChatRoom> findByHost(@Param("host") User host);
+
 }
