@@ -356,6 +356,7 @@ public class DmChatService extends CommonChatService {
                 message,
                 dmChatRoom,
                 senderId,
+                "dm",
                 DmMessage::getDmMessageContent,                      // 메시지 내용 추출
                 DmMessage::getUser,                                  // 발신자 정보 추출
                 dmUserChatroomRepository::findByDmChatRoom,          // 참여자 목록 조회

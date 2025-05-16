@@ -31,19 +31,6 @@ public abstract class CommonChatService {
     @Autowired protected SimpMessagingTemplate messagingTemplate;
     @Autowired private SimpUserRegistry simpUserRegistry;
 
-    protected User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UserException.UserNotFoundException(userId));
-    }
-
-    protected Meeting getMeetingById(Long meetingId) {
-        return meetingRepository.findByMeetingId(meetingId);
-    }
-
-    protected void validateChatRoomUsers(List<Long> userIds, Long currentUserId) {
-        // 기본 구현 없음
-    }
-
     // 채팅방 생성
     protected <REQ, C, UC, R> R createChatRoom(
             REQ request,
@@ -276,6 +263,7 @@ public abstract class CommonChatService {
             M message,
             C chatRoom,
             Long senderId,
+            String chatType,
             Function<M, String> contentExtractor,
             Function<M, User> senderExtractor,
             Function<C, List<UC>> participantsGetter,
@@ -297,9 +285,6 @@ public abstract class CommonChatService {
 
         // 채팅방 참여자 목록 조회
         List<UC> participants = participantsGetter.apply(chatRoom);
-
-        // 채팅방 유형 (일반적으로 구현 클래스에 의해 결정됨)
-        String chatType = getChatType(chatRoom);
 
         // 발신자를 제외한 모든 참여자에게 알림 전송 시도
         for (UC participant : participants) {
@@ -334,13 +319,16 @@ public abstract class CommonChatService {
         }
     }
 
-    // 채팅방 ID 추출 메서드 (구현 클래스에서 오버라이드)
-    protected <C> Long getChatRoomId(C chatRoom) {
-        throw new UnsupportedOperationException("구현 클래스에서 오버라이드해야 합니다.");
+    protected User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserException.UserNotFoundException(userId));
     }
 
-    // 채팅 유형 반환 메서드 (구현 클래스에서 오버라이드)
-    protected <C> String getChatType(C chatRoom) {
+    protected Meeting getMeetingById(Long meetingId) {
+        return meetingRepository.findByMeetingId(meetingId);
+    }
+
+    protected void validateChatRoomUsers(List<Long> userIds, Long currentUserId) {
         throw new UnsupportedOperationException("구현 클래스에서 오버라이드해야 합니다.");
     }
 
