@@ -43,32 +43,46 @@ public class DmChatService extends CommonChatService {
     // ===== 채팅방 생성 =====
     @Transactional
     public DmChatRoomCreateResult createDmChatRoom(DmChatRoomCreateRequest request, Long userId) {
-        return createChatRoom(
-                request,
-                userId,
-                DmChatRoomCreateRequest::getMeetingId,                     // 미팅 ID 추출
-                DmChatRoomCreateRequest::getUserIds,                       // 사용자 ID 목록 추출
-                dmChatRoomRepository::findDirectChatRoomByUserIds,         // 기존 채팅방 검색
-                (meeting, user) -> dmChatRoomRepository.save(              // 채팅방 생성
-                        DmChatRoom.builder().meeting(meeting).build()
-                ),
-                (chatRoom, currentUser, participant) -> {                  // 사용자-채팅방 연결 생성
-                    DmUserChatroom userChatroom = DmUserChatroom.builder()
-                            .user(participant)
-                            .dmChatRoom(chatRoom)
-                            .build();
-                    chatRoom.addUserChatroom(userChatroom);
-                    return userChatroom;
-                },
-                (chatRoom, status) -> new DmChatRoomCreateResult(          // 성공 응답 생성
-                        getDmChatRoomDetail(chatRoom.getId()),
-                        new ActionResponse(status, "채팅방을 성공적으로 생성하였습니다.")
-                ),
-                (chatRoom, status) -> new DmChatRoomCreateResult(          // 기존 채팅방 응답 생성
-                        getDmChatRoomDetail(chatRoom.getId()),
-                        new ActionResponse(status, "이미 존재하는 채팅방을 반환합니다.")
-                ),
-                dmUserChatroomRepository::save                             // 사용자-채팅방 연결 저장
+        // 현재 사용자 조회, 미팅 ID 추출, 사용자 ID 목록 추출
+        User currentUser = getUserById(userId);
+        Long meetingId = request.getMeetingId();
+        List<Long> userIds = request.getUserIds();
+
+        // 사용자가 정확히 두 명인지 체크
+        validateChatRoomUsers(userIds, userId);
+
+        // 미팅 조회
+        Meeting meeting = getMeetingById(meetingId);
+
+        // 기존 채팅방 검색 - 있으면 바로 반환
+        Optional<DmChatRoom> existingChatRoom = dmChatRoomRepository.findDirectChatRoomByUserIds(meetingId, userIds.get(0), userIds.get(1));
+        if (existingChatRoom.isPresent()) {
+            return new DmChatRoomCreateResult(
+                    getDmChatRoomDetail(existingChatRoom.get().getId()),
+                    new ActionResponse(200, "이미 존재하는 채팅방을 반환합니다.")
+            );
+        }
+
+        // 새 채팅방 생성
+        DmChatRoom chatRoom = dmChatRoomRepository.save(
+                DmChatRoom.builder().meeting(meeting).build()
+        );
+
+        // 사용자 추가
+        for (Long participantId : userIds) {
+            User participant = getUserById(participantId);
+            DmUserChatroom userChatroom = DmUserChatroom.builder()
+                    .user(participant)
+                    .dmChatRoom(chatRoom)
+                    .build();
+            chatRoom.addUserChatroom(userChatroom);
+            dmUserChatroomRepository.save(userChatroom);
+        }
+
+        // 결과 반환
+        return new DmChatRoomCreateResult(
+                getDmChatRoomDetail(chatRoom.getId()),
+                new ActionResponse(201, "채팅방을 성공적으로 생성하였습니다.")
         );
     }
     // =====

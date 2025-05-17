@@ -31,51 +31,6 @@ public abstract class CommonChatService {
     @Autowired protected SimpMessagingTemplate messagingTemplate;
     @Autowired private SimpUserRegistry simpUserRegistry;
 
-    // 채팅방 생성
-    protected <REQ, C, UC, R> R createChatRoom(
-            REQ request,
-            Long userId,
-            Function<REQ, Long> meetingIdExtractor,
-            Function<REQ, List<Long>> userIdsExtractor,
-            TriFunction<Long, Long, Long, Optional<C>> existingChatRoomFinder,
-            BiFunction<Meeting, User, C> chatRoomCreator,
-            TriFunction<C, User, User, UC> userChatroomCreator,
-            BiFunction<C, Integer, R> successResponseCreator,
-            BiFunction<C, Integer, R> existingResponseCreator,
-            Consumer<UC> userChatroomSaver) {
-
-        // 현재 사용자 조회, 미팅 ID 추출, 사용자 ID 목록 추출
-        User currentUser = getUserById(userId);
-        Long meetingId = meetingIdExtractor.apply(request);
-        List<Long> userIds = userIdsExtractor.apply(request);
-
-        // DM 채팅방의 경우 특별 검증 (서브클래스에서 오버라이드)
-        validateChatRoomUsers(userIds, userId);
-
-        // 미팅 조회
-        Meeting meeting = getMeetingById(meetingId);
-
-        // 기존 채팅방 검색 - 있으면 바로 반환 (DM 전용 로직)
-        // 그룹 채팅에서는 null이나 비어있는 Optional을 반환하도록 구현
-        Optional<C> existingChatRoom = existingChatRoomFinder.apply(meetingId, userIds.get(0), userIds.get(1));
-        if (existingChatRoom.isPresent()) {
-            return existingResponseCreator.apply(existingChatRoom.get(), 200);
-        }
-
-        // 새 채팅방 생성
-        C chatRoom = chatRoomCreator.apply(meeting, currentUser);
-
-        // 사용자 추가
-        for (Long participantId : userIds) {
-            User participant = getUserById(participantId);
-            UC userChatroom = userChatroomCreator.apply(chatRoom, currentUser, participant);
-            userChatroomSaver.accept(userChatroom);
-        }
-
-        // 결과 반환
-        return successResponseCreator.apply(chatRoom, 201);
-    }
-
     // 채팅방 목록 조회
     protected <C, R> List<R> getChatRooms(
             Long userId,
