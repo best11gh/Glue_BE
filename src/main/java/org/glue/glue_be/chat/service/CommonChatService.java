@@ -10,36 +10,26 @@ import org.glue.glue_be.user.exception.UserException;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.user.SimpSession;
+import org.springframework.messaging.simp.user.SimpSubscription;
+import org.springframework.messaging.simp.user.SimpUser;
+import org.springframework.messaging.simp.user.SimpUserRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.*;
+import java.util.Map;
+import java.util.HashMap;
 
 @Slf4j
 public abstract class CommonChatService {
 
-    @Autowired
-    protected UserRepository userRepository;
-    @Autowired
-    protected MeetingRepository meetingRepository;
-    @Autowired
-    protected ParticipantRepository participantRepository;
-    @Autowired
-    protected SimpMessagingTemplate messagingTemplate;
-
-    protected User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UserException.UserNotFoundException(userId));
-    }
-
-    protected Meeting getMeetingById(Long meetingId) {
-        return meetingRepository.findByMeetingId(meetingId);
-    }
-
-    protected void validateChatRoomUsers(List<Long> userIds, Long currentUserId) {
-        // 기본 구현 없음
-    }
+    @Autowired protected UserRepository userRepository;
+    @Autowired protected MeetingRepository meetingRepository;
+    @Autowired protected ParticipantRepository participantRepository;
+    @Autowired protected SimpMessagingTemplate messagingTemplate;
+    @Autowired private SimpUserRegistry simpUserRegistry;
 
     // 채팅방 생성
     protected <REQ, C, UC, R> R createChatRoom(
@@ -54,13 +44,9 @@ public abstract class CommonChatService {
             BiFunction<C, Integer, R> existingResponseCreator,
             Consumer<UC> userChatroomSaver) {
 
-        // 현재 사용자 조회
+        // 현재 사용자 조회, 미팅 ID 추출, 사용자 ID 목록 추출
         User currentUser = getUserById(userId);
-
-        // 미팅 ID 추출
         Long meetingId = meetingIdExtractor.apply(request);
-
-        // 사용자 ID 목록 추출
         List<Long> userIds = userIdsExtractor.apply(request);
 
         // DM 채팅방의 경우 특별 검증 (서브클래스에서 오버라이드)
@@ -103,6 +89,38 @@ public abstract class CommonChatService {
 
         // 응답 생성
         return responseConverter.apply(chatRooms, currentUser);
+    }
+
+    // 채팅방 알림 토글
+    protected <C, UC> Integer processTogglePushNotification(
+            Long chatroomId,
+            Long userId,
+            Function<Long, C> chatRoomFinder,
+            Function<Long, User> userFinder,
+            BiFunction<C, User, UC> memberValidator,
+            Function<UC, Integer> notificationStatusGetter,
+            BiConsumer<UC, Integer> notificationStatusSetter,
+            Function<UC, UC> userChatroomSaver
+    ) {
+        // 채팅방 및 사용자 조회
+        C chatRoom = chatRoomFinder.apply(chatroomId);
+        User user = userFinder.apply(userId);
+
+        // 사용자가 채팅방 멤버인지 확인
+        UC userChatroom = memberValidator.apply(chatRoom, user);
+
+        // 현재 알림 상태 확인
+        Integer currentStatus = notificationStatusGetter.apply(userChatroom);
+
+        // 알림 상태 토글 (1→0, 0→1)
+        Integer newStatus = (currentStatus == 1) ? 0 : 1;
+
+        // 업데이트된 알림 상태 설정
+        notificationStatusSetter.accept(userChatroom, newStatus);
+
+        userChatroomSaver.apply(userChatroom);
+
+        return newStatus;
     }
 
     // 채팅방 나가기
@@ -172,8 +190,31 @@ public abstract class CommonChatService {
         return responseMapper.apply(savedMessage);
     }
 
-    // 메시지 응답에 대한 웹소켓 알림 전송
-    protected <M, P> void notifyParticipantsExceptSender(
+    // 사용자의 웹소켓 연결 상태를 확인
+    public boolean isUserConnectedToWebSocket(Long userId, String deliveryType) {
+        // 사용자의 구독 주소 확인
+        String destination = deliveryType + "/" + userId;
+
+        // 모든 사용자 순회
+        for (SimpUser user : simpUserRegistry.getUsers()) {
+            // 각 사용자의 모든 세션 순회
+            for (SimpSession session : user.getSessions()) {
+                // 해당 세션의 모든 구독 확인
+                for (SimpSubscription subscription : session.getSubscriptions()) {
+                    // 구독 주소가 일치하면 연결된 것으로 판단
+                    if (subscription.getDestination().equals(destination)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // 온라인 상태인 유저들에게 웹소켓 알림 전송
+    // convertAndSend() 매소드가 연결 상태를 자체적으로 확인한다!
+    protected <M, P> void sendWebSocketMessageToOnlineReceivers(
             List<P> participants,
             Long senderId,
             String destination,
@@ -215,6 +256,80 @@ public abstract class CommonChatService {
     // 알림 전송
     protected <T> void sendNotificationToUser(Long userId, String endpoint, T payload) {
         messagingTemplate.convertAndSend("/queue/" + endpoint + "/" + userId, payload);
+    }
+
+    // FCM 알림 전송
+    public <C, M, UC, NT> void sendPushNotificationsToOfflineReceivers(
+            M message,
+            C chatRoom,
+            Long senderId,
+            String deliveryType,
+            Function<M, String> contentExtractor,
+            Function<M, User> senderExtractor,
+            Function<C, List<UC>> participantsGetter,
+            Function<UC, User> userExtractor,
+            Function<UC, Integer> notificationSettingGetter,
+            BiPredicate<Long, String> isUserConnected,
+            TriFunction<User, User, String, NT> notificationBuilder,
+            Consumer<NT> notificationSender) {
+
+        // 메시지 발신자 정보
+        User sender = senderExtractor.apply(message);
+
+        // 메시지 내용
+        String content = contentExtractor.apply(message);
+        // 내용이 너무 길 경우 잘라내기
+        if (content.length() > 100) {
+            content = content.substring(0, 97) + "...";
+        }
+
+        // 채팅방 참여자 목록 조회
+        List<UC> participants = participantsGetter.apply(chatRoom);
+
+        // 발신자를 제외한 모든 참여자에게 알림 전송 시도
+        for (UC participant : participants) {
+            User recipientUser = userExtractor.apply(participant);
+            Long recipientId = recipientUser.getUserId();
+
+            // 발신자에게는 알림을 보내지 않음
+            if (recipientId.equals(senderId)) {
+                continue;
+            }
+
+            // 알림 설정 확인 (1인 경우에만 알림 전송)
+            Integer notificationSetting = notificationSettingGetter.apply(participant);
+            if (notificationSetting != 1) {
+                continue;
+            }
+
+            // 웹소켓 연결 상태 확인 (연결되어 있지 않은 경우에만 알림 전송)
+            if (isUserConnected.test(recipientId, deliveryType)) {
+                continue;
+            }
+
+            // 알림 객체 생성
+            NT notification = notificationBuilder.apply(
+                    sender,
+                    recipientUser,
+                    content
+            );
+
+            // 알림 전송
+            notificationSender.accept(notification);
+        }
+    }
+
+    protected User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UserException.UserNotFoundException(userId));
+    }
+
+    protected Meeting getMeetingById(Long meetingId) {
+        return meetingRepository.findByMeetingId(meetingId);
+    }
+
+    protected void validateChatRoomUsers(List<Long> userIds, Long currentUserId) {
+        throw new UnsupportedOperationException("구현 클래스에서 오버라이드해야 합니다.");
     }
 
     @FunctionalInterface

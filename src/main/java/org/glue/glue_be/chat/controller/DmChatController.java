@@ -3,23 +3,15 @@ package org.glue.glue_be.chat.controller;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.chat.dto.request.DmChatRoomCreateRequest;
-import org.glue.glue_be.chat.dto.request.DmChatRoomJoinRequest;
-import org.glue.glue_be.chat.dto.request.DmMessageReadRequest;
 import org.glue.glue_be.chat.dto.request.DmMessageSendRequest;
 import org.glue.glue_be.chat.dto.response.*;
 import org.glue.glue_be.chat.service.DmChatService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/dm")
@@ -40,6 +32,13 @@ public class DmChatController {
     public ResponseEntity<DmChatRoomDetailResponse> getDmChatRoomDetail(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
         DmChatRoomDetailResponse response = dmChatService.getDmChatRoomDetail(dmChatRoomId, Optional.ofNullable(auth.getUserId()));
         return ResponseEntity.ok(response);
+    }
+
+    // 채팅방 알림 상태 토글
+    @PutMapping("/{dmChatRoomId}/toggle-push-notification")
+    public Integer togglePushNotification(
+            @PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
+        return dmChatService.toggleDmPushNotification(dmChatRoomId, 1L);
     }
 
     // 내가 호스트인 DM 채팅방 목록 조회
@@ -82,13 +81,4 @@ public class DmChatController {
         DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request, auth.getUserId());
         return ResponseEntity.ok(response);
     }
-
-//    // Websocket: Dm창 동시 접속 시 곧바로 읽음 처리
-//    // @RequestMapping("/api/dm")과 @MessageMapping는 독립적으로 작동하기 때문에 /dm을 별도로 붙여줌
-//    @MessageMapping("/dm/{dmChatRoomId}/readMessage")
-//    public void readDmMessage(@DestinationVariable Long dmChatRoomId, @Payload DmMessageReadRequest request) {
-//        // 읽음 상태 처리
-//        System.out.println("읽음 처리 요청 - 채팅방: " + dmChatRoomId + ", 사용자: " + request.getReceiverId());
-//        dmChatService.markMessagesAsRead(dmChatRoomId, request.getReceiverId());
-//    }
 }
