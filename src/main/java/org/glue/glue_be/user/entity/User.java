@@ -65,6 +65,9 @@ public class User extends BaseEntity {
     @Column(name = "fcm_token")
     private String fcmToken;
 
+    public static final int VISIBILITY_PUBLIC = 1;
+    public static final int VISIBILITY_PRIVATE = 0;
+
     @Column(name = "major_visibility", nullable = false) // default = 1
     private Integer majorVisibility;
 
@@ -94,10 +97,10 @@ public class User extends BaseEntity {
         this.languageMainLevel = (languageMainLevel == null) ? 3 : languageMainLevel;
         this.languageLearnLevel = (languageLearnLevel == null) ? 3 : languageLearnLevel;
         this.profileImageUrl = profileImageUrl;
-        this.majorVisibility = (majorVisibility == null) ? 1 : majorVisibility;
-        this.meetingVisibility = (meetingVisibility == null) ? 1 : meetingVisibility;
-        this.likeVisibility = (likeVisibility == null) ? 1 : likeVisibility;
-        this.guestbooksVisibility = (guestbooksVisibility == null) ? 1 : guestbooksVisibility;
+        this.majorVisibility = (majorVisibility == null) ? VISIBILITY_PUBLIC : majorVisibility;
+        this.meetingVisibility = (meetingVisibility == null) ? VISIBILITY_PUBLIC : meetingVisibility;
+        this.likeVisibility = (likeVisibility == null) ? VISIBILITY_PUBLIC : likeVisibility;
+        this.guestbooksVisibility = (guestbooksVisibility == null) ? VISIBILITY_PUBLIC : guestbooksVisibility;
     }
 
 
