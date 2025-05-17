@@ -24,7 +24,7 @@ public class DmChatController {
     @PostMapping("/rooms/create")
     public ResponseEntity<DmChatRoomCreateResult> createDmChatRoom(@RequestBody DmChatRoomCreateRequest request, @AuthenticationPrincipal CustomUserDetails auth) {
         DmChatRoomCreateResult result = dmChatService.createDmChatRoom(request, auth.getUserId());
-        return ResponseEntity.status(result.getStatus().getCode()).body(result);
+        return ResponseEntity.status(result.getStatus().code()).body(result);
     }
 
     // 채팅방 상세 정보 (채팅방 오른쪽 토글: 알림 정보, 초대 여부, 참여자 정보 확인 가능)
