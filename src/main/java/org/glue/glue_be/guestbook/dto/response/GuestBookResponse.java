@@ -23,8 +23,8 @@ public class GuestBookResponse {
     public static GuestBookResponse fromEntity(GuestBook guestBook, boolean canShow) {
         UserSummary writer = UserSummary.builder()
                 .userId(guestBook.getWriter().getUserId())
-                .userName(guestBook.getWriter().getUserName())
-                .profileImageUrl(guestBook.getWriter().getProfileImage().getProfileImageUrl())
+                .userNickname(guestBook.getWriter().getNickname())
+                .profileImageUrl(guestBook.getWriter().getProfileImageUrl())
                 .build();
 
         return GuestBookResponse.builder()
