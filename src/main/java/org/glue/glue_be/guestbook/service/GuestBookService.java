@@ -43,7 +43,9 @@ public class GuestBookService {
         User host = findUser(request.hostId());
 
         // 부모 방명록 확인
-        GuestBook parent = request.parentId() != null ? findGuestBook(request.parentId()) : null;
+        GuestBook parent = Optional.ofNullable(request.parentId())
+                .map(this::findGuestBook)
+                .orElse(null);
 
         // 방명록 생성
         GuestBook guestBook = GuestBook.builder()
@@ -194,16 +196,14 @@ public class GuestBookService {
     private void sendNotification(GuestBook book, User host, GuestBook parent) {
         User recipient;
         String title;
-        String body;
+        String body = book.getContent();
 
         if (parent == null) {
             recipient = host;
-            title = "방명록 알림";
-            body = String.format("%s님이 방명록을 남겼습니다.", book.getWriter().getUserName());
+            title = "새로운 방명록";
         } else {
             recipient = parent.getWriter();
-            title = "방명록 댓글 알림";
-            body = String.format("%s님이 당신의 방명록에 댓글을 남겼습니다.", book.getWriter().getUserName());
+            title = "내가 남긴 방명록 답글";
         }
 
         fcmService.sendMessage(FcmSendDto.builder()
