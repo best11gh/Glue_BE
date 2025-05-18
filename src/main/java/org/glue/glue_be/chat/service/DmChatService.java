@@ -364,7 +364,7 @@ public class DmChatService extends CommonChatService {
                 DmUserChatroom::getPushNotificationOn,               // 알림 설정 조회
                 this::isUserConnectedToWebSocket,                    // 웹소켓 연결 확인
                 (sender, recipient, content) -> FcmSendDto.builder() // 알림 객체 생성
-                        .title(sender.getUserName() + "님의 메시지")
+                        .title(sender.getNickname() + "님의 메시지")
                         .body(content)
                         .token(recipient.getFcmToken())
                         .build(),
