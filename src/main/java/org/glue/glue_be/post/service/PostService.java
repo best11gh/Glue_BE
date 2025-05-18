@@ -23,7 +23,6 @@ import org.glue.glue_be.post.repository.LikeRepository;
 import org.glue.glue_be.post.repository.PostImageRepository;
 import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.post.response.PostResponseStatus;
-import org.glue.glue_be.user.entity.ProfileImage;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
@@ -127,24 +126,19 @@ public class PostService {
 		// 2. 응답 dto 구성
 		var participantDtos = meeting.getParticipants().stream().map(participant -> {
 			User user = participant.getUser();
-			String imageUrl = Optional.ofNullable(user.getProfileImage())
-				.map(ProfileImage::getProfileImageUrl)
-				.orElse(null); // 사용자 이미지 없는 경우 null 리턴
 
 			return GetPostResponse.MeetingDto.ParticipantDto.builder()
 				.userId(user.getUserId())
 				.nickname(user.getNickname())
-				.profileImageUrl(imageUrl).build();
+				.profileImageUrl(user.getProfileImageUrl()).build();
 		}).collect(Collectors.toList());
 
 		// creator 정보는 common dto인 UserSummary 사용
 		UserSummary creator = Optional.ofNullable(meeting.getHost())
 			.map(host -> UserSummary.builder()
 				.userId(host.getUserId())
-				.userName(host.getNickname())
-				.profileImageUrl(Optional.ofNullable(host.getProfileImage())
-					.map(ProfileImage::getProfileImageUrl)
-					.orElse(null))
+				.userNickname(host.getNickname())
+				.profileImageUrl(host.getProfileImageUrl())
 				.build())
 			.orElse(null);
 
