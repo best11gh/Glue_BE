@@ -160,7 +160,7 @@ public class DmChatService extends CommonChatService {
                 this::getUserById,                       // 사용자 조회
                 this::validateChatRoomMember,            // 채팅방 멤버 검증
                 DmUserChatroom::getPushNotificationOn,   // 현재 알림 상태 조회
-                DmUserChatroom::updatePushNotification,  // 알림 상태 업데이트
+                DmUserChatroom::togglePushNotification,  // 알림 상태 업데이트
                 dmUserChatroomRepository::save           // 업데이트된 항목 저장
         );
     }
@@ -242,31 +242,21 @@ public class DmChatService extends CommonChatService {
                 dmUserChatroomRepository::findByDmChatRoom,
                 dmMessageRepository::findByDmChatRoomOrderByCreatedAtAsc,
                 dmMessageRepository::deleteAll,
-                dmChatRoomRepository::delete,
-                status -> new ActionResponse(status, getLeaveStatusMessage(status))
+                dmChatRoomRepository::delete
         );
-    }
-
-    // DM방 나가기 관련 응답 코드
-    private String getLeaveStatusMessage(int status) {
-        switch (status) {
-            case 200: return "채팅방에서 성공적으로 퇴장하였습니다.";
-            case 201: return "채팅방의 모든 메시지를 성공적으로 삭제하였습니다.";
-            case 202: return "채팅방을 성공적으로 삭제하였습니다.";
-            default: return "작업이 완료되었습니다.";
-        }
     }
     // =====
 
 
     // ===== DM방 진입 시, 대화 이력 조회 + 안 읽었던 것들 읽음 처리(실시간+비실시간) =====
-    // 대화 이력 조회
+    // 대화 이력 조회 후 읽지 않은 메시지 읽음 처리
     @Transactional
     public List<DmMessageResponse> getDmMessagesByDmChatRoomId(Long dmChatRoomId, Long userId) {
         DmChatRoom dmChatRoom = getChatRoomById(dmChatRoomId);
         User user = getUserById(userId);
         validateChatRoomMember(dmChatRoom, user);
 
+        // 읽지 않은 메시지 읽음 처리
         List<DmMessage> messages = dmMessageRepository.findByDmChatRoomOrderByCreatedAtAsc(dmChatRoom);
         markMessagesAsRead(dmChatRoomId, userId);
 
