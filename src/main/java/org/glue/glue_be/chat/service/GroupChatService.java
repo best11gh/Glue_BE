@@ -1,6 +1,7 @@
 package org.glue.glue_be.chat.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.chat.dto.request.GroupMessageSendRequest;
 import org.glue.glue_be.chat.dto.response.*;
 import org.glue.glue_be.chat.entity.group.GroupChatRoom;
@@ -17,14 +18,17 @@ import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.glue.glue_be.util.fcm.service.FcmService;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GroupChatService extends CommonChatService {
 
     private final GroupChatRoomRepository groupChatRoomRepository;
@@ -180,9 +184,19 @@ public class GroupChatService extends CommonChatService {
     }
     // =====
 
+
     // ===== 그룹 채팅방 나가기 =====
     @Transactional
     public List<ActionResponse> leaveGroupChatRoom(Long groupChatroomId, Long userId) {
+        GroupChatRoom chatRoom = getChatRoomById(groupChatroomId);
+        User user = getUserById(userId);
+
+        Meeting meeting = chatRoom.getMeeting();
+
+        if (meeting != null && user.getUserId().equals(meeting.getHost().getUserId())) {
+            throw new ChatException("모임 호스트는 채팅방을 나갈 수 없습니다.");
+        }
+
         return (List<ActionResponse>) processLeaveChatRoom(
                 groupChatroomId,
                 userId,
@@ -195,6 +209,39 @@ public class GroupChatService extends CommonChatService {
                 groupMessageRepository::deleteAll,
                 groupChatRoomRepository::delete
         );
+    }
+
+    // 미팅 일주일 후 그룹 채팅방 폭파
+    @Scheduled(cron = "0 0 0 * * *")
+    private void destroyGroupChatRoom() {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(7);
+        List<GroupChatRoom> outdatedChatRooms = groupChatRoomRepository.findByMeetingTime(threshold);
+
+        for (GroupChatRoom chatRoom : outdatedChatRooms) {
+            try {
+                Meeting meeting = chatRoom.getMeeting();
+
+                if (meeting != null) {
+                    processChatRoomDestruction(chatRoom);
+                }
+            } catch (Exception e) {
+                log.error("채팅방 ID: {} 삭제 중 오류 발생: {}", chatRoom.getGroupChatroomId(), e.getMessage(), e);
+            }
+        }
+    }
+
+    // 채팅방 파괴 전용 메소드
+    private void processChatRoomDestruction(GroupChatRoom chatRoom) {
+        // 모든 메시지 삭제
+        List<GroupMessage> messages = groupMessageRepository.findByGroupChatroomOrderByCreatedAtAsc(chatRoom);
+        groupMessageRepository.deleteAll(messages);
+
+        // 모든 사용자 관계 삭제
+        List<GroupUserChatRoom> userChatRooms = groupUserChatRoomRepository.findByGroupChatroom(chatRoom);
+        groupUserChatRoomRepository.deleteAll(userChatRooms);
+
+        // 채팅방 삭제
+        groupChatRoomRepository.delete(chatRoom);
     }
     // =====
 

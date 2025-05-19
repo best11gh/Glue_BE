@@ -117,7 +117,6 @@ public abstract class CommonChatService {
     }
 
     // 채팅방 나가기
-    // 채팅방 나가기
     protected <C, UC, M> List<ActionResponse> processLeaveChatRoom(
             Long chatRoomId,
             Long userId,
