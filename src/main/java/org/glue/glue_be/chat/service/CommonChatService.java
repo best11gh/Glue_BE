@@ -79,7 +79,8 @@ public abstract class CommonChatService {
     }
 
     // 채팅방 나가기
-    protected <C, UC, M> List<? extends ActionResponse> processLeaveChatRoom(
+    // 채팅방 나가기
+    protected <C, UC, M> List<ActionResponse> processLeaveChatRoom(
             Long chatRoomId,
             Long userId,
             Function<Long, C> chatRoomFinder,
@@ -89,8 +90,7 @@ public abstract class CommonChatService {
             Function<C, List<UC>> getRemainingMembers,
             Function<C, List<M>> getChatMessages,
             Consumer<List<M>> deleteMessages,
-            Consumer<C> deleteChatRoom,
-            Function<Integer, ? extends ActionResponse> createSuccessResponse) {
+            Consumer<C> deleteChatRoom) {
 
         List<ActionResponse> results = new ArrayList<>();
 
@@ -101,7 +101,7 @@ public abstract class CommonChatService {
 
         // 사용자를 해당 채팅방 db에서 제거
         removeMember.accept(chatRoom, user);
-        results.add(createSuccessResponse.apply(200));
+        results.add(new ActionResponse(200, getLeaveStatusMessage(200)));  // 직접 ActionResponse 생성
 
         // 남은 멤버가 없으면 채팅방 및 메시지 삭제
         List<UC> remainingMembers = getRemainingMembers.apply(chatRoom);
@@ -109,14 +109,24 @@ public abstract class CommonChatService {
             // 해당 채팅방의 모든 메시지를 db에서 삭제
             List<M> messages = getChatMessages.apply(chatRoom);
             deleteMessages.accept(messages);
-            results.add(createSuccessResponse.apply(200));
+            results.add(new ActionResponse(201, getLeaveStatusMessage(201)));  // 201 상태코드 사용
 
             // 채팅방 정보를 db에서 삭제
             deleteChatRoom.accept(chatRoom);
-            results.add(createSuccessResponse.apply(200));
+            results.add(new ActionResponse(202, getLeaveStatusMessage(202)));  // 202 상태코드 사용
         }
 
         return results;
+    }
+
+    // 채팅방 나가기 관련 응답 코드
+    private String getLeaveStatusMessage(int status) {
+        switch (status) {
+            case 200: return "채팅방에서 성공적으로 퇴장하였습니다.";
+            case 201: return "채팅방의 모든 메시지를 성공적으로 삭제하였습니다.";
+            case 202: return "채팅방을 성공적으로 삭제하였습니다.";
+            default: return "작업이 완료되었습니다.";
+        }
     }
 
     // 메시지 db에 저장
