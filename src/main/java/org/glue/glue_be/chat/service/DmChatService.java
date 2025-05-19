@@ -12,6 +12,7 @@ import org.glue.glue_be.chat.repository.dm.DmChatRoomRepository;
 import org.glue.glue_be.chat.repository.dm.DmMessageRepository;
 import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
 import org.glue.glue_be.common.dto.UserSummary;
+import org.glue.glue_be.common.dto.UserSummaryWithHostInfo;
 import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -116,7 +117,28 @@ public class DmChatService extends CommonChatService {
         }
 
         // 응답 생성
-        return responseMapper.toChatRoomDetailResponse(dmChatRoom, participants, userId.orElse(null), invitationStatus);
+        DmChatRoomDetailResponse responseWithoutHostInfo = responseMapper.toChatRoomDetailResponse(
+                dmChatRoom, participants, userId.orElse(null), invitationStatus);
+
+        // 호스트 정보를 추가한 참가자 목록 생성
+        List<UserSummaryWithHostInfo> participantsWithHostInfo = participants.stream()
+                .map(participant -> {
+                    UserSummary userSummary = responseMapper.toChatUserResponse(participant.getUser());
+                    boolean isHost = determineIsHost(
+                            participant,
+                            DmUserChatroom::getUser,
+                            DmUserChatroom::getDmChatRoom,
+                            DmChatRoom::getMeeting,
+                            Meeting::getHost
+                    );
+                    return UserSummaryWithHostInfo.from(userSummary, isHost);
+                })
+                .collect(Collectors.toList());
+
+        // 최종 응답 생성 (호스트 정보를 포함한 참가자 목록으로 업데이트)
+        return responseWithoutHostInfo.toBuilder()
+                .participantsWithHostInfo(participantsWithHostInfo)
+                .build();
     }
 
     // 초대장 상태 체크

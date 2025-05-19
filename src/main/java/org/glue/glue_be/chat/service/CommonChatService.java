@@ -31,6 +31,44 @@ public abstract class CommonChatService {
     @Autowired protected SimpMessagingTemplate messagingTemplate;
     @Autowired private SimpUserRegistry simpUserRegistry;
 
+    // 채팅방 상세 보기에서 방장인지 아닌지 구분하기 위한 매소드
+    protected <UC, C, M> boolean determineIsHost(
+            UC userChatroom,
+            Function<UC, User> userExtractor,
+            Function<UC, C> chatroomExtractor,
+            Function<C, M> meetingExtractor,
+            Function<M, User> hostExtractor) {
+        try {
+            // 사용자와 채팅방 정보 가져오기
+            User user = userExtractor.apply(userChatroom);
+            C chatroom = chatroomExtractor.apply(userChatroom);
+
+            if (user == null || chatroom == null) {
+                return false;
+            }
+
+            // 채팅방에서 meeting 객체 추출
+            M meeting = meetingExtractor.apply(chatroom);
+
+            if (meeting == null) {
+                return false; // 미팅 정보가 없으면 호스트가 아님
+            }
+
+            // 미팅에서 host 추출
+            User host = hostExtractor.apply(meeting);
+
+            if (host == null) {
+                return false; // 호스트 정보가 없으면 호스트가 아님
+            }
+
+            // 사용자 ID와 호스트 ID가 같은지 확인
+            return user.getUserId().equals(host.getUserId());
+
+        } catch (Exception e) {
+            return false; // 예외 발생 시 기본적으로 호스트가 아님으로 처리
+        }
+    }
+
     // 채팅방 목록 조회
     protected <C, R> List<R> getChatRooms(
             Long userId,
