@@ -24,7 +24,7 @@ public class JwtTokenProvider {
 
 	private static final String MEMBER_ID = "memberId";
 	private static final String MEMBER_NICKNAME = "memberNickname";
-	private static final Long TOKEN_EXPIRATION_TIME = 24 * 60 * 60 * 1000L; // todo: 토큰 유효기간 논의, 현재는 24시간
+	private static final Long TOKEN_EXPIRATION_TIME = 100 * 24 * 60 * 60 * 1000L; // todo: 토큰 유효기간 배포 시 원상복구 시키기
 
 
 	@Value("${jwt.secret}")
