@@ -38,7 +38,7 @@ public class DmUserChatroom extends BaseEntity {
 
 	void updateChatRoom(DmChatRoom dmChatRoom) { this.dmChatRoom = dmChatRoom; }
 
-	public void updatePushNotification(Integer pushNotificationOn) {
+	public void togglePushNotification(Integer pushNotificationOn) {
 		this.pushNotificationOn = pushNotificationOn;
 	}
 }

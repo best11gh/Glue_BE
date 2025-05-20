@@ -31,49 +31,42 @@ public abstract class CommonChatService {
     @Autowired protected SimpMessagingTemplate messagingTemplate;
     @Autowired private SimpUserRegistry simpUserRegistry;
 
-    // 채팅방 생성
-    protected <REQ, C, UC, R> R createChatRoom(
-            REQ request,
-            Long userId,
-            Function<REQ, Long> meetingIdExtractor,
-            Function<REQ, List<Long>> userIdsExtractor,
-            TriFunction<Long, Long, Long, Optional<C>> existingChatRoomFinder,
-            BiFunction<Meeting, User, C> chatRoomCreator,
-            TriFunction<C, User, User, UC> userChatroomCreator,
-            BiFunction<C, Integer, R> successResponseCreator,
-            BiFunction<C, Integer, R> existingResponseCreator,
-            Consumer<UC> userChatroomSaver) {
+    // 채팅방 상세 보기에서 방장인지 아닌지 구분하기 위한 매소드
+    protected <UC, C, M> boolean determineIsHost(
+            UC userChatroom,
+            Function<UC, User> userExtractor,
+            Function<UC, C> chatroomExtractor,
+            Function<C, M> meetingExtractor,
+            Function<M, User> hostExtractor) {
+        try {
+            // 사용자와 채팅방 정보 가져오기
+            User user = userExtractor.apply(userChatroom);
+            C chatroom = chatroomExtractor.apply(userChatroom);
 
-        // 현재 사용자 조회, 미팅 ID 추출, 사용자 ID 목록 추출
-        User currentUser = getUserById(userId);
-        Long meetingId = meetingIdExtractor.apply(request);
-        List<Long> userIds = userIdsExtractor.apply(request);
+            if (user == null || chatroom == null) {
+                return false;
+            }
 
-        // DM 채팅방의 경우 특별 검증 (서브클래스에서 오버라이드)
-        validateChatRoomUsers(userIds, userId);
+            // 채팅방에서 meeting 객체 추출
+            M meeting = meetingExtractor.apply(chatroom);
 
-        // 미팅 조회
-        Meeting meeting = getMeetingById(meetingId);
+            if (meeting == null) {
+                return false; // 미팅 정보가 없으면 호스트가 아님
+            }
 
-        // 기존 채팅방 검색 - 있으면 바로 반환 (DM 전용 로직)
-        // 그룹 채팅에서는 null이나 비어있는 Optional을 반환하도록 구현
-        Optional<C> existingChatRoom = existingChatRoomFinder.apply(meetingId, userIds.get(0), userIds.get(1));
-        if (existingChatRoom.isPresent()) {
-            return existingResponseCreator.apply(existingChatRoom.get(), 200);
+            // 미팅에서 host 추출
+            User host = hostExtractor.apply(meeting);
+
+            if (host == null) {
+                return false; // 호스트 정보가 없으면 호스트가 아님
+            }
+
+            // 사용자 ID와 호스트 ID가 같은지 확인
+            return user.getUserId().equals(host.getUserId());
+
+        } catch (Exception e) {
+            return false; // 예외 발생 시 기본적으로 호스트가 아님으로 처리
         }
-
-        // 새 채팅방 생성
-        C chatRoom = chatRoomCreator.apply(meeting, currentUser);
-
-        // 사용자 추가
-        for (Long participantId : userIds) {
-            User participant = getUserById(participantId);
-            UC userChatroom = userChatroomCreator.apply(chatRoom, currentUser, participant);
-            userChatroomSaver.accept(userChatroom);
-        }
-
-        // 결과 반환
-        return successResponseCreator.apply(chatRoom, 201);
     }
 
     // 채팅방 목록 조회
@@ -124,7 +117,8 @@ public abstract class CommonChatService {
     }
 
     // 채팅방 나가기
-    protected <C, UC, M> List<? extends ActionResponse> processLeaveChatRoom(
+    // 채팅방 나가기
+    protected <C, UC, M> List<ActionResponse> processLeaveChatRoom(
             Long chatRoomId,
             Long userId,
             Function<Long, C> chatRoomFinder,
@@ -134,8 +128,7 @@ public abstract class CommonChatService {
             Function<C, List<UC>> getRemainingMembers,
             Function<C, List<M>> getChatMessages,
             Consumer<List<M>> deleteMessages,
-            Consumer<C> deleteChatRoom,
-            Function<Integer, ? extends ActionResponse> createSuccessResponse) {
+            Consumer<C> deleteChatRoom) {
 
         List<ActionResponse> results = new ArrayList<>();
 
@@ -146,7 +139,7 @@ public abstract class CommonChatService {
 
         // 사용자를 해당 채팅방 db에서 제거
         removeMember.accept(chatRoom, user);
-        results.add(createSuccessResponse.apply(200));
+        results.add(new ActionResponse(200, getLeaveStatusMessage(200)));  // 직접 ActionResponse 생성
 
         // 남은 멤버가 없으면 채팅방 및 메시지 삭제
         List<UC> remainingMembers = getRemainingMembers.apply(chatRoom);
@@ -154,14 +147,24 @@ public abstract class CommonChatService {
             // 해당 채팅방의 모든 메시지를 db에서 삭제
             List<M> messages = getChatMessages.apply(chatRoom);
             deleteMessages.accept(messages);
-            results.add(createSuccessResponse.apply(200));
+            results.add(new ActionResponse(201, getLeaveStatusMessage(201)));  // 201 상태코드 사용
 
             // 채팅방 정보를 db에서 삭제
             deleteChatRoom.accept(chatRoom);
-            results.add(createSuccessResponse.apply(200));
+            results.add(new ActionResponse(202, getLeaveStatusMessage(202)));  // 202 상태코드 사용
         }
 
         return results;
+    }
+
+    // 채팅방 나가기 관련 응답 코드
+    private String getLeaveStatusMessage(int status) {
+        switch (status) {
+            case 200: return "채팅방에서 성공적으로 퇴장하였습니다.";
+            case 201: return "채팅방의 모든 메시지를 성공적으로 삭제하였습니다.";
+            case 202: return "채팅방을 성공적으로 삭제하였습니다.";
+            default: return "작업이 완료되었습니다.";
+        }
     }
 
     // 메시지 db에 저장

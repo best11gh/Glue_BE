@@ -12,6 +12,7 @@ import org.glue.glue_be.chat.repository.dm.DmChatRoomRepository;
 import org.glue.glue_be.chat.repository.dm.DmMessageRepository;
 import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
 import org.glue.glue_be.common.dto.UserSummary;
+import org.glue.glue_be.common.dto.UserSummaryWithHostInfo;
 import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.entity.Participant;
@@ -43,32 +44,46 @@ public class DmChatService extends CommonChatService {
     // ===== 채팅방 생성 =====
     @Transactional
     public DmChatRoomCreateResult createDmChatRoom(DmChatRoomCreateRequest request, Long userId) {
-        return createChatRoom(
-                request,
-                userId,
-                DmChatRoomCreateRequest::getMeetingId,                     // 미팅 ID 추출
-                DmChatRoomCreateRequest::getUserIds,                       // 사용자 ID 목록 추출
-                dmChatRoomRepository::findDirectChatRoomByUserIds,         // 기존 채팅방 검색
-                (meeting, user) -> dmChatRoomRepository.save(              // 채팅방 생성
-                        DmChatRoom.builder().meeting(meeting).build()
-                ),
-                (chatRoom, currentUser, participant) -> {                  // 사용자-채팅방 연결 생성
-                    DmUserChatroom userChatroom = DmUserChatroom.builder()
-                            .user(participant)
-                            .dmChatRoom(chatRoom)
-                            .build();
-                    chatRoom.addUserChatroom(userChatroom);
-                    return userChatroom;
-                },
-                (chatRoom, status) -> new DmChatRoomCreateResult(          // 성공 응답 생성
-                        getDmChatRoomDetail(chatRoom.getId()),
-                        new ActionResponse(status, "채팅방을 성공적으로 생성하였습니다.")
-                ),
-                (chatRoom, status) -> new DmChatRoomCreateResult(          // 기존 채팅방 응답 생성
-                        getDmChatRoomDetail(chatRoom.getId()),
-                        new ActionResponse(status, "이미 존재하는 채팅방을 반환합니다.")
-                ),
-                dmUserChatroomRepository::save                             // 사용자-채팅방 연결 저장
+        // 현재 사용자 조회, 미팅 ID 추출, 사용자 ID 목록 추출
+        User currentUser = getUserById(userId);
+        Long meetingId = request.getMeetingId();
+        List<Long> userIds = request.getUserIds();
+
+        // 사용자가 정확히 두 명인지 체크
+        validateChatRoomUsers(userIds, userId);
+
+        // 미팅 조회
+        Meeting meeting = getMeetingById(meetingId);
+
+        // 기존 채팅방 검색 - 있으면 바로 반환
+        Optional<DmChatRoom> existingChatRoom = dmChatRoomRepository.findDirectChatRoomByUserIds(meetingId, userIds.get(0), userIds.get(1));
+        if (existingChatRoom.isPresent()) {
+            return new DmChatRoomCreateResult(
+                    getDmChatRoomDetail(existingChatRoom.get().getId()),
+                    new ActionResponse(200, "이미 존재하는 채팅방을 반환합니다.")
+            );
+        }
+
+        // 새 채팅방 생성
+        DmChatRoom chatRoom = dmChatRoomRepository.save(
+                DmChatRoom.builder().meeting(meeting).build()
+        );
+
+        // 사용자 추가
+        for (Long participantId : userIds) {
+            User participant = getUserById(participantId);
+            DmUserChatroom userChatroom = DmUserChatroom.builder()
+                    .user(participant)
+                    .dmChatRoom(chatRoom)
+                    .build();
+            chatRoom.addUserChatroom(userChatroom);
+            dmUserChatroomRepository.save(userChatroom);
+        }
+
+        // 결과 반환
+        return new DmChatRoomCreateResult(
+                getDmChatRoomDetail(chatRoom.getId()),
+                new ActionResponse(201, "채팅방을 성공적으로 생성하였습니다.")
         );
     }
     // =====
@@ -102,7 +117,28 @@ public class DmChatService extends CommonChatService {
         }
 
         // 응답 생성
-        return responseMapper.toChatRoomDetailResponse(dmChatRoom, participants, userId.orElse(null), invitationStatus);
+        DmChatRoomDetailResponse responseWithoutHostInfo = responseMapper.toChatRoomDetailResponse(
+                dmChatRoom, participants, userId.orElse(null), invitationStatus);
+
+        // 호스트 정보를 추가한 참가자 목록 생성
+        List<UserSummaryWithHostInfo> participantsWithHostInfo = participants.stream()
+                .map(participant -> {
+                    UserSummary userSummary = responseMapper.toChatUserResponse(participant.getUser());
+                    boolean isHost = determineIsHost(
+                            participant,
+                            DmUserChatroom::getUser,
+                            DmUserChatroom::getDmChatRoom,
+                            DmChatRoom::getMeeting,
+                            Meeting::getHost
+                    );
+                    return UserSummaryWithHostInfo.from(userSummary, isHost);
+                })
+                .collect(Collectors.toList());
+
+        // 최종 응답 생성 (호스트 정보를 포함한 참가자 목록으로 업데이트)
+        return responseWithoutHostInfo.toBuilder()
+                .participantsWithHostInfo(participantsWithHostInfo)
+                .build();
     }
 
     // 초대장 상태 체크
@@ -146,7 +182,7 @@ public class DmChatService extends CommonChatService {
                 this::getUserById,                       // 사용자 조회
                 this::validateChatRoomMember,            // 채팅방 멤버 검증
                 DmUserChatroom::getPushNotificationOn,   // 현재 알림 상태 조회
-                DmUserChatroom::updatePushNotification,  // 알림 상태 업데이트
+                DmUserChatroom::togglePushNotification,  // 알림 상태 업데이트
                 dmUserChatroomRepository::save           // 업데이트된 항목 저장
         );
     }
@@ -228,31 +264,21 @@ public class DmChatService extends CommonChatService {
                 dmUserChatroomRepository::findByDmChatRoom,
                 dmMessageRepository::findByDmChatRoomOrderByCreatedAtAsc,
                 dmMessageRepository::deleteAll,
-                dmChatRoomRepository::delete,
-                status -> new ActionResponse(status, getLeaveStatusMessage(status))
+                dmChatRoomRepository::delete
         );
-    }
-
-    // DM방 나가기 관련 응답 코드
-    private String getLeaveStatusMessage(int status) {
-        switch (status) {
-            case 200: return "채팅방에서 성공적으로 퇴장하였습니다.";
-            case 201: return "채팅방의 모든 메시지를 성공적으로 삭제하였습니다.";
-            case 202: return "채팅방을 성공적으로 삭제하였습니다.";
-            default: return "작업이 완료되었습니다.";
-        }
     }
     // =====
 
 
     // ===== DM방 진입 시, 대화 이력 조회 + 안 읽었던 것들 읽음 처리(실시간+비실시간) =====
-    // 대화 이력 조회
+    // 대화 이력 조회 후 읽지 않은 메시지 읽음 처리
     @Transactional
     public List<DmMessageResponse> getDmMessagesByDmChatRoomId(Long dmChatRoomId, Long userId) {
         DmChatRoom dmChatRoom = getChatRoomById(dmChatRoomId);
         User user = getUserById(userId);
         validateChatRoomMember(dmChatRoom, user);
 
+        // 읽지 않은 메시지 읽음 처리
         List<DmMessage> messages = dmMessageRepository.findByDmChatRoomOrderByCreatedAtAsc(dmChatRoom);
         markMessagesAsRead(dmChatRoomId, userId);
 
