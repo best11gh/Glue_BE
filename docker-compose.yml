@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7                    # Redis 7.x 공식 이미지
+    container_name: redis-server
+    networks:
+      - internal                     # 내부 네트워크에만 연결
+    volumes:
+      - redis-data:/data             # 데이터 영속화
+    ports:
+      - "6379:6379"                # 호스트 6379 → 컨테이너 6379
+
+  glue-be:
+    image: "${DOCKERHUB_USERNAME}/glue-be:latest"  # Docker Hub 이미지
+    container_name: glue-be
+    depends_on:
+      - redis                         # Redis가 먼저 기동되어야 함
+    networks:
+      - internal                     # 내부 서비스 통신 네트워크
+      - public                       # 외부 노출 네트워크
+    ports:
+      - "8080:8080"                # 호스트 8080 → 컨테이너 8080
+    volumes:
+      - ./config/application-prod.yml:/app/config/application.yml:ro  # 외부 설정 마운트
+    environment:
+      SPRING_PROFILES_ACTIVE: prod    # prod 프로파일 사용
+      REDIS_HOST: redis-server        # Redis 호스트명
+
+volumes:
+  redis-data:                       # Redis 데이터 전용 볼륨
+
+networks:
+  internal:                         # 서비스 간 내부 통신망
+    driver: bridge
+  public:                           # 외부 요청용 네트워크
+    driver: bridge
