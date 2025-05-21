@@ -22,6 +22,9 @@ public class User extends BaseEntity {
     @Column(name = "oauth_id", nullable = false, unique = true)
     private String oauthId;
 
+    @Column(name = "real_name", nullable = false)
+    private String realName;
+
     @Column(name = "nickname", nullable = false, length = 10, unique = true)
     private String nickname;
 
@@ -82,8 +85,9 @@ public class User extends BaseEntity {
 
 
     @Builder
-    public User(String oauthId, String nickname, Integer gender, LocalDate birthDate, String description, Integer major, Integer school, String email, Integer systemLanguage, Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel, String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility, Integer guestbooksVisibility) {
+    public User(String oauthId, String realName, String nickname, Integer gender, LocalDate birthDate, String description, Integer major, Integer school, String email, Integer systemLanguage, Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel, String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility, Integer guestbooksVisibility) {
         this.oauthId = oauthId;
+        this.realName = realName;
         this.nickname = nickname;
         this.gender = gender;
         this.birthDate = birthDate;
