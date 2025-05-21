@@ -45,13 +45,21 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            RUNNING=$(docker ps -q --filter "publish=8080")
+            if [ -n "$RUNNING" ]; then
+              echo "Stopping and removing container(s) using port 8080: $RUNNING"
+              docker stop $RUNNING
+              docker rm   $RUNNING
+            fi
+            docker rm -f glue-be || true
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/glue-be:latest
-            docker stop glue-be || true
-            docker rm   glue-be || true
             docker run -d \
               --name glue-be \
+              --network redis-network \
               -p 8080:8080 \
               -v /home/ec2-user/config/application-prod.yml:/app/config/application.yml \
+              -e spring.config.location=classpath:/application.yml,file:/app/config/application.yml \
               -e SPRING_PROFILES_ACTIVE=prod \
-              -e REDIS_HOST=redis \
+              -e REDIS_HOST=redis-server \
               ${{ secrets.DOCKERHUB_USERNAME }}/glue-be:latest
+
