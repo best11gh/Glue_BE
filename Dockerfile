@@ -1,4 +1,5 @@
-FROM eclipse-temurin:11-jre
+# Dockerfile
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
