@@ -103,7 +103,8 @@ jobs:
             # Docker Hub 로그인
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-            # Docker Compose로 서비스 재배포
-            docker-compose pull
-            docker-compose up -d --remove-orphans
+            # Docker Compose 사용: Docker CLI 플러그인(docker compose)
+            docker compose pull
+            docker compose up -d --remove-orphans
+
 
