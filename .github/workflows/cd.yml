@@ -98,7 +98,7 @@ jobs:
 
             # 설정 파일 심볼릭 링크
             mkdir -p config
-            ln -sf /home/ec2-user/config/application-prod.yml config/application-prod.yml
+            ln -sf /home/ec2-user/config/application.yml config/application.yml
 
             # Docker Hub 로그인
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
