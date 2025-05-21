@@ -139,7 +139,10 @@ public class AuthService {
 
     public void sendCode(String email){
 
-        // 1. 이미 해당 email 유저가 있는지 검증
+//         1. 이미 해당 email 유저가 있는지 검증
+        userRepository.findByEmail(email).ifPresent(user -> {
+            throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "해당 이메일을 가진 유저가 이미 존재합니다.");
+        });
 
         // 2. 코드 생성
         String code = redisUtil.createdCertifyNum();
