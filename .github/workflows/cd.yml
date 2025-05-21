@@ -51,6 +51,7 @@ jobs:
               docker stop $RUNNING
               docker rm   $RUNNING
             fi
+            docker rm -f glue-be || true
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/glue-be:latest
             docker run -d \
               --name glue-be \
