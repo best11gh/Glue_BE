@@ -7,7 +7,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableJpaAuditing
-@EnableScheduling // 채팅방 폭파 스케쥴링
 public class GlueBeApplication {
 
 	public static void main(String[] args) {

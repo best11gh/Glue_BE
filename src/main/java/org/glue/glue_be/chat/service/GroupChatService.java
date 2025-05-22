@@ -210,39 +210,6 @@ public class GroupChatService extends CommonChatService {
                 groupChatRoomRepository::delete
         );
     }
-
-    // 미팅 일주일 후 그룹 채팅방 폭파
-    @Scheduled(cron = "0 0 0 * * *")
-    private void destroyGroupChatRoom() {
-        LocalDateTime threshold = LocalDateTime.now().minusDays(7);
-        List<GroupChatRoom> outdatedChatRooms = groupChatRoomRepository.findByMeetingTime(threshold);
-
-        for (GroupChatRoom chatRoom : outdatedChatRooms) {
-            try {
-                Meeting meeting = chatRoom.getMeeting();
-
-                if (meeting != null) {
-                    processChatRoomDestruction(chatRoom);
-                }
-            } catch (Exception e) {
-                log.error("채팅방 ID: {} 삭제 중 오류 발생: {}", chatRoom.getGroupChatroomId(), e.getMessage(), e);
-            }
-        }
-    }
-
-    // 채팅방 파괴 전용 메소드
-    private void processChatRoomDestruction(GroupChatRoom chatRoom) {
-        // 모든 메시지 삭제
-        List<GroupMessage> messages = groupMessageRepository.findByGroupChatroomOrderByCreatedAtAsc(chatRoom);
-        groupMessageRepository.deleteAll(messages);
-
-        // 모든 사용자 관계 삭제
-        List<GroupUserChatRoom> userChatRooms = groupUserChatRoomRepository.findByGroupChatroom(chatRoom);
-        groupUserChatRoomRepository.deleteAll(userChatRooms);
-
-        // 채팅방 삭제
-        groupChatRoomRepository.delete(chatRoom);
-    }
     // =====
 
 
