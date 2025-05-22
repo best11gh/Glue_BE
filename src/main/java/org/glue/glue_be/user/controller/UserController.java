@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
+import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
@@ -78,14 +79,14 @@ public class UserController {
 		return new BaseResponse<>();
 	}
 
-//	// 6. 프로필 사진 변경
-//	@PutMapping("/profile-image")
-//	public BaseResponse<Void> updateProfileImage(
-//		@AuthenticationPrincipal CustomUserDetails auth
-//	) {
-//		userService.updateProfileImage(auth.getUserId());
-//		return new BaseResponse<>();
-//	}
+	// 6. 프로필 사진 변경
+	@PutMapping("/profile-image")
+	public BaseResponse<Void> updateProfileImage(
+		@AuthenticationPrincipal CustomUserDetails auth, @RequestBody ChangeProfileImageRequest request
+	) {
+		userService.updateProfileImage(auth.getUserId(), request);
+		return new BaseResponse<>();
+	}
 //
 //	// 7. 학과 공개여부 설정
 //	@PutMapping("/major-visibility")
