@@ -7,6 +7,8 @@ import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
+import org.glue.glue_be.user.dto.response.MyProfileResponse;
+import org.glue.glue_be.user.dto.response.TargetProfileResponse;
 import org.glue.glue_be.user.service.UserService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -48,26 +50,23 @@ public class UserController {
 		userService.updateLearningLanguage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
-//
-//	// 3. 프로필 조회 (본인)
-//	@GetMapping("/me")
-//	public BaseResponse<ProfileResponse> getMyProfile(
-//		@AuthenticationPrincipal CustomUserDetails auth
-//	) {
-//		ProfileResponse resp = userService.getProfile(auth.getUserId());
-//		return new BaseResponse<>(resp);
-//	}
-//
-//	// 4. 프로필 조회 (타인)
-//	@GetMapping("/{userId}")
-//	public BaseResponse<ProfileResponse> getUserProfile(
-//		@PathVariable Long userId,
-//		@AuthenticationPrincipal CustomUserDetails auth
-//	) {
-//		ProfileResponse resp = userService.getProfile(userId);
-//		return new BaseResponse<>(resp);
-//	}
-//
+
+	//	// 3. 프로필 조회 (본인)
+	@GetMapping("/profile/me")
+	public BaseResponse<MyProfileResponse> getMyProfile( @AuthenticationPrincipal CustomUserDetails auth ) {
+		MyProfileResponse resp = userService.getMyProfile(auth.getUserId());
+		return new BaseResponse<>(resp);
+	}
+
+	// 4. 프로필 조회 (타인)
+	@GetMapping("/profile/{userId}")
+	public BaseResponse<TargetProfileResponse> getUserProfile(
+		@PathVariable Long userId, @AuthenticationPrincipal CustomUserDetails auth
+	) {
+		 TargetProfileResponse response = userService.getTargetProfile(userId);
+		return new BaseResponse<>(response);
+	}
+
 //	// 5. 시스템 언어 변경
 //	@PutMapping("/system-language")
 //	public BaseResponse<Void> changeSystemLanguage(
