@@ -49,6 +49,10 @@ public class PostService {
 	private final LikeRepository likeRepository;
 	private final PostImageRepository postImageRepository;
 
+	// 게시글 사진이 추가 및 삭제될 때 meeting image url도 함께 업데이트 시키는 메소드
+	public void updateMeetingImageUrl(Long meetingId) {
+		meetingRepository.updateMeetingImageUrl(meetingId);
+	}
 
 	// 게시글 추가
 	public CreatePostResponse createPost(CreatePostRequest request, Long userId) {
@@ -110,7 +114,10 @@ public class PostService {
 			}
 		}
 
-		// 6. responseDto 생성 직후 리턴
+		// 6. 이미지가 저장된 후 미팅 대표 이미지 업데이트
+		updateMeetingImageUrl(savedMeeting.getMeetingId());
+
+		// 7. responseDto 생성 직후 리턴
 		return CreatePostResponse.builder().postId(savedPost.getId()).build();
 
 	}
