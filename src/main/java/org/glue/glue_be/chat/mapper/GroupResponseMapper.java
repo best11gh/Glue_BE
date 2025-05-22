@@ -17,8 +17,6 @@ import java.util.stream.Collectors;
 
 @Component
 public class GroupResponseMapper {
-    String meetingImageUrl = "dummy"; //TODO
-
     // User 엔티티를 ChatUserResponse DTO로 변환
     public UserSummary toChatUserResponse(User user) {
 
@@ -40,7 +38,7 @@ public class GroupResponseMapper {
         MeetingSummary meetingSummary = new MeetingSummary(
                 meeting.getMeetingId(),
                 meeting.getMeetingTitle(),
-                meetingImageUrl,
+                meeting.getMeetingImageUrl(),
                 meeting.getCurrentParticipants()
         );
 
@@ -82,7 +80,7 @@ public class GroupResponseMapper {
         MeetingSummary meetingSummary = new MeetingSummary(
                 meeting.getMeetingId(),
                 meeting.getMeetingTitle(),
-                meetingImageUrl,
+                meeting.getMeetingImageUrl(),
                 meeting.getCurrentParticipants()
         );
 
