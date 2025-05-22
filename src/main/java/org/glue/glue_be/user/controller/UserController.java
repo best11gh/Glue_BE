@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
+import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
 import org.glue.glue_be.user.dto.response.MyProfileResponse;
@@ -54,8 +55,8 @@ public class UserController {
 	//	// 3. 프로필 조회 (본인)
 	@GetMapping("/profile/me")
 	public BaseResponse<MyProfileResponse> getMyProfile( @AuthenticationPrincipal CustomUserDetails auth ) {
-		MyProfileResponse resp = userService.getMyProfile(auth.getUserId());
-		return new BaseResponse<>(resp);
+		MyProfileResponse response = userService.getMyProfile(auth.getUserId());
+		return new BaseResponse<>(response);
 	}
 
 	// 4. 프로필 조회 (타인)
@@ -67,16 +68,16 @@ public class UserController {
 		return new BaseResponse<>(response);
 	}
 
-//	// 5. 시스템 언어 변경
-//	@PutMapping("/system-language")
-//	public BaseResponse<Void> changeSystemLanguage(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@Valid @RequestBody ChangeSystemLanguageRequest request
-//	) {
-//		userService.changeSystemLanguage(auth.getUserId(), request.getLanguageCode());
-//		return new BaseResponse<>();
-//	}
-//
+	// 5. 시스템 언어 변경
+	@PutMapping("/system-language")
+	public BaseResponse<Void> changeSystemLanguage(
+		@AuthenticationPrincipal CustomUserDetails auth,
+		@Valid @RequestBody ChangeSystemLanguageRequest request
+	) {
+		userService.changeSystemLanguage(auth.getUserId(), request);
+		return new BaseResponse<>();
+	}
+
 //	// 6. 프로필 사진 변경
 //	@PutMapping("/profile-image")
 //	public BaseResponse<Void> updateProfileImage(
