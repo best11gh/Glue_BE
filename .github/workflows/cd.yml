@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 프로덕션용 설정 파일을 워크스페이스에 생성
+      # application.yml은 Github Secret에 올리기
       - name: Generate application.yml
         env:
           APP_CONFIG: ${{ secrets.APPLICATION_YML }}
@@ -53,13 +53,25 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            RUNNING=$(docker ps -q --filter "publish=8080")
-            if [ -n "$RUNNING" ]; then
-              echo "Stopping and removing container(s) using port 8080: $RUNNING"
-              docker stop $RUNNING
-              docker rm   $RUNNING
+            BACKUP_DIR=/home/ec2-user/db_backups
+            mkdir -p $BACKUP_DIR
+
+            CONTAINER_ID=$(docker ps -q --filter "name=glue-be")
+
+            if [ -n "$CONTAINER_ID" ]; then
+              echo "ongoing: $BACKUP_DIR/mydb-$(date +'%Y%m%d%H%M%S').db"
+              docker cp $CONTAINER_ID:/app/data/mydb.db \
+                $BACKUP_DIR/mydb-$(date +'%Y%m%d%H%M%S').db
+            else
+              echo "no running glue container, skip backup"
+            fi
+
+            if [ -n "$CONTAINER_ID" ]; then
+              docker stop $CONTAINER_ID
+              docker rm   $CONTAINER_ID
             fi
             docker rm -f glue-be || true
+
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/glue-be:latest
             docker run -d \
               --name glue-be \
