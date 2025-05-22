@@ -100,7 +100,10 @@ public class GuestBookService {
             Integer pageSize
     ) {
         // 1) 호스트 존재 확인
-        findUser(hostId);
+        User user = findUser(hostId);
+
+        // 1.5) 호스트가 방명록을 공개하고있지 않다면 빠꾸
+        if(user.getGuestbooksVisibility() == User.VISIBILITY_PRIVATE) throw new BaseException(UserResponseStatus.NOT_OPEN);
 
         // 2) 부모 댓글만 pageSize+1 건 조회 (커서 페이징)
         Pageable pageable = PageRequest.of(0, pageSize + 1);
