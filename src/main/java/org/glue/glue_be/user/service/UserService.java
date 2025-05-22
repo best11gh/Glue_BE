@@ -4,6 +4,7 @@ package org.glue.glue_be.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
 import org.glue.glue_be.user.dto.response.MyProfileResponse;
@@ -80,6 +81,10 @@ public class UserService {
 	}
 
 	// 5. 시스템 언어 변경
+	public void changeSystemLanguage(Long userId, ChangeSystemLanguageRequest request) {
+		User user = getUserById(userId);
+		user.changeSystemLanguage(request.systemLanguage());
+	}
 
 	// 6. 프사 변경
 
