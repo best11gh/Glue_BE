@@ -7,6 +7,7 @@ import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
+import org.glue.glue_be.user.dto.response.GetVisibilitiesResponse;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
 import org.glue.glue_be.user.dto.response.MyProfileResponse;
 import org.glue.glue_be.user.dto.response.TargetProfileResponse;
@@ -107,15 +108,21 @@ public class UserService {
 	public void setGuestbookVisibility(Long userId, int currentVisible) {
 		User user = getUserById(userId);
 
-		if(currentVisible == User.VISIBILITY_PUBLIC) user.changeMajorVisibility(User.VISIBILITY_PRIVATE);
-		else if(currentVisible == User.VISIBILITY_PRIVATE) user.changeMajorVisibility(User.VISIBILITY_PUBLIC);
+		if(currentVisible == User.VISIBILITY_PUBLIC) user.changeGuestbooksVisibility(User.VISIBILITY_PRIVATE);
+		else if(currentVisible == User.VISIBILITY_PRIVATE) user.changeGuestbooksVisibility(User.VISIBILITY_PUBLIC);
 		else throw new RuntimeException("현재 visibie 값은 0 또는 1만 가능합니다");
 	}
 
+	// 11. 공개여부 정보 조회
+	public GetVisibilitiesResponse getVisibilites(Long userId) {
+		User user = getUserById(userId);
+		return GetVisibilitiesResponse.from(user);
+	}
 
-	// 11. 모임 히스토리 조회
 
-	// 12. 좋아요 목록 조회
+	// 12. 모임 히스토리 조회
+
+	// 13. 좋아요 목록 조회
 
 
 	public User getUserById(Long userId) {
@@ -123,5 +130,7 @@ public class UserService {
 			() -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
 		);
 	}
+
+
 
 }

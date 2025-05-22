@@ -8,6 +8,7 @@ import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
+import org.glue.glue_be.user.dto.response.GetVisibilitiesResponse;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
 import org.glue.glue_be.user.dto.response.MyProfileResponse;
 import org.glue.glue_be.user.dto.response.TargetProfileResponse;
@@ -102,8 +103,15 @@ public class UserController {
 		userService.setGuestbookVisibility(auth.getUserId(), currentVisible);
 		return new BaseResponse<>();
 	}
+
+	// 11. 공개 여부 정보 조회
+	@GetMapping("/visibility")
+	public BaseResponse<GetVisibilitiesResponse> getVisibilities(@AuthenticationPrincipal CustomUserDetails auth){
+		GetVisibilitiesResponse response = userService.getVisibilites(auth.getUserId());
+		return new BaseResponse<>(response);
+	}
 //
-//	// 11. 모임 히스토리 조회
+//	// 12. 모임 히스토리 조회
 //	@GetMapping("/meetings-history")
 //	public BaseResponse<MeetingHistoryResponse[]> getMeetingHistory(
 //		@AuthenticationPrincipal CustomUserDetails auth,
@@ -114,7 +122,7 @@ public class UserController {
 //		return new BaseResponse<>(resp);
 //	}
 //
-//	// 12. 좋아요 목록 조회
+//	// 13. 좋아요 목록 조회
 //	@GetMapping("/likes")
 //	public BaseResponse<LikeListResponse[]> getLikeList(
 //		@AuthenticationPrincipal CustomUserDetails auth,
