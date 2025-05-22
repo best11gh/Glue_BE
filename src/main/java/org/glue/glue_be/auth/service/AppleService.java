@@ -34,26 +34,22 @@ import lombok.extern.slf4j.*;
 
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.core.io.*;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.util.*;
 import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.*;
 
 
 @Slf4j
 @Service
 public class AppleService {
 
-//    private static final String NONCE = "20B20D-0S8-1K8"; // TODO: 프론트 쪽과 협의 필요 (지금은 임시 값)
-
     private final AppleProperties appleProperties;
-    private final WebClient webClient;
 
     @Autowired
     public AppleService(AppleProperties appleProperties, WebClient webClient) {
         this.appleProperties = appleProperties;
-        this.webClient = webClient;
     }
 
 
@@ -68,20 +64,34 @@ public class AppleService {
         return parseUserInfo(tokenInfo.idToken());
     }
 
-    private AppleSocialTokenInfoResponseDto requestToken(String code) {
+    public AppleSocialTokenInfoResponseDto requestToken(String code) {
+        WebClient webClient = WebClient.builder()
+                .baseUrl("https://appleid.apple.com")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded;charset=utf-8")
+                .build();
+
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("client_id", appleProperties.getAud());
         formData.add("client_secret", generateClientSecret());
         formData.add("grant_type", appleProperties.getGrantType());
         formData.add("code", code);
 
-        return webClient.post()
-                .body(BodyInserters.fromFormData(formData))
-                .retrieve()
-                .bodyToMono(AppleSocialTokenInfoResponseDto.class)
-                .doOnError(e -> log.error("애플 토큰 요청 실패", e))
-                .block();
+        try {
+            return webClient.post()
+                    .uri("/auth/token")
+                    .body(BodyInserters.fromFormData(formData))
+                    .retrieve()
+                    .bodyToMono(AppleSocialTokenInfoResponseDto.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            log.error("[애플 로그인 실패 - 응답 본문]: {}", e.getResponseBodyAsString(), e);
+            throw new IllegalArgumentException("애플 로그인 실패: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("[애플 로그인 실패 - 예외]: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("애플 로그인 중 알 수 없는 오류 발생" + e.getMessage());
+        }
     }
+
 
     private void verifyIdentityToken(String idToken) {
         SignedJWT signedJWT = parseToken(idToken);
@@ -165,13 +175,6 @@ public class AppleService {
         }
     }
 
-    // TODO: 프론트 쪽과 협의 필요
-//    private void verifyNonce(String nonce) {
-//        if (nonce == null || !NONCE.equals(nonce)) {
-//            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-//                    "Nonce 불일치: 기대값 " + NONCE + ", 실제 " + nonce);
-//        }
-//    }
 
 
     private void verifyIssuer(String issuer) {
