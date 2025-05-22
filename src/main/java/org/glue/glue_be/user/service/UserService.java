@@ -4,6 +4,7 @@ package org.glue.glue_be.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
 import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
@@ -31,12 +32,7 @@ public class UserService {
 
 		User user = getUserById(userId);
 
-		return new LanguageLevelResponse(
-			user.getLanguageMain(),
-			user.getLanguageMainLevel(),
-			user.getLanguageLearn(),
-			user.getLanguageLearnLevel()
-		);
+		return LanguageLevelResponse.from(user);
 
 	}
 
@@ -87,6 +83,11 @@ public class UserService {
 	}
 
 	// 6. 프사 변경
+	public void updateProfileImage(Long userId, ChangeProfileImageRequest request) {
+		User user = getUserById(userId);
+		user.changeProfileImageUrl(request.profileImageUrl());
+	}
+
 
 	// 7. 학과 공개여부
 
