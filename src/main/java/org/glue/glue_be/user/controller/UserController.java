@@ -26,107 +26,82 @@ public class UserController {
 
 	// 1. 내 교환언어/수준 조회
 	@GetMapping("/languages")
-	public BaseResponse<LanguageLevelResponse> getMyLanguages(
-		@AuthenticationPrincipal CustomUserDetails auth
-	) {
+	public BaseResponse<LanguageLevelResponse> getMyLanguages( @AuthenticationPrincipal CustomUserDetails auth ) {
 		LanguageLevelResponse response = userService.getMyLanguages(auth.getUserId());
 		return new BaseResponse<>(response);
 	}
 
 	//	// 2-1. 내 언어/수준 변경
 	@PutMapping("/main-languages")
-	public BaseResponse<Void> updateMainLanguages(
-		@AuthenticationPrincipal CustomUserDetails auth,
-		@Valid @RequestBody UpdateLanguageRequest request
-	) {
+	public BaseResponse<Void> updateMainLanguages(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
 		userService.updateMainLanguage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
 
 	//	// 2-2. 학습 언어/수준 변경
 	@PutMapping("/learning-languages")
-	public BaseResponse<Void> updateLearningLanguages(
-		@AuthenticationPrincipal CustomUserDetails auth,
-		@Valid @RequestBody UpdateLanguageRequest request
-	) {
+	public BaseResponse<Void> updateLearningLanguages(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
 		userService.updateLearningLanguage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
 
 	//	// 3. 프로필 조회 (본인)
 	@GetMapping("/profile/me")
-	public BaseResponse<MyProfileResponse> getMyProfile( @AuthenticationPrincipal CustomUserDetails auth ) {
+	public BaseResponse<MyProfileResponse> getMyProfile(@AuthenticationPrincipal CustomUserDetails auth) {
 		MyProfileResponse response = userService.getMyProfile(auth.getUserId());
 		return new BaseResponse<>(response);
 	}
 
 	// 4. 프로필 조회 (타인)
 	@GetMapping("/profile/{userId}")
-	public BaseResponse<TargetProfileResponse> getUserProfile(
-		@PathVariable Long userId, @AuthenticationPrincipal CustomUserDetails auth
-	) {
+	public BaseResponse<TargetProfileResponse> getUserProfile(@PathVariable Long userId, @AuthenticationPrincipal CustomUserDetails auth) {
 		 TargetProfileResponse response = userService.getTargetProfile(userId);
 		return new BaseResponse<>(response);
 	}
 
 	// 5. 시스템 언어 변경
 	@PutMapping("/system-language")
-	public BaseResponse<Void> changeSystemLanguage(
-		@AuthenticationPrincipal CustomUserDetails auth,
-		@Valid @RequestBody ChangeSystemLanguageRequest request
-	) {
+	public BaseResponse<Void> changeSystemLanguage(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody ChangeSystemLanguageRequest request) {
 		userService.changeSystemLanguage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
 
 	// 6. 프로필 사진 변경
 	@PutMapping("/profile-image")
-	public BaseResponse<Void> updateProfileImage(
-		@AuthenticationPrincipal CustomUserDetails auth, @RequestBody ChangeProfileImageRequest request
-	) {
-		userService.updateProfileImage(auth.getUserId(), request);
+	public BaseResponse<Void> updateProfileImage(@AuthenticationPrincipal CustomUserDetails auth, @RequestBody ChangeProfileImageRequest request) {
+		userService.changeProfileImage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
-//
-//	// 7. 학과 공개여부 설정
-//	@PutMapping("/major-visibility")
-//	public BaseResponse<Void> setMajorVisibility(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@RequestParam boolean visible
-//	) {
-//		userService.setMajorVisibility(auth.getUserId(), visible);
-//		return new BaseResponse<>();
-//	}
-//
-//	// 8. 모임 히스토리 공개여부 설정
-//	@PutMapping("/meeting-history-visibility")
-//	public BaseResponse<Void> setMeetingHistoryVisibility(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@RequestParam boolean visible
-//	) {
-//		userService.setMeetingHistoryVisibility(auth.getUserId(), visible);
-//		return new BaseResponse<>();
-//	}
-//
-//	// 9. 좋아요 목록 공개여부 설정
-//	@PutMapping("/like-list-visibility")
-//	public BaseResponse<Void> setLikeListVisibility(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@RequestParam boolean visible
-//	) {
-//		userService.setLikeListVisibility(auth.getUserId(), visible);
-//		return new BaseResponse<>();
-//	}
-//
-//	// 10. 방명록 공개여부 설정
-//	@PutMapping("/guestbook-visibility")
-//	public BaseResponse<Void> setGuestbookVisibility(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@RequestParam boolean visible
-//	) {
-//		userService.setGuestbookVisibility(auth.getUserId(), visible);
-//		return new BaseResponse<>();
-//	}
+
+	// 7. 학과 공개여부 설정
+	// 현재 visible 상태를 입력으로 받는다. db엔 !currentVisible을 저장하게됨
+	@PutMapping("/major-visibility")
+	public BaseResponse<Void> setMajorVisibility(@AuthenticationPrincipal CustomUserDetails auth, @RequestParam int currentVisible) {
+		userService.setMajorVisibility(auth.getUserId(), currentVisible);
+		return new BaseResponse<>();
+	}
+
+	// 8. 모임 히스토리 공개여부 설정
+	@PutMapping("/meeting-history-visibility")
+	public BaseResponse<Void> setMeetingHistoryVisibility(@AuthenticationPrincipal CustomUserDetails auth, @RequestParam int currentVisible) {
+		userService.setMeetingHistoryVisibility(auth.getUserId(), currentVisible);
+		return new BaseResponse<>();
+	}
+
+	// 9. 좋아요 목록 공개여부 설정
+	@PutMapping("/like-list-visibility")
+	public BaseResponse<Void> setLikeListVisibility(
+		@AuthenticationPrincipal CustomUserDetails auth, @RequestParam int currentVisible) {
+		userService.setLikeListVisibility(auth.getUserId(), currentVisible);
+		return new BaseResponse<>();
+	}
+
+	// 10. 방명록 공개여부 설정
+	@PutMapping("/guestbook-visibility")
+	public BaseResponse<Void> setGuestbookVisibility(@AuthenticationPrincipal CustomUserDetails auth, @RequestParam int currentVisible) {
+		userService.setGuestbookVisibility(auth.getUserId(), currentVisible);
+		return new BaseResponse<>();
+	}
 //
 //	// 11. 모임 히스토리 조회
 //	@GetMapping("/meetings-history")
