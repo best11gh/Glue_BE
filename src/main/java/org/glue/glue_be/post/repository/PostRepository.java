@@ -80,4 +80,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                        @Param("cursorSortAt") String cursorSortAt,
                                        @Param("cursorPostId") Long cursorPostId,
                                        @Param("limit") int limit);
+
+
+	@Query("SELECT p FROM Post p WHERE p.meeting.host.userId = :hostUserId")
+	List<Post> findByHostUserId(@Param("hostUserId") Long hostUserId);
+
+	@Query("SELECT DISTINCT p FROM Post p " +
+		"JOIN p.meeting.participants pt " +
+		"WHERE pt.user.userId = :userId AND p.meeting.host.userId != :userId")
+	List<Post> findByParticipantUserIdExcludingHost(@Param("userId") Long userId);
+
 }

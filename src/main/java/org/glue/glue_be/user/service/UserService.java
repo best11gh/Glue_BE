@@ -4,18 +4,21 @@ package org.glue.glue_be.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.meeting.repository.MeetingRepository;
+import org.glue.glue_be.post.entity.Post;
+import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
-import org.glue.glue_be.user.dto.response.GetVisibilitiesResponse;
-import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
-import org.glue.glue_be.user.dto.response.MyProfileResponse;
-import org.glue.glue_be.user.dto.response.TargetProfileResponse;
+import org.glue.glue_be.user.dto.response.*;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -25,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
 	private final UserRepository userRepository;
+	private final MeetingRepository meetingRepository;
+	private final PostRepository postRepository;
 
 
 	// 1. 내 교환언어/수준 조회
@@ -84,7 +89,7 @@ public class UserService {
 	}
 
 
-	// 8. 모임 히스토리
+	// 8. 모임 히스토리 공개여부
 	public void setMeetingHistoryVisibility(Long userId, int currentVisible) {
 		User user = getUserById(userId);
 
@@ -114,17 +119,51 @@ public class UserService {
 	}
 
 	// 11. 공개여부 정보 조회
-	public GetVisibilitiesResponse getVisibilites(Long userId) {
+	public GetVisibilitiesResponse getVisibilities(Long userId) {
 		User user = getUserById(userId);
 		return GetVisibilitiesResponse.from(user);
 	}
 
 
-	// 12. 모임 히스토리 조회
+	// 12. 모임 히스토리 목록 조회
+	public MeetingHistoryResponse getMeetingHistory(Long myUserId, Long targetUserId) {
+		// 1. 일단 히스토리 조회할 유저 정보 쿼리날리고
+		User user = getUserById(targetUserId);
+
+		// 2. 공개여부 확인(본인 확인은 그냥 진행)
+		if(myUserId != targetUserId && user.getMeetingVisibility() == User.VISIBILITY_PRIVATE)
+			throw new BaseException(UserResponseStatus.NOT_OPEN);
+
+		// 3. dto 조립
+
+		// 호스트/참가모임 조회
+		List<Post> hostedPosts = postRepository.findByHostUserId(targetUserId);
+		List<Post> joinedPosts = postRepository.findByParticipantUserIdExcludingHost(targetUserId);
+
+		// dto 변환하는 팩토리 메서드에 POST를 넣는다. 현 연관관계에선 post는 meeting을 참고할 수 있지만 역은 안되기 때문
+		List<MeetingHistoryResponse.MeetingHistoryItem> hostedMeetings = hostedPosts.stream()
+			.map(MeetingHistoryResponse::convertToMeetingHistoryItem)
+			.collect(Collectors.toList());
+
+		List<MeetingHistoryResponse.MeetingHistoryItem> joinedMeetings = joinedPosts.stream()
+			.map(MeetingHistoryResponse::convertToMeetingHistoryItem)
+			.collect(Collectors.toList());
+
+		return MeetingHistoryResponse.builder()
+			.hostedMeetings(hostedMeetings)
+			.joinedMeetings(joinedMeetings)
+			.build();
+
+	}
+
+
+
+
+
 
 	// 13. 좋아요 목록 조회
 
-
+	// 공용 유저 조회 메서
 	public User getUserById(Long userId) {
 		return userRepository.findById(userId).orElseThrow(
 			() -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
