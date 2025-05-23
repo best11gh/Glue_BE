@@ -7,6 +7,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.glue.glue_be.auth.response.AuthResponseStatus;
+import org.glue.glue_be.common.exception.BaseException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -23,6 +26,7 @@ import static org.glue.glue_be.auth.jwt.JwtValidationType.VALID_JWT;
 // 클라이언트가 보내는 HTTP 요청의 JWT 토큰을 확인하고 토큰이 유효할 경우 Spring Security의 인증 객체를 설정해주는 필터단
 // 한 Http 요청에 한번씩만 실행되는 OncePerRequestFilter 상속받음
 
+@Slf4j
 @Component
 @RequiredArgsConstructor // for DI fields
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -61,7 +65,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 			}
 		} catch (Exception exception) {
-			throw new RuntimeException("JWT 인증 처리 중 오류 발생", exception);
+			log.error("[JWT 인증 실패]: {}", exception.getMessage(), exception);
+			throw new BaseException(AuthResponseStatus.JWT_AUTHENTICATION_FAILED);
+
 		}
 
 		// 3. 다음 필터로 요청 전달

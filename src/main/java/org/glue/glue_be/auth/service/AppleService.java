@@ -27,8 +27,8 @@ import org.bouncycastle.openssl.jcajce.*;
 import org.glue.glue_be.auth.config.AppleProperties;
 import org.glue.glue_be.auth.dto.response.AppleSocialTokenInfoResponseDto;
 import org.glue.glue_be.auth.dto.response.AppleUserInfoResponseDto;
+import org.glue.glue_be.auth.response.AuthResponseStatus;
 import org.glue.glue_be.common.exception.*;
-import org.glue.glue_be.common.response.*;
 
 import lombok.extern.slf4j.*;
 
@@ -48,7 +48,7 @@ public class AppleService {
     private final AppleProperties appleProperties;
 
     @Autowired
-    public AppleService(AppleProperties appleProperties, WebClient webClient) {
+    public AppleService(AppleProperties appleProperties) {
         this.appleProperties = appleProperties;
     }
 
@@ -85,10 +85,10 @@ public class AppleService {
                     .block();
         } catch (WebClientResponseException e) {
             log.error("[애플 로그인 실패 - 응답 본문]: {}", e.getResponseBodyAsString(), e);
-            throw new IllegalArgumentException("애플 로그인 실패: " + e.getMessage());
+            throw new BaseException(AuthResponseStatus.INVALID_AUTHORIZATION_CODE);
         } catch (Exception e) {
             log.error("[애플 로그인 실패 - 예외]: {}", e.getMessage(), e);
-            throw new IllegalArgumentException("애플 로그인 중 알 수 없는 오류 발생" + e.getMessage());
+            throw new BaseException(AuthResponseStatus.SOCIAL_API_REQUEST_FAILED);
         }
     }
 
@@ -98,7 +98,6 @@ public class AppleService {
         JWTClaimsSet claims = extractClaims(signedJWT);
 
         verifyExpiration(claims.getExpirationTime());
-//        verifyNonce(claims.getStringClaim("nonce"));
         verifyIssuer(claims.getIssuer());
         verifyAudience(claims.getAudience());
         verifySignature(signedJWT);
@@ -143,26 +142,25 @@ public class AppleService {
                 return converter.getPrivateKey(privateKeyInfo);
             }
         } catch (Exception e) {
-            throw new RuntimeException("PrivateKey 변환 실패", e);
+            log.error("[애플 로그인 실패 - PrivateKey 변환 실패]: {}", e.getMessage(), e);
+            throw new BaseException(AuthResponseStatus.FAIL_APPLE_PRIVATE_KEY);
         }
     }
-
     private SignedJWT parseToken(String idToken) {
         try {
             return SignedJWT.parse(idToken);
         } catch (ParseException e) {
-            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-                    "토큰 디코딩 실패: " + idToken + " - " + e.getMessage());
+            log.error("[애플 로그인 실패 - ID 토큰 파싱 오류]: {}", e.getMessage(), e);
+            throw new BaseException(AuthResponseStatus.INVALID_ID_TOKEN);
         }
     }
-
 
     private JWTClaimsSet extractClaims(SignedJWT signedJWT) {
         try {
             return signedJWT.getJWTClaimsSet();
         } catch (ParseException e) {
-            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-                    "토큰 클레임 추출 실패: " + e.getMessage());
+            log.error("[애플 로그인 실패 - 토큰 클레임 추출 실패]: {}", e.getMessage(), e);
+            throw new BaseException(AuthResponseStatus.INVALID_ID_TOKEN);
         }
     }
 
@@ -170,17 +168,16 @@ public class AppleService {
     private void verifyExpiration(Date expirationTime) {
         Date currentTime = new Date();
         if (expirationTime == null || expirationTime.before(currentTime)) {
-            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-                    "토큰 만료됨: 만료 시간은 " + expirationTime + "입니다.");
+            log.error("[애플 로그인 실패 - 토큰 만료]: {}", expirationTime);
+            throw new BaseException(AuthResponseStatus.EXPIRED_ID_TOKEN);
         }
     }
 
 
-
     private void verifyIssuer(String issuer) {
         if (!appleProperties.getIss().equals(issuer)) {
-            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-                    "Issuer 불일치: 기대값 " + appleProperties.getIss() + ", 실제 " + issuer);
+            log.error("[애플 로그인 실패 - Issuer 불일치]: 기대값 {}, 실제 {}", appleProperties.getIss(), issuer);
+            throw new BaseException(AuthResponseStatus.INVALID_ID_TOKEN);
         }
     }
 
@@ -188,8 +185,8 @@ public class AppleService {
     private void verifyAudience(List<String> audience) {
         if (audience == null || audience.isEmpty() || !appleProperties.getAud().equals(audience.get(0))) {
             String actual = (audience != null && !audience.isEmpty()) ? audience.get(0) : "null";
-            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-                    "Audience 불일치: 기대값 " + appleProperties.getAud() + ", 실제 " + actual);
+            log.error("[애플 로그인 실패 - Audience 불일치]: 기대값 {}, 실제 {}", appleProperties.getAud(), actual);
+            throw new BaseException(AuthResponseStatus.INVALID_ID_TOKEN);
         }
     }
 
@@ -201,17 +198,21 @@ public class AppleService {
             JWK jwk = jwkSet.getKeyByKeyId(keyId);
 
             if (jwk == null) {
-                throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN, "키 아이디를 찾을 수 없음: " + keyId);
+                log.error("[애플 로그인 실패 - 키 ID 없음]: {}", keyId);
+                throw new BaseException(AuthResponseStatus.INVALID_ID_TOKEN);
             }
 
             RSAPublicKey publicKey = ((com.nimbusds.jose.jwk.RSAKey) jwk).toRSAPublicKey();
             JWSVerifier verifier = new RSASSAVerifier(publicKey);
+
             if (!signedJWT.verify(verifier)) {
-                throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN, "서명 검증 실패");
+                log.error("[애플 로그인 실패 - 서명 검증 실패]");
+                throw new BaseException(AuthResponseStatus.SIGNATURE_VERIFICATION_FAILED);
             }
         } catch (Exception e) {
-            throw new BaseException(BaseResponseStatus.WRONG_JWT_TOKEN,
-                    "서명 검증 중 오류 발생: " + e.getMessage());
+            log.error("[애플 로그인 실패 - 서명 검증 중 예외 발생]: {}", e.getMessage(), e);
+            throw new BaseException(AuthResponseStatus.SIGNATURE_VERIFICATION_FAILED);
         }
     }
+
 }

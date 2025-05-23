@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class FcmService {
+
     public void sendMessage(FcmSendDto fcmSendDto) {
         Message message = Message.builder()
                 .setNotification(Notification.builder()
@@ -25,11 +26,16 @@ public class FcmService {
                 .build();
 
         try {
-            log.info("FCM 단일 전송 성공");
             FirebaseMessaging.getInstance().send(message);
         } catch (FirebaseMessagingException e) {
-            log.error("FCM 단일 전송 실패", e);
-            throw new BaseException(FcmResponseStatus.FCM_SEND_ERROR, e.getMessage());
+            log.error("[FCM 단일 전송 실패] token: {}, title: {}, body: {}, message: {}",
+                    fcmSendDto.getToken(),
+                    fcmSendDto.getTitle(),
+                    fcmSendDto.getBody(),
+                    e.getMessage(),
+                    e
+            );
+            throw new BaseException(FcmResponseStatus.FCM_SEND_ERROR, "유효하지 않은 FCM 토큰입니다.");
         }
     }
 
@@ -43,13 +49,16 @@ public class FcmService {
                 .build();
 
         try {
-            log.info("FCM 단체 전송 성공");
             FirebaseMessaging.getInstance().sendMulticast(message);
         } catch (FirebaseMessagingException e) {
-            log.error("FCM 단체 전송 실패", e);
-            throw new BaseException(FcmResponseStatus.FCM_MULTICAST_ERROR, e.getMessage());
+            log.error("[FCM 단체 전송 실패] tokens: {}, title: {}, body: {}, message: {}",
+                    multiFcmSendDto.getTokens(),
+                    multiFcmSendDto.getTitle(),
+                    multiFcmSendDto.getBody(),
+                    e.getMessage(),
+                    e
+            );
+            throw new BaseException(FcmResponseStatus.FCM_MULTICAST_ERROR, "FCM 다중 전송에 실패했습니다.");
         }
     }
-
-
 }

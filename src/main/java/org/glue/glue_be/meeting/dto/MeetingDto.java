@@ -1,5 +1,7 @@
 package org.glue.glue_be.meeting.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +29,8 @@ public class MeetingDto {
         private String meetingTitle;
 
         @NotNull(message = "모임 시간은 필수입니다")
+        @Future(message = "모임 시간은 현재 시간 이후여야 합니다")
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
         private LocalDateTime meetingTime;
 
         @NotBlank(message = "모임 장소는 필수입니다")

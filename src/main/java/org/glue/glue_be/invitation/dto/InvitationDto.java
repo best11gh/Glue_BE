@@ -1,10 +1,7 @@
 package org.glue.glue_be.invitation.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.validation.constraints.*;
+import lombok.*;
 import org.glue.glue_be.invitation.entity.Invitation;
 
 import java.time.LocalDateTime;
@@ -17,16 +14,20 @@ public class InvitationDto {
     @AllArgsConstructor
     @Builder
     public static class CreateRequest {
-        private Integer maxUses;
-        private Integer expirationHours;
+
+        @NotNull(message = "미팅 ID는 필수입니다.")
         private Long meetingId;
+
+        @Min(value = 1, message = "최대 사용 횟수는 1 이상이어야 합니다.")
+        private Integer maxUses;
+
+        @Min(value = 1, message = "만료 시간은 1시간 이상이어야 합니다.")
+        private Integer expirationHours;
+
         private Long inviteeId;
-        
-        public void setMeetingId(Long meetingId) {
-            this.meetingId = meetingId;
-        }
+
     }
-    
+
     @Getter
     @NoArgsConstructor
     public static class Response {
@@ -38,7 +39,7 @@ public class InvitationDto {
         private Integer status;
         private Long meetingId;
         private Long inviteeId;
-        
+
         public static Response from(Invitation invitation) {
             Response response = new Response();
             response.invitationId = invitation.getInvitationId();
@@ -52,10 +53,11 @@ public class InvitationDto {
             return response;
         }
     }
-    
+
     @Getter
     @NoArgsConstructor
     public static class AcceptRequest {
+        @NotBlank(message = "초대장 코드는 필수 입력값입니다.")
         private String code;
     }
 } 
