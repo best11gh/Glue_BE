@@ -5,7 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.repository.MeetingRepository;
+import org.glue.glue_be.post.dto.response.GetLikedPostsResponse;
+import org.glue.glue_be.post.dto.response.GetPostResponse;
+import org.glue.glue_be.post.dto.response.GetPostsResponse;
+import org.glue.glue_be.post.entity.Like;
 import org.glue.glue_be.post.entity.Post;
+import org.glue.glue_be.post.repository.LikeRepository;
 import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
@@ -17,6 +22,7 @@ import org.glue.glue_be.user.response.UserResponseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,7 +34,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
 	private final UserRepository userRepository;
-	private final MeetingRepository meetingRepository;
+	private final LikeRepository likeRepository;
 	private final PostRepository postRepository;
 
 
@@ -127,7 +133,8 @@ public class UserService {
 
 	// 12. 모임 히스토리 목록 조회
 	public MeetingHistoryResponse getMeetingHistory(Long myUserId, Long targetUserId) {
-		// 1. 일단 히스토리 조회할 유저 정보 쿼리날리고
+
+		// 1. 일단 히스토리 조회할 유저 정보 가져오기
 		User user = getUserById(targetUserId);
 
 		// 2. 공개여부 확인(본인 확인은 그냥 진행)
@@ -156,12 +163,34 @@ public class UserService {
 
 	}
 
+	// 13. 좋아요 목록조회
+	public GetLikedPostsResponse getLikeList(Long myUserId, Long targetUserId) {
+
+		// 1. 일단 좋아요 목록 조회할 유저 정보 가져오고
+		User user = getUserById(targetUserId);
+
+		// 2. 공개여부 확인(본인 확인은 그냥 진행)
+		if(myUserId != targetUserId && user.getLikeVisibility() == User.VISIBILITY_PRIVATE)
+			throw new BaseException(UserResponseStatus.NOT_OPEN);
+
+		// 3. dto 조립
+		List<Like> likeList = likeRepository.findByUser_UserIdOrderByCreatedAtDesc(targetUserId);
+
+		// likeList를 stream으로 하나씩 순회해 개별 순회자 like마다 getPost()를 ofEntity으로 변환한 값으로 리턴
+		List<GetLikedPostsResponse.PostItem> postItems = likeList.stream()
+			.map(like -> GetLikedPostsResponse.ofEntity(like.getPost()))
+			.toList();
+
+		return GetLikedPostsResponse.builder()
+			.posts(postItems)
+			.build();
 
 
 
 
+	}
 
-	// 13. 좋아요 목록 조회
+
 
 	// 공용 유저 조회 메서
 	public User getUserById(Long userId) {
@@ -169,6 +198,7 @@ public class UserService {
 			() -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
 		);
 	}
+
 
 
 
