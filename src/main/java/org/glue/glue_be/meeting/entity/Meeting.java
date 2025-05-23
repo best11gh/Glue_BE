@@ -136,6 +136,7 @@ public class Meeting extends BaseEntity {
 
     public void addParticipant(Participant participant) {
         this.participants.add(participant);
+        this.currentParticipants++;
         participant.updateMeeting(this);
     }
 
