@@ -87,7 +87,7 @@ public class GlobalExceptionHandler {
     // 커스텀 예외 처리
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<BaseResponse<Void>> handleBaseExceptions(BaseException e) {
-        BaseResponse<Void> response = new BaseResponse<>(e.getStatus());
+        BaseResponse<Void> response = new BaseResponse<>(e.getStatus(), e.getMessage());
         return ResponseEntity.status(e.getStatus().getHttpStatusCode()).body(response);
     }
 
