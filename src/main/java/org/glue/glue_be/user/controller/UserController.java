@@ -5,6 +5,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
+import org.glue.glue_be.post.dto.response.GetLikedPostsResponse;
+import org.glue.glue_be.post.dto.response.GetPostsResponse;
 import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
@@ -115,16 +117,13 @@ public class UserController {
 		return new BaseResponse<>(response);
 	}
 
-//	// 13. 좋아요 목록 조회
-//	@GetMapping("/likes")
-//	public BaseResponse<LikeListResponse[]> getLikeList(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@RequestParam(required = false) Long cursorId,
-//		@RequestParam(defaultValue = "10") int size
-//	) {
-//		LikeListResponse[] resp = userService.getLikeList(auth.getUserId(), cursorId, size);
-//		return new BaseResponse<>(resp);
-//	}
+	// 13. 좋아요 목록 조회
+	@GetMapping("/likes")
+	public BaseResponse<GetLikedPostsResponse> getLikeList(
+		@AuthenticationPrincipal CustomUserDetails auth,  @RequestParam Long targetUserId) {
+		GetLikedPostsResponse response = userService.getLikeList(auth.getUserId(), targetUserId);
+		return new BaseResponse<>(response);
+	}
 
 
 
