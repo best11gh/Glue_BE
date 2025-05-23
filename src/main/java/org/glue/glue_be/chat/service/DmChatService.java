@@ -208,17 +208,13 @@ public class DmChatService extends CommonChatService {
                 userId,
                 this::getUserById,
                 user -> {
-                    List<Participant> participations = participantRepository.findByUser_UserId(user.getUserId());
+                    // 참가한 DM 채팅방들을 직접 조회
+                    List<DmChatRoom> participatedDmChatRooms = dmUserChatroomRepository.findDmChatRoomsByUserId(userId);
 
-                    // 1. 참가한 Meeting 목록 추출
-                    List<Meeting> participatedMeetings = participations.stream()
-                            .map(Participant::getMeeting)
-                            // 2. 내가 호스트가 아닌 미팅만 필터링
-                            .filter(meeting -> !meeting.getHost().getUserId().equals(userId))
+                    // 내가 호스트가 아닌 미팅의 DM 채팅방만 필터링
+                    return participatedDmChatRooms.stream()
+                            .filter(dmChatRoom -> !dmChatRoom.getMeeting().getHost().getUserId().equals(userId))
                             .collect(Collectors.toList());
-
-                    // 3. 해당 미팅의 DM 채팅방 조회
-                    return dmChatRoomRepository.findByMeetingIn(participatedMeetings);
                 },
                 this::convertToChatRoomResponses
         );

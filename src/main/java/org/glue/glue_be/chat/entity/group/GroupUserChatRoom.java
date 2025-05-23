@@ -34,9 +34,8 @@ public class GroupUserChatRoom extends BaseEntity {
         this.pushNotificationOn = 1; // Default value
     }
 
-    // Methods to update entity state
-    public void togglePushNotification() {
-        this.pushNotificationOn = (this.pushNotificationOn == 1) ? 0 : 1;
+    public void togglePushNotification(Integer pushNotificationOn) {
+        this.pushNotificationOn = pushNotificationOn;
     }
 
     public void setPushNotification(boolean enabled) {

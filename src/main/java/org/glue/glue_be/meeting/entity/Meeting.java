@@ -67,6 +67,9 @@ public class Meeting extends BaseEntity {
     @Column(name = "language_id", nullable = false)
     private Integer languageId;
 
+    @Column(name = "meeting_image_url", nullable = true)
+    private String meetingImageUrl;
+
     @Builder
     private Meeting(User host,
                     String meetingTitle,

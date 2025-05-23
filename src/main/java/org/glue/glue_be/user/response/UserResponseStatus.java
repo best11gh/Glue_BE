@@ -1,23 +1,16 @@
 package org.glue.glue_be.user.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
 import org.glue.glue_be.common.response.ResponseStatus;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.*;
 
 @Getter
 @AllArgsConstructor
 public enum UserResponseStatus implements ResponseStatus {
-    
-    /**
-     * 사용자 관련 에러
-     */
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, false, 501, "존재하지 않는 사용자입니다"),
-    ALREADY_EXISTS(HttpStatus.CONFLICT, false, 502, "이미 사용자가 존재합니다."),
-    NOT_OPEN(HttpStatus.FORBIDDEN, false, 503, "해당 정보는 사용자가 공개하지 않는 정보입니다")
 
-    ;
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, false, 404, "존재하지 않는 사용자입니다"),
+    ALREADY_EXISTS(HttpStatus.CONFLICT, false, 409, "이미 사용자가 존재합니다."),
+    NOT_OPEN(HttpStatus.FORBIDDEN, false, 403, "해당 정보는 사용자가 공개하지 않는 정보입니다");
 
     private final HttpStatusCode httpStatusCode;
     private final boolean isSuccess;

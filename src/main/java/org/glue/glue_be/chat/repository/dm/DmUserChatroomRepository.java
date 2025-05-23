@@ -15,10 +15,10 @@ import java.util.Optional;
 public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, Long> {
     List<DmUserChatroom> findByDmChatRoom(DmChatRoom dmChatRoom);
 
-    @Query("SELECT uc.user.userId FROM DmUserChatroom uc WHERE uc.dmChatRoom.id = :dmChatRoomId")
-    List<Long> findUserIdsByDmChatRoomId(@Param("dmChatRoomId") Long dmChatRoomId);
-
     void deleteByDmChatRoomAndUser(DmChatRoom dmChatRoom, User user);
 
     Optional<DmUserChatroom> findByDmChatRoomAndUser(DmChatRoom dmChatRoom, User sender);
+
+    @Query("SELECT ducr.dmChatRoom FROM DmUserChatroom ducr WHERE ducr.user.userId = :userId")
+    List<DmChatRoom> findDmChatRoomsByUserId(@Param("userId") Long userId);
 }
