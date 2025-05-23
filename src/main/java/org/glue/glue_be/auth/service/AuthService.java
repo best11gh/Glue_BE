@@ -57,7 +57,7 @@ public class AuthService {
         // 1. 중복되는 oauthID의 유저가 db에 있는지 재검증
         userRepository.findByOauthId(requestDto.oauthId())
                 .ifPresent(user -> {
-                    throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "이미 해당 소셜 로그인으로 가입한 유저가 존재합니다.");
+                    throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "해당 소셜 계정으로 가입된 유저가 이미 존재합니다.");
                 });
 
         // 2. 입력받은 정보를 취합해 User 객체 조립
@@ -68,8 +68,8 @@ public class AuthService {
 
         // 4. 자체 엑세스 토큰 발급 및 리턴
         return KakaoSignUpResponseDto.builder()
-            .accessToken(getToken(newUser))
-            .build();
+                .accessToken(getToken(newUser))
+                .build();
 
     }
 
@@ -83,7 +83,7 @@ public class AuthService {
 
         // 2.5. 유저를 조회하고 없다면 401 예외 발생
         User user = userRepository.findByOauthId(oauthId).orElseThrow(
-            () -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
+                () -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
         );
 
         // 2.75. 로그인 시 fcm 토큰을 엔티티에 넣어줌
@@ -91,22 +91,21 @@ public class AuthService {
 
         // 3. 자체 엑세스 토큰을 발행 후 리턴
         return KakaoSignInResponseDto.builder()
-            .accessToken(getToken(user))
-            .build();
+                .accessToken(getToken(user))
+                .build();
 
     }
 
-    public AppleSignUpResponseDto appleSignUp(
-            AppleSignUpRequestDto requestDto) {
+    public AppleSignUpResponseDto appleSignUp(AppleSignUpRequestDto requestDto) {
 
         AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.authorizationCode());
 
         String appleOauthId = appleUserInfo.getSubject();
 
         userRepository.findByOauthId(appleOauthId)
-            .ifPresent(user -> {
-                throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "이미 해당 소셜 로그인으로 가입한 유저가 존재합니다.");
-            });
+                .ifPresent(user -> {
+                    throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "해당 소셜 계정으로 가입된 유저가 이미 존재합니다.");
+                });
 
         User user = requestDto.toEntity(appleOauthId);
 
@@ -121,8 +120,8 @@ public class AuthService {
         AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.authorizationCode());
 
         User user = userRepository.findByOauthId(appleUserInfo.getSubject())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                        "해당 Apple 계정 사용자가 존재하지 않습니다."));
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+
         user.changeFcmToken(requestDto.fcmToken());
 
         return AppleSignInResponseDto.builder()
@@ -134,10 +133,10 @@ public class AuthService {
         CustomUserDetails customUserDetails = new CustomUserDetails(user.getUserId(), user.getNickname());
         UserAuthentication authentication = new UserAuthentication(customUserDetails, null, null);
 
-	    return jwtTokenProvider.generateToken(authentication);
+        return jwtTokenProvider.generateToken(authentication);
     }
 
-    public void sendCode(String email){
+    public void sendCode(String email) {
 
 //         1. 이미 해당 email 유저가 있는지 검증
         userRepository.findByEmail(email).ifPresent(user -> {
@@ -160,11 +159,12 @@ public class AuthService {
 
         // 1. redis에서 null을 받아오면 코드값이 만료했다 판단
         String redisCode = Optional.ofNullable(redisUtil.getData(email))
-            .orElseThrow(() -> new BaseException(AuthResponseStatus.EXPIRE_CODE));
+                .orElseThrow(() -> new BaseException(AuthResponseStatus.EXPIRE_CODE));
 
         // 2. 가져온 코드값과 입력 코드값이 다르면 예외 발생
-        if (!redisCode.equals(code))
+        if (!redisCode.equals(code)) {
             throw new BaseException(AuthResponseStatus.FALSE_CODE);
+        }
 
         // 3. 코드가 통과됐으므로 재사용 방지하게끔 기존 코드 삭제
         redisUtil.deleteData(email);

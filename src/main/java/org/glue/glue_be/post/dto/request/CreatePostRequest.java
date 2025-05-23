@@ -1,6 +1,7 @@
 package org.glue.glue_be.post.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -28,6 +29,7 @@ public class CreatePostRequest {
 
 		@NotNull(message = "모임일시는 필수값입니다")
 		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+		@Future(message = "모임 시간은 현재 시간 이후여야 합니다")
 		private LocalDateTime meetingTime;
 
 		private Double meetingPlaceLatitude;
