@@ -8,10 +8,7 @@ import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.user.dto.request.ChangeProfileImageRequest;
 import org.glue.glue_be.user.dto.request.ChangeSystemLanguageRequest;
 import org.glue.glue_be.user.dto.request.UpdateLanguageRequest;
-import org.glue.glue_be.user.dto.response.GetVisibilitiesResponse;
-import org.glue.glue_be.user.dto.response.LanguageLevelResponse;
-import org.glue.glue_be.user.dto.response.MyProfileResponse;
-import org.glue.glue_be.user.dto.response.TargetProfileResponse;
+import org.glue.glue_be.user.dto.response.*;
 import org.glue.glue_be.user.service.UserService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -107,21 +104,17 @@ public class UserController {
 	// 11. 공개 여부 정보 조회
 	@GetMapping("/visibility")
 	public BaseResponse<GetVisibilitiesResponse> getVisibilities(@AuthenticationPrincipal CustomUserDetails auth){
-		GetVisibilitiesResponse response = userService.getVisibilites(auth.getUserId());
+		GetVisibilitiesResponse response = userService.getVisibilities(auth.getUserId());
 		return new BaseResponse<>(response);
 	}
-//
-//	// 12. 모임 히스토리 조회
-//	@GetMapping("/meetings-history")
-//	public BaseResponse<MeetingHistoryResponse[]> getMeetingHistory(
-//		@AuthenticationPrincipal CustomUserDetails auth,
-//		@RequestParam(required = false) Long cursorId,
-//		@RequestParam(defaultValue = "10") int size
-//	) {
-//		MeetingHistoryResponse[] resp = userService.getMeetingHistory(auth.getUserId(), cursorId, size);
-//		return new BaseResponse<>(resp);
-//	}
-//
+
+	// 12. 모임 히스토리 조회
+	@GetMapping("/meetings-history")
+	public BaseResponse<MeetingHistoryResponse> getMeetingHistory(@AuthenticationPrincipal CustomUserDetails auth, @RequestParam Long targetUserId) {
+		MeetingHistoryResponse response = userService.getMeetingHistory(auth.getUserId(), targetUserId);
+		return new BaseResponse<>(response);
+	}
+
 //	// 13. 좋아요 목록 조회
 //	@GetMapping("/likes")
 //	public BaseResponse<LikeListResponse[]> getLikeList(
