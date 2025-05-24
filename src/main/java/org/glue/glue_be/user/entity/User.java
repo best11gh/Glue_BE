@@ -63,7 +63,7 @@ public class User extends BaseEntity {
     private Integer languageLearnLevel;
 
     public static final int SYSTEM_LANGUAGE_KOREAN = 1;
-    public static final int SYSTEM_LANGUAGE_English = 2;
+    public static final int SYSTEM_LANGUAGE_ENGLISH = 2;
 
     @Column(name = "system_language", nullable = false) // default = 1
     private Integer systemLanguage;
