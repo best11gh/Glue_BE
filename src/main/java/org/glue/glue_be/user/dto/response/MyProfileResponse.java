@@ -10,6 +10,8 @@ public record MyProfileResponse (
 
 	String profileImageUrl,
 
+	String description,
+
 	String realName,
 
 	String nickName,
@@ -31,6 +33,7 @@ public record MyProfileResponse (
 		return new MyProfileResponse(
 			user.getUserId(),
 			user.getProfileImageUrl(),
+			user.getDescription(),
 			user.getRealName(),
 			user.getNickname(),
 			user.getBirthDate(),
