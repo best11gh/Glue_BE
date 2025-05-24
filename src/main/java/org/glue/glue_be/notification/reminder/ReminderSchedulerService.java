@@ -6,6 +6,7 @@ import java.util.List;
 
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.notification.response.NotificationResponseStatus;
 import org.glue.glue_be.post.entity.Post;
 import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.post.response.PostResponseStatus;
@@ -76,7 +77,7 @@ public class ReminderSchedulerService {
 
             scheduler.scheduleJob(jobDetail, trigger);
         } catch (SchedulerException e) {
-            throw new RuntimeException("리마인더 예약 실패", e);
+            throw new BaseException(NotificationResponseStatus.REMINDER_SCHEDULE_FAILED);
         }
     }
 
@@ -84,7 +85,7 @@ public class ReminderSchedulerService {
         try {
             scheduler.deleteJob(generateJobKey(userId, postId, type));
         } catch (SchedulerException e) {
-            throw new RuntimeException("기존 리마인더 삭제 실패", e);
+            throw new BaseException(NotificationResponseStatus.REMINDER_DELETE_FAILED);
         }
     }
 
