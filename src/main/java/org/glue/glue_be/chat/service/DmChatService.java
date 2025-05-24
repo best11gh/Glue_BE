@@ -56,7 +56,7 @@ public class DmChatService extends CommonChatService {
             // 미팅 조회
             Meeting meeting = getMeetingById(meetingId);
             if (meeting == null) {
-                throw new BaseException(ChatResponseStatus.CHATROOM_CREATION_FAILED);
+                throw new BaseException(ChatResponseStatus.CHATROOM_CREATION_FAILED_NO_MEETING);
             }
 
             // 기존 채팅방 검색 - 있으면 바로 반환
@@ -208,7 +208,7 @@ public class DmChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.NOTIFICATION_TOGGLED);
+            throw new BaseException(ChatResponseStatus.NOTIFICATION_TOGGLED_FAILED);
         }
     }
     // =====
@@ -349,7 +349,7 @@ public class DmChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.MESSAGES_READ);
+            throw new BaseException(ChatResponseStatus.MESSAGES_READ_FAILED);
         }
     }
 

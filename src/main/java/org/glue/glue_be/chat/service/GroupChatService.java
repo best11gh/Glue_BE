@@ -44,7 +44,7 @@ public class GroupChatService extends CommonChatService {
             // 미팅 정보 조회
             Meeting meeting = getMeetingById(meetingId);
             if (meeting == null) {
-                throw new BaseException(ChatResponseStatus.CHATROOM_CREATION_FAILED);
+                throw new BaseException(ChatResponseStatus.MEETING_NOT_FOUND);
             }
 
             User user = getUserById(userId);
@@ -275,7 +275,7 @@ public class GroupChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.MESSAGES_READ);
+            throw new BaseException(ChatResponseStatus.MESSAGES_READ_FAILED);
         }
     }
 
