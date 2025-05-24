@@ -21,8 +21,7 @@ public class Notice extends BaseEntity {
     @Column(name = "title", nullable = false)
     private String title;
 
-    // TODO: 실험 해보기... 아래 거 없어도 255자 초과가능한지
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false)
     private String content;
 
     @OneToMany(mappedBy = "notice")
