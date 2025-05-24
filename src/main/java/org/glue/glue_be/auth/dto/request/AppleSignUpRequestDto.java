@@ -11,8 +11,8 @@ public record AppleSignUpRequestDto(
     @NotBlank(message = "Authorization code는 필수 입력값입니다.")
     String authorizationCode,
 
-    @NotBlank(message = "이름은 필수 입력값입니다.")
-    String userName,
+    @NotBlank(message = "본명은 필수 입력값입니다.")
+    String realName,
 
     @NotBlank(message = "닉네임은 필수 입력값입니다.")
     String nickname,
@@ -58,6 +58,7 @@ public record AppleSignUpRequestDto(
     public User toEntity(String oauthId) {
         return User.builder()
             .oauthId(oauthId)
+            .realName(realName())
             .nickname(nickname())
             .gender(gender())
             .birthDate(birthDate())
