@@ -24,7 +24,7 @@ public record MyProfileResponse (
 
 	Integer school,
 
-	Integer major, // 공개여부 1일때만
+	Integer major,
 
 	String email
 
