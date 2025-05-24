@@ -9,6 +9,7 @@ import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
 import org.glue.glue_be.meeting.response.MeetingResponseStatus;
+import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.response.*;
 import org.glue.glue_be.post.entity.*;
@@ -39,6 +40,8 @@ public class PostService {
 	private final UserRepository userRepository;
 	private final LikeRepository likeRepository;
 	private final PostImageRepository postImageRepository;
+
+	private final ReminderSchedulerService reminderSchedulerService;
 
 	// 게시글 사진이 추가 및 삭제될 때 meeting image url도 함께 업데이트 시키는 메소드
 	public void updateMeetingImageUrl(Long meetingId) {
@@ -102,6 +105,9 @@ public class PostService {
 
 		// 5. 이미지가 저장된 후 미팅 대표 이미지 업데이트
 		updateMeetingImageUrl(savedMeeting.getMeetingId());
+
+		// 5.5 알림 예약 - 모임 생성자한테 가는 용도
+		reminderSchedulerService.scheduleReminder(userId, savedPost.getId(), savedMeeting.getMeetingTime());
 
 		// 6. responseDto 생성 직후 리턴
 		return CreatePostResponse.builder().postId(savedPost.getId()).build();
@@ -271,5 +277,13 @@ public class PostService {
 				.build();
 
 	}
+
+
+	// TODO: 게시글 수정 시 해야할 것 들
+	// 1. reminderSchedulerService의 rescheduleReminder 함수를 써야함. (리마인더 새로 등록)
+	// 2. 모임에 모인 사람들한테 게시글 수정 알림을 보내주어야 함. - NotificationService의 createBulk함수 사용 (모임을 만든 사람 제외!!!)
+
+	// TODO: 게시글 삭제 시 해야할 것 - reminderSchedulerService의 removeRemindersByPost 함수 사용
+
 
 }
