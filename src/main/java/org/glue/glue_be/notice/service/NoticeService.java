@@ -9,6 +9,10 @@ import org.glue.glue_be.notice.dto.response.*;
 import org.glue.glue_be.notice.entity.*;
 import org.glue.glue_be.notice.repository.*;
 import org.glue.glue_be.notice.response.NoticeResponseStatus;
+import org.glue.glue_be.notification.dto.request.BulkNotificationRequest;
+import org.glue.glue_be.notification.service.NotificationService;
+import org.glue.glue_be.user.entity.User;
+import org.glue.glue_be.user.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,6 +26,9 @@ public class NoticeService {
 
     private final NoticeRepository noticeRepository;
     private final NoticeImageRepository noticeImageRepository;
+    private final UserRepository userRepository;
+
+    private final NotificationService notificationService;
 
     // TODO: 작성, 수정, 삭제는 어드민만 가능
 
@@ -35,6 +42,26 @@ public class NoticeService {
 
         Notice savedNotice = noticeRepository.save(notice);
         saveNoticeImages(savedNotice, request.imageUrls());
+
+        // TODO: 관리자와 정지된 사람 제외로 바꾸기
+        // 전체 사용자에게 알림 발송
+        List<User> users = userRepository.findAll();
+
+        List<Long> receiverIds = users.stream()
+                .map(User::getUserId)
+                .toList();
+
+        BulkNotificationRequest notificationRequest = BulkNotificationRequest.builder()
+                .receiverIds(receiverIds)
+                .type("notice")
+                .title(notice.getTitle())
+                .content(notice.getContent())
+                .targetId(savedNotice.getNoticeId())
+                .build();
+
+        // 4. 알림 전송
+        notificationService.createBulk(notificationRequest);
+
 
         return toNoticeResponse(savedNotice);
     }
