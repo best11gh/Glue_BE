@@ -101,7 +101,6 @@ public class UserService {
 	}
 
 	// 9. 좋아요 목록 공개여부
-	// todo: 좋아요 목록 조회시 확인
 	public void setLikeListVisibility(Long userId, int currentVisible) {
 		User user = getUserById(userId);
 
@@ -111,7 +110,6 @@ public class UserService {
 	}
 
 	// 10. 방명록 공개여부
-	// todo: 방명록 조회시 확인
 	public void setGuestbookVisibility(Long userId, int currentVisible) {
 		User user = getUserById(userId);
 
