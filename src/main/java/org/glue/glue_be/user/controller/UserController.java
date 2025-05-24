@@ -24,23 +24,23 @@ public class UserController {
 	private final UserService userService;
 
 
-	// 1. 내 교환언어/수준 조회
-	@GetMapping("/languages")
-	public BaseResponse<LanguageLevelResponse> getMyLanguages( @AuthenticationPrincipal CustomUserDetails auth ) {
-		LanguageLevelResponse response = userService.getMyLanguages(auth.getUserId());
+	// 1. 마이페이지 화면 정보 가져오기 => 닉네임, 한줄소개, 교환언어/수준 조회
+	@GetMapping("/my-page")
+	public BaseResponse<GetMainPageInfoResponse> getMyPageInfo(@AuthenticationPrincipal CustomUserDetails auth ) {
+		GetMainPageInfoResponse response = userService.getMyPageInfo(auth.getUserId());
 		return new BaseResponse<>(response);
 	}
 
 	//	// 2-1. 내 언어/수준 변경
-	@PutMapping("/main-languages")
-	public BaseResponse<Void> updateMainLanguages(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
+	@PutMapping("/main-language")
+	public BaseResponse<Void> updateMainLanguage(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
 		userService.updateMainLanguage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
 
 	//	// 2-2. 학습 언어/수준 변경
-	@PutMapping("/learning-languages")
-	public BaseResponse<Void> updateLearningLanguages(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
+	@PutMapping("/learning-language")
+	public BaseResponse<Void> updateLearningLanguage(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
 		userService.updateLearningLanguage(auth.getUserId(), request);
 		return new BaseResponse<>();
 	}
@@ -126,7 +126,7 @@ public class UserController {
 	}
 
 	// 14. 내 한줄소개 수정
-	@PostMapping("/descriptions")
+	@PostMapping("/description")
 	public BaseResponse<Void> updateDescription(@AuthenticationPrincipal CustomUserDetails auth, @RequestBody UpdateDescriptionRequest request) {
 		userService.updateDescription(auth.getUserId(), request.description());
 		return new BaseResponse<>();

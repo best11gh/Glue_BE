@@ -34,11 +34,12 @@ public class UserService {
 	private final PostRepository postRepository;
 
 
-	// 1. 내 교환언어/수준 조회
+
+	// 1. 마이페이지 화면 정보 가져오기 => 닉네임, 한줄소개, 교환언어/수준 조회
 	@Transactional(readOnly = true)
-	public LanguageLevelResponse getMyLanguages(Long userId) {
+	public GetMainPageInfoResponse getMyPageInfo(Long userId) {
 		User user = getUserById(userId);
-		return LanguageLevelResponse.from(user);
+		return GetMainPageInfoResponse.from(user);
 	}
 
 
@@ -57,12 +58,14 @@ public class UserService {
 	}
 
 	// 3. 프로필 조회 (본인)
+	@Transactional(readOnly = true)
 	public MyProfileResponse getMyProfile(Long userId) {
 		User user = getUserById(userId);
 		return MyProfileResponse.fromUser(user);
 	}
 
 	// 4. 프로필 조회 (타인)
+	@Transactional(readOnly = true)
 	public TargetProfileResponse getTargetProfile(Long userId) {
 		User user = getUserById(userId);
 		return TargetProfileResponse.fromUser(user);
@@ -119,6 +122,7 @@ public class UserService {
 	}
 
 	// 11. 공개여부 정보 조회
+	@Transactional(readOnly = true)
 	public GetVisibilitiesResponse getVisibilities(Long userId) {
 		User user = getUserById(userId);
 		return GetVisibilitiesResponse.from(user);
@@ -126,6 +130,7 @@ public class UserService {
 
 
 	// 12. 모임 히스토리 목록 조회
+	@Transactional(readOnly = true)
 	public MeetingHistoryResponse getMeetingHistory(Long myUserId, Long targetUserId) {
 
 		// 1. 일단 히스토리 조회할 유저 정보 가져오기
@@ -157,6 +162,7 @@ public class UserService {
 	}
 
 	// 13. 좋아요 목록조회
+	@Transactional(readOnly = true)
 	public GetLikedPostsResponse getLikeList(Long myUserId, Long targetUserId) {
 
 		// 1. 일단 좋아요 목록 조회할 유저 정보 가져오고
@@ -188,6 +194,7 @@ public class UserService {
 
 
 	// 공용: 공용 유저 조회 메서드
+	@Transactional(readOnly = true)
 	public User getUserById(Long userId) {
 		return userRepository.findById(userId).orElseThrow(
 			() -> new BaseException(UserResponseStatus.USER_NOT_FOUND)

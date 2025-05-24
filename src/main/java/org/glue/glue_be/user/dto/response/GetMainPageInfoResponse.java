@@ -4,7 +4,13 @@ package org.glue.glue_be.user.dto.response;
 import org.glue.glue_be.user.entity.User;
 
 
-public record LanguageLevelResponse(
+public record GetMainPageInfoResponse(
+
+	String profileImageUrl,
+
+	String userNickname,
+
+	String description,
 
 	Integer mainLanguage,
 
@@ -14,8 +20,11 @@ public record LanguageLevelResponse(
 
 	Integer learningLanguageLevel
 ) {
-	public static LanguageLevelResponse from(User user) {
-		return new LanguageLevelResponse(
+	public static GetMainPageInfoResponse from(User user) {
+		return new GetMainPageInfoResponse(
+			user.getProfileImageUrl(),
+			user.getNickname(),
+			user.getDescription(),
 			user.getLanguageMain(),
 			user.getLanguageMainLevel(),
 			user.getLanguageLearn(),
