@@ -14,11 +14,11 @@ import org.glue.glue_be.guestbook.dto.response.*;
 import org.glue.glue_be.guestbook.entity.GuestBook;
 import org.glue.glue_be.guestbook.repository.GuestBookRepository;
 import org.glue.glue_be.guestbook.response.GuestBookResponseStatus;
+import org.glue.glue_be.notification.dto.request.CreateNotificationRequest;
+import org.glue.glue_be.notification.service.NotificationService;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
-import org.glue.glue_be.util.fcm.dto.FcmSendDto;
-import org.glue.glue_be.util.fcm.service.FcmService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ public class GuestBookService {
 
     private final UserRepository userRepository;
     private final GuestBookRepository guestBookRepository;
-    private final FcmService fcmService;
+    private final NotificationService notificationService;
 
 
     // 방명록 작성
@@ -196,7 +196,7 @@ public class GuestBookService {
     private void sendNotification(GuestBook book, User host, GuestBook parent) {
         User recipient;
         String title;
-        String body = book.getContent();
+        String body = book.getWriter().getNickname() + " : " + book.getContent();
 
         if (parent == null) {
             recipient = host;
@@ -206,11 +206,16 @@ public class GuestBookService {
             title = "내가 남긴 방명록 답글";
         }
 
-        fcmService.sendMessage(FcmSendDto.builder()
+        CreateNotificationRequest request = CreateNotificationRequest.builder()
+                .receiverId(recipient.getUserId())
+                .type("guestbook")
                 .title(title)
-                .body(body)
-                .token(recipient.getFcmToken())
-                .build());
+                .content(body)
+                .targetId(book.getGuestBookId())
+                .guestbookHostId(book.getHost().getUserId())
+                .build();
+
+        notificationService.create(request);
     }
 
 

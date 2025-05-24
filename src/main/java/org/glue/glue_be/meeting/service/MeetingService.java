@@ -6,6 +6,10 @@ import org.glue.glue_be.meeting.dto.MeetingDto;
 import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
 import org.glue.glue_be.meeting.response.MeetingResponseStatus;
+import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
+import org.glue.glue_be.post.entity.Post;
+import org.glue.glue_be.post.repository.PostRepository;
+import org.glue.glue_be.post.response.PostResponseStatus;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
@@ -20,6 +24,9 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
+    private final PostRepository postRepository;
+
+    private final ReminderSchedulerService reminderSchedulerService;
 
     /**
      * 모임 생성
@@ -56,7 +63,7 @@ public class MeetingService {
                 .user(creator)
                 .meeting(savedMeeting)
                 .build();
-        
+
         participantRepository.save(participant);
         savedMeeting.addParticipant(participant);
 
@@ -96,6 +103,12 @@ public class MeetingService {
 
         participantRepository.save(participant);
         meeting.addParticipant(participant);
+
+        // 리마인더 등록
+        Post post = postRepository.findByMeetingId(meetingId)
+                .orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+
+        reminderSchedulerService.scheduleReminder(userId, post.getId(), meeting.getMeetingTime());
     }
 
     /**
@@ -105,7 +118,7 @@ public class MeetingService {
     public MeetingDto.Response getMeeting(Long meetingId) {
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
-        
+
         return MeetingDto.Response.from(meeting);
     }
 }
