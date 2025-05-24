@@ -4,10 +4,7 @@ package org.glue.glue_be.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
-import org.glue.glue_be.meeting.repository.MeetingRepository;
 import org.glue.glue_be.post.dto.response.GetLikedPostsResponse;
-import org.glue.glue_be.post.dto.response.GetPostResponse;
-import org.glue.glue_be.post.dto.response.GetPostsResponse;
 import org.glue.glue_be.post.entity.Like;
 import org.glue.glue_be.post.entity.Post;
 import org.glue.glue_be.post.repository.LikeRepository;
@@ -22,7 +19,6 @@ import org.glue.glue_be.user.response.UserResponseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -160,7 +156,6 @@ public class UserService {
 			.hostedMeetings(hostedMeetings)
 			.joinedMeetings(joinedMeetings)
 			.build();
-
 	}
 
 	// 13. 좋아요 목록조회
@@ -184,15 +179,17 @@ public class UserService {
 		return GetLikedPostsResponse.builder()
 			.posts(postItems)
 			.build();
+	}
 
-
-
-
+	// 14. 한줄 소개 변경
+	public void updateDescription(Long userId, String description) {
+		User user = getUserById(userId);
+		user.changeDescription(description);
 	}
 
 
 
-	// 공용 유저 조회 메서
+	// 공용: 공용 유저 조회 메서드
 	public User getUserById(Long userId) {
 		return userRepository.findById(userId).orElseThrow(
 			() -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
