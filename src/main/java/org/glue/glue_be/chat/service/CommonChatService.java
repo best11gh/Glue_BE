@@ -18,6 +18,9 @@ import org.springframework.messaging.simp.user.SimpSubscription;
 import org.springframework.messaging.simp.user.SimpUser;
 import org.springframework.messaging.simp.user.SimpUserRegistry;
 
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.*;
@@ -173,6 +176,41 @@ public abstract class CommonChatService {
         }
 
         return results;
+    }
+
+    // 무한 스크롤로 메시지 조회
+    public <T, R, C> List<R> getMessagesWithPagination(
+            Long cursorId,
+            Integer pageSize,
+            C chatRoom,
+            BiFunction<C, Pageable, List<T>> initialMessagesFinder,
+            TriFunction<C, Long, Pageable, List<T>> cursorMessagesFinder,
+            Function<T, R> responseMapper,
+            Runnable readMarker) {
+
+        // 페이징 설정 (pageSize + 1건으로 hasNext 판단용)
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
+
+        // 커서 기반 메시지 조회 (ID 내림차순으로 조회)
+        List<T> messages = (cursorId == null)
+                ? initialMessagesFinder.apply(chatRoom, pageable)
+                : cursorMessagesFinder.apply(chatRoom, cursorId, pageable);
+
+        // 다음 페이지 존재 확인 후 실제 데이터만 반환
+        if (messages.size() > pageSize) {
+            messages = messages.subList(0, pageSize);
+        }
+
+        // 읽지 않은 메시지 읽음 처리
+        readMarker.run();
+
+        // 시간순 정렬 (오래된 메시지 → 최신 메시지)
+        Collections.reverse(messages);
+
+        // 응답 객체로 변환
+        return messages.stream()
+                .map(responseMapper)
+                .collect(Collectors.toList());
     }
 
     // 메시지 db에 저장

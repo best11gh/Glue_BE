@@ -71,8 +71,12 @@ public class DmChatController {
 
     // Dm방 클릭 시, 대화 이력을 불러오면서 + 읽지 않은 메시지들 읽음으로 처리
     @PutMapping("/{dmChatRoomId}/all-messages")
-    public ResponseEntity<List<DmMessageResponse>> getDmMessages(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, auth.getUserId());
+    public ResponseEntity<List<DmMessageResponse>> getDmMessages(
+            @PathVariable Long dmChatRoomId,
+            @RequestParam(required = false) Long cursorId,
+            @RequestParam(defaultValue = "20") Integer pageSize,
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, cursorId, pageSize, auth.getUserId());
         return ResponseEntity.ok(messages);
     }
 
