@@ -23,7 +23,6 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
     @Query("SELECT ducr.dmChatRoom FROM DmUserChatroom ducr WHERE ducr.user.userId = :userId")
     List<DmChatRoom> findDmChatRoomsByUserId(@Param("userId") Long userId);
 
-    // DmUserChatroomRepository에 추가
     @Query("SELECT duc.dmChatRoom FROM DmUserChatroom duc " +
             "WHERE duc.user = :user " +
             "ORDER BY duc.dmChatRoom.id DESC")

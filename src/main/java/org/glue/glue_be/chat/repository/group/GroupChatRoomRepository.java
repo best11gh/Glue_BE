@@ -19,7 +19,6 @@ public interface GroupChatRoomRepository extends JpaRepository<GroupChatRoom, Lo
     Optional<GroupChatRoom> findByMeeting_MeetingId(Long meetingId);
 
 
-    // GroupChatRoomRepository에서 메서드 수정
     @Query("SELECT DISTINCT gc FROM GroupChatRoom gc " +
             "JOIN gc.groupUserChatrooms guc " +
             "WHERE guc.user = :user " +
