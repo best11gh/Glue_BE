@@ -24,7 +24,7 @@ public class Notification extends BaseEntity {
     @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
 
-    // guestbook, post 중 하나
+    // guestbook, post, notice 중 하나
     private String type;
 
     @Column(name = "title", nullable = false)
