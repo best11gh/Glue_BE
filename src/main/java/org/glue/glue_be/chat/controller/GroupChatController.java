@@ -57,8 +57,12 @@ public class GroupChatController {
 
     // 채팅방 클릭 시, 대화 이력을 불러오면서 + 읽지 않은 메시지들 읽음으로 처리
     @PutMapping("/{groupChatroomId}/all-messages")
-    public ResponseEntity<List<GroupMessageResponse>> getGroupMessages(@PathVariable Long groupChatroomId, @AuthenticationPrincipal CustomUserDetails auth) {
-        List<GroupMessageResponse> messages = groupChatService.getGroupMessagesByGroupChatRoomId(groupChatroomId, auth.getUserId());
+    public ResponseEntity<List<GroupMessageResponse>> getGroupMessages(
+            @PathVariable Long groupChatroomId,
+            @RequestParam(required = false) Long cursorId,
+            @RequestParam(defaultValue = "20") Integer pageSize,
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        List<GroupMessageResponse> messages = groupChatService.getGroupMessagesByGroupChatRoomId(groupChatroomId, cursorId, pageSize, auth.getUserId());
         return ResponseEntity.ok(messages);
     }
 

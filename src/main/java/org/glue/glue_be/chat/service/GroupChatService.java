@@ -250,19 +250,28 @@ public class GroupChatService extends CommonChatService {
     // ===== DM방 진입 시, 대화 이력 조회 + 안 읽었던 것들 읽음 처리(실시간+비실시간) =====
     // 대화 이력 조회 후 읽지 않은 메시지 읽음 처리
     @Transactional
-    public List<GroupMessageResponse> getGroupMessagesByGroupChatRoomId(Long groupChatroomId, Long userId) {
-        GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
-        User user = getUserById(userId);
-        validateChatRoomMember(groupChatRoom, user);
+    public List<GroupMessageResponse> getGroupMessagesByGroupChatRoomId(Long groupChatroomId, Long cursorId, Integer pageSize, Long userId) {
+        try {
+            GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
+            User user = getUserById(userId);
+            validateChatRoomMember(groupChatRoom, user);
 
-        // 읽지 않은 메시지 읽음 처리
-        List<GroupMessage> messages = groupMessageRepository.findByGroupChatroomOrderByCreatedAtAsc(groupChatRoom);
-        markMessagesAsRead(groupChatroomId, userId);
-
-        return messages.stream()
-                .map(responseMapper::toMessageResponse)
-                .collect(Collectors.toList());
+            return getMessagesWithPagination(
+                    cursorId,
+                    pageSize,
+                    groupChatRoom,
+                    groupMessageRepository::findByGroupChatroomOrderByGroupMessageIdDesc,
+                    groupMessageRepository::findByGroupChatroomAndGroupMessageIdLessThanOrderByGroupMessageIdDesc,
+                    responseMapper::toMessageResponse,
+                    () -> markMessagesAsRead(groupChatroomId, userId)
+            );
+        } catch (BaseException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BaseException(ChatResponseStatus.MESSAGE_NOT_FOUND);
+        }
     }
+
 
     // 안 읽었던 것들 읽음 처리하는 실시간+비실시간 로직을 공통 매소드에 전달
     @Transactional
