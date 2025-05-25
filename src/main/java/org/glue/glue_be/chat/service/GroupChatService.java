@@ -14,6 +14,7 @@ import org.glue.glue_be.chat.repository.group.GroupUserChatRoomRepository;
 import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.dto.UserSummaryWithHostInfo;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.common.response.BaseResponseStatus;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
@@ -146,7 +147,7 @@ public class GroupChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
     // =====
@@ -185,7 +186,7 @@ public class GroupChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -240,7 +241,7 @@ public class GroupChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
     // =====

@@ -14,6 +14,7 @@ import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
 import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.dto.UserSummaryWithHostInfo;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.common.response.BaseResponseStatus;
 import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
@@ -152,7 +153,7 @@ public class DmChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -231,7 +232,7 @@ public class DmChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -258,7 +259,7 @@ public class DmChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw e;
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -308,7 +309,7 @@ public class DmChatService extends CommonChatService {
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
     // =====
