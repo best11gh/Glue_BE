@@ -29,12 +29,15 @@ public class NotificationController {
     public BaseResponse<NotificationResponse[]> getNotifications(
             @AuthenticationPrincipal CustomUserDetails auth,
             @RequestParam(required = false) Long cursorId,
-            @RequestParam(defaultValue = "10") Integer pageSize
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(defaultValue = "false") boolean isNoticeTab
     ) {
-        NotificationResponse[] notifications = notificationService.getNotifications(auth.getUserId(), cursorId,
-                pageSize);
+        NotificationResponse[] notifications = notificationService.getNotifications(
+                auth.getUserId(), cursorId, pageSize, isNoticeTab
+        );
         return new BaseResponse<>(notifications);
     }
+
 
     @DeleteMapping("/{notificationId}")
     public BaseResponse<Void> delete(@PathVariable Long notificationId,

@@ -12,7 +12,7 @@ public class BulkNotificationRequest {
     private List<Long> receiverIds;
 
     @NotBlank(message = "알림 유형은 필수입니다.")
-    @Pattern(regexp = "guestbook|post", message = "알림 유형은 'guestbook' 또는 'post'여야 합니다.")
+    @Pattern(regexp = "guestbook|post|notice", message = "알림 유형은 'guestbook', 'post', 'notice'여야 합니다.")
     private String type;
 
     @NotBlank(message = "알림 제목은 필수입니다.")
