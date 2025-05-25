@@ -2,6 +2,7 @@ package org.glue.glue_be.chat.repository.group;
 
 import org.glue.glue_be.chat.entity.group.GroupChatRoom;
 import org.glue.glue_be.meeting.entity.Meeting;
+import org.glue.glue_be.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,19 +10,29 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
+
 
 public interface GroupChatRoomRepository extends JpaRepository<GroupChatRoom, Long> {
 
     // 미팅 ID로 그룹 채팅방 조회
     Optional<GroupChatRoom> findByMeeting_MeetingId(Long meetingId);
 
-    // 미팅 목록으로 그룹 채팅방 목록 조회
-    List<GroupChatRoom> findByMeetingIn(List<Meeting> meetings);
 
-    // 특정 사용자가 참여한 그룹 채팅방 조회
-    @Query("SELECT gc FROM GroupChatRoom gc JOIN gc.groupUserChatrooms guc WHERE guc.user.userId = :userId")
-    List<GroupChatRoom> findByUserId(@Param("userId") Long userId);
+    // GroupChatRoomRepository에서 메서드 수정
+    @Query("SELECT DISTINCT gc FROM GroupChatRoom gc " +
+            "JOIN gc.groupUserChatrooms guc " +
+            "WHERE guc.user = :user " +
+            "ORDER BY gc.groupChatroomId DESC")
+    List<GroupChatRoom> findByUserOrderByGroupChatroomIdDesc(@Param("user") User user, Pageable pageable);
 
-    @Query("SELECT g FROM GroupChatRoom g JOIN g.meeting m WHERE m.meetingTime < :threshold")
-    List<GroupChatRoom> findByMeetingTime(@Param("threshold") LocalDateTime threshold);
+    @Query("SELECT DISTINCT gc FROM GroupChatRoom gc " +
+            "JOIN gc.groupUserChatrooms guc " +
+            "WHERE guc.user = :user " +
+            "AND gc.groupChatroomId < :cursorId " +
+            "ORDER BY gc.groupChatroomId DESC")
+    List<GroupChatRoom> findByUserAndGroupChatroomIdLessThanOrderByGroupChatroomIdDesc(
+            @Param("user") User user,
+            @Param("cursorId") Long cursorId,
+            Pageable pageable);
 }

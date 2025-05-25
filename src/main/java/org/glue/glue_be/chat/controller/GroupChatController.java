@@ -39,9 +39,12 @@ public class GroupChatController {
     }
 
     // 내가 참여 중인 그룹 채팅방 목록 조회
-    @GetMapping("/rooms/list")
-    public ResponseEntity<List<GroupChatRoomListResponse>> getGroupChatRooms(@AuthenticationPrincipal CustomUserDetails auth) {
-        List<GroupChatRoomListResponse> chatRooms = groupChatService.getGroupChatRooms(auth.getUserId());
+        @GetMapping("/rooms/list")
+    public ResponseEntity<List<GroupChatRoomListResponse>> getGroupChatRooms(
+            @RequestParam(required = false) Long cursorId,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        List<GroupChatRoomListResponse> chatRooms = groupChatService.getGroupChatRooms(cursorId, pageSize, auth.getUserId());
         return ResponseEntity.ok(chatRooms);
     }
 

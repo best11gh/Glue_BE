@@ -18,11 +18,9 @@ import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.glue.glue_be.util.fcm.service.FcmService;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -173,36 +171,43 @@ public class GroupChatService extends CommonChatService {
 
     // ===== 내가 참여 중인 그룹 채팅방 목록 조회 =====
     @Transactional(readOnly = true)
-    public List<GroupChatRoomListResponse> getGroupChatRooms(Long userId) {
+    public List<GroupChatRoomListResponse> getGroupChatRooms(Long cursorId, Integer pageSize, Long userId) {
         try {
-            User currentUser = getUserById(userId);
-
-            // 사용자가 참여 중인 그룹 채팅방 목록 조회
-            List<GroupChatRoom> chatRooms = groupChatRoomRepository.findByUserId(userId);
-
-            return chatRooms.stream()
-                    .map(chatRoom -> {
-                        // 참여자 수 계산
-                        List<GroupUserChatRoom> participants = groupUserChatRoomRepository.findByGroupChatroom(chatRoom);
-                        int participantCount = participants.size();
-
-                        // 최근 메시지 조회
-                        GroupMessage lastMessage = groupMessageRepository.findTopByGroupChatroomOrderByCreatedAtDesc(chatRoom)
-                                .orElse(null);
-
-                        // 읽지 않은 메시지 여부 확인
-                        boolean hasUnreadMessages = groupMessageRepository.existsByGroupChatroomAndUser_UserIdNotAndUnreadCount(
-                                chatRoom, userId, 0);
-
-                        return responseMapper.toChatRoomListResponse(
-                                chatRoom, lastMessage, hasUnreadMessages, participantCount);
-                    })
-                    .collect(Collectors.toList());
+            return getChatRooms(
+                    cursorId,
+                    pageSize,
+                    userId,
+                    this::getUserById,
+                    groupChatRoomRepository::findByUserOrderByGroupChatroomIdDesc,
+                    groupChatRoomRepository::findByUserAndGroupChatroomIdLessThanOrderByGroupChatroomIdDesc,
+                    this::convertToGroupChatRoomResponses
+            );
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
         }
+    }
+
+    private List<GroupChatRoomListResponse> convertToGroupChatRoomResponses(List<GroupChatRoom> chatRooms, User currentUser) {
+        return chatRooms.stream()
+                .map(chatRoom -> {
+                    // 참여자 수 계산
+                    List<GroupUserChatRoom> participants = groupUserChatRoomRepository.findByGroupChatroom(chatRoom);
+                    int participantCount = participants.size();
+
+                    // 최근 메시지 조회
+                    GroupMessage lastMessage = groupMessageRepository.findTopByGroupChatroomOrderByCreatedAtDesc(chatRoom)
+                            .orElse(null);
+
+                    // 읽지 않은 메시지 여부 확인
+                    boolean hasUnreadMessages = groupMessageRepository.existsByGroupChatroomAndUser_UserIdNotAndUnreadCount(
+                            chatRoom, currentUser.getUserId(), 0);
+
+                    return responseMapper.toChatRoomListResponse(
+                            chatRoom, lastMessage, hasUnreadMessages, participantCount);
+                })
+                .collect(Collectors.toList());
     }
     // =====
 
