@@ -2,6 +2,8 @@ package org.glue.glue_be.chat.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.chat.dto.response.ActionResponse;
+import org.glue.glue_be.chat.dto.response.ChatResponseStatus;
+import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.meeting.repository.MeetingRepository;
 import org.glue.glue_be.meeting.repository.ParticipantRepository;
@@ -117,7 +119,6 @@ public abstract class CommonChatService {
     }
 
     // 채팅방 나가기
-    // 채팅방 나가기
     protected <C, UC, M> List<ActionResponse> processLeaveChatRoom(
             Long chatRoomId,
             Long userId,
@@ -139,7 +140,7 @@ public abstract class CommonChatService {
 
         // 사용자를 해당 채팅방 db에서 제거
         removeMember.accept(chatRoom, user);
-        results.add(new ActionResponse(200, getLeaveStatusMessage(200)));  // 직접 ActionResponse 생성
+        results.add(new ActionResponse(ChatResponseStatus.CHATROOM_LEFT.getCode(), ChatResponseStatus.CHATROOM_LEFT.getMessage()));
 
         // 남은 멤버가 없으면 채팅방 및 메시지 삭제
         List<UC> remainingMembers = getRemainingMembers.apply(chatRoom);
@@ -147,24 +148,14 @@ public abstract class CommonChatService {
             // 해당 채팅방의 모든 메시지를 db에서 삭제
             List<M> messages = getChatMessages.apply(chatRoom);
             deleteMessages.accept(messages);
-            results.add(new ActionResponse(201, getLeaveStatusMessage(201)));  // 201 상태코드 사용
+            results.add(new ActionResponse(201, "채팅방의 모든 메시지를 성공적으로 삭제하였습니다."));
 
             // 채팅방 정보를 db에서 삭제
             deleteChatRoom.accept(chatRoom);
-            results.add(new ActionResponse(202, getLeaveStatusMessage(202)));  // 202 상태코드 사용
+            results.add(new ActionResponse(202, "채팅방을 성공적으로 삭제하였습니다."));
         }
 
         return results;
-    }
-
-    // 채팅방 나가기 관련 응답 코드
-    private String getLeaveStatusMessage(int status) {
-        switch (status) {
-            case 200: return "채팅방에서 성공적으로 퇴장하였습니다.";
-            case 201: return "채팅방의 모든 메시지를 성공적으로 삭제하였습니다.";
-            case 202: return "채팅방을 성공적으로 삭제하였습니다.";
-            default: return "작업이 완료되었습니다.";
-        }
     }
 
     // 메시지 db에 저장
@@ -178,19 +169,23 @@ public abstract class CommonChatService {
             Function<M, M> messageSaver,
             Function<M, R> responseMapper) {
 
-        // 채팅방 정보 확인 -> 발신자 정보 확인 -> 해당 유저가 채팅방에 참여 중인지 확인
-        C chatRoom = chatRoomFinder.apply(chatRoomId);
-        User sender = getUserById(senderId);
-        memberValidator.apply(chatRoom, sender);
+        try {
+            // 채팅방 정보 확인 -> 발신자 정보 확인 -> 해당 유저가 채팅방에 참여 중인지 확인
+            C chatRoom = chatRoomFinder.apply(chatRoomId);
+            User sender = getUserById(senderId);
+            memberValidator.apply(chatRoom, sender);
 
-        // 메시지 생성
-        M message = messageCreator.apply(chatRoom, sender, content);
+            // 메시지 생성
+            M message = messageCreator.apply(chatRoom, sender, content);
 
-        // 메시지 저장
-        M savedMessage = messageSaver.apply(message);
+            // 메시지 저장
+            M savedMessage = messageSaver.apply(message);
 
-        // 응답 생성
-        return responseMapper.apply(savedMessage);
+            // 응답 생성
+            return responseMapper.apply(savedMessage);
+        } catch (Exception e) {
+            throw new BaseException(ChatResponseStatus.MESSAGE_SENDING_FAILED);
+        }
     }
 
     // 사용자의 웹소켓 연결 상태를 확인

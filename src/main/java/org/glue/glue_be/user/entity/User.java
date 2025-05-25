@@ -22,6 +22,9 @@ public class User extends BaseEntity {
     @Column(name = "oauth_id", nullable = false, unique = true)
     private String oauthId;
 
+    @Column(name = "real_name", nullable = false)
+    private String realName;
+
     @Column(name = "nickname", nullable = false, length = 10, unique = true)
     private String nickname;
 
@@ -44,7 +47,7 @@ public class User extends BaseEntity {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "profileImageUrl")
+    @Column(name = "profile_image_url")
     private String profileImageUrl;
 
     @Column(name = "language_main", nullable = false) // default = 1
@@ -58,6 +61,9 @@ public class User extends BaseEntity {
 
     @Column(name = "language_learn_level", nullable = false) // default = 3
     private Integer languageLearnLevel;
+
+    public static final int SYSTEM_LANGUAGE_KOREAN = 1;
+    public static final int SYSTEM_LANGUAGE_ENGLISH = 2;
 
     @Column(name = "system_language", nullable = false) // default = 1
     private Integer systemLanguage;
@@ -82,8 +88,9 @@ public class User extends BaseEntity {
 
 
     @Builder
-    public User(String oauthId, String nickname, Integer gender, LocalDate birthDate, String description, Integer major, Integer school, String email, Integer systemLanguage, Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel, String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility, Integer guestbooksVisibility) {
+    public User(String oauthId, String realName, String nickname, Integer gender, LocalDate birthDate, String description, Integer major, Integer school, String email, Integer systemLanguage, Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel, String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility, Integer guestbooksVisibility) {
         this.oauthId = oauthId;
+        this.realName = realName;
         this.nickname = nickname;
         this.gender = gender;
         this.birthDate = birthDate;
@@ -91,7 +98,7 @@ public class User extends BaseEntity {
         this.major = major;
         this.school = (school == null) ? 272 : school;
         this.email = email;
-        this.systemLanguage = (systemLanguage == null) ? 1 : systemLanguage;
+        this.systemLanguage = (systemLanguage == null) ? SYSTEM_LANGUAGE_KOREAN : systemLanguage;
         this.languageMain = (languageMain == null) ? 1 : languageMain;
         this.languageLearn = (languageLearn == null) ? 2 : languageLearn;
         this.languageMainLevel = (languageMainLevel == null) ? 3 : languageMainLevel;

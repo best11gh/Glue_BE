@@ -1,27 +1,19 @@
 package org.glue.glue_be.post.service;
 
 
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.exception.BaseException;
-import org.glue.glue_be.meeting.entity.Meeting;
-import org.glue.glue_be.meeting.entity.Participant;
-import org.glue.glue_be.meeting.repository.MeetingRepository;
-import org.glue.glue_be.meeting.repository.ParticipantRepository;
+import org.glue.glue_be.meeting.entity.*;
+import org.glue.glue_be.meeting.repository.*;
 import org.glue.glue_be.meeting.response.MeetingResponseStatus;
+import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
-import org.glue.glue_be.post.dto.response.CreatePostResponse;
-import org.glue.glue_be.post.dto.response.GetPostResponse;
-import org.glue.glue_be.post.dto.response.GetPostsResponse;
-import org.glue.glue_be.post.entity.Like;
-import org.glue.glue_be.post.entity.Post;
-import org.glue.glue_be.post.entity.PostImage;
-import org.glue.glue_be.post.repository.LikeRepository;
-import org.glue.glue_be.post.repository.PostImageRepository;
-import org.glue.glue_be.post.repository.PostRepository;
+import org.glue.glue_be.post.dto.response.*;
+import org.glue.glue_be.post.entity.*;
+import org.glue.glue_be.post.repository.*;
 import org.glue.glue_be.post.response.PostResponseStatus;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
@@ -49,6 +41,12 @@ public class PostService {
 	private final LikeRepository likeRepository;
 	private final PostImageRepository postImageRepository;
 
+	private final ReminderSchedulerService reminderSchedulerService;
+
+	// 게시글 사진이 추가 및 삭제될 때 meeting image url도 함께 업데이트 시키는 메소드
+	public void updateMeetingImageUrl(Long meetingId) {
+		meetingRepository.updateMeetingImageUrl(meetingId);
+	}
 
 	// 게시글 추가
 	public CreatePostResponse createPost(CreatePostRequest request, Long userId) {
@@ -56,15 +54,10 @@ public class PostService {
 		CreatePostRequest.MeetingDto meetingRequest = request.getMeeting();
 		CreatePostRequest.PostDto postRequest = request.getPost();
 
-		// 1. validation
-		if (meetingRequest.getMeetingTime().isBefore(LocalDateTime.now())) {
-			throw new BaseException(MeetingResponseStatus.INVALID_MEETING_TIME);
-		}
-
-		// 2. 사용자 조회
+		// 1. 사용자 조회
 		User creator = userRepository.findById(userId).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
-		// 3. 모임 생성
+		// 2. 모임 생성
 		Meeting meeting = Meeting.builder() // todo: toEntity 팩토리 메서드로 대체
 			.meetingTitle(meetingRequest.getMeetingTitle())
 			.meetingTime(meetingRequest.getMeetingTime())
@@ -81,19 +74,19 @@ public class PostService {
 			.build();
 		Meeting savedMeeting = meetingRepository.save(meeting);
 
-		// 4. 게시자를 참가자 테이블에 추가
+		// 3. 게시자를 참가자 테이블에 추가
 		Participant participant = Participant.builder().user(creator).meeting(savedMeeting).build();
 		participantRepository.save(participant);
 
-		// 4.5. onetomany로 관리하는 participants 리스트에 추가
+		// 3.5. onetomany로 관리하는 participants 리스트에 추가
 		// todo: 직접적인 연관관계 매핑이 너무 많아 생각보다 어려운듯 나중에 논의하기
 		savedMeeting.addParticipant(participant);
 
-		// 5. 게시글 생성
+		// 4. 게시글 생성
 		Post post = Post.builder().meeting(savedMeeting).title(postRequest.getTitle()).content(postRequest.getContent()).build();
 		Post savedPost = postRepository.save(post);
 
-		// 5.5. 게시글 생성 시 이미지주소 있다면 DB에 저장 후 양방향 매핑 작업도 수행
+		// 4.5. 게시글 생성 시 이미지주소 있다면 DB에 저장 후 양방향 매핑 작업도 수행
 		List<String> imageUrls = postRequest.getImageUrls();
 
 		if(imageUrls != null && !imageUrls.isEmpty()) {
@@ -109,6 +102,12 @@ public class PostService {
 				savedPost.getImages().add(postImage); // 양방향 추가 처리
 			}
 		}
+
+		// 5. 이미지가 저장된 후 미팅 대표 이미지 업데이트
+		updateMeetingImageUrl(savedMeeting.getMeetingId());
+
+		// 5.5 알림 예약 - 모임 생성자한테 가는 용도
+		reminderSchedulerService.scheduleReminder(userId, savedPost.getId(), savedMeeting.getMeetingTime());
 
 		// 6. responseDto 생성 직후 리턴
 		return CreatePostResponse.builder().postId(savedPost.getId()).build();
@@ -278,5 +277,13 @@ public class PostService {
 				.build();
 
 	}
+
+
+	// TODO: 게시글 수정 시 해야할 것 들
+	// 1. reminderSchedulerService의 rescheduleReminder 함수를 써야함. (리마인더 새로 등록)
+	// 2. 모임에 모인 사람들한테 게시글 수정 알림을 보내주어야 함. - NotificationService의 createBulk함수 사용 (모임을 만든 사람 제외!!!)
+
+	// TODO: 게시글 삭제 시 해야할 것 - reminderSchedulerService의 removeRemindersByPost 함수 사용
+
 
 }

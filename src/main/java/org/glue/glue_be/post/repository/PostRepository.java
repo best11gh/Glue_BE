@@ -1,6 +1,7 @@
 package org.glue.glue_be.post.repository;
 
 
+import java.util.Optional;
 import org.glue.glue_be.post.entity.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,6 +14,9 @@ import java.util.List;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+
+	@Query("SELECT p FROM Post p WHERE p.meeting.meetingId = :meetingId")
+	Optional<Post> findByMeetingId(@Param("meetingId") Long meetingId);
 
 	@Query(value = """
         SELECT  p.*
@@ -76,4 +80,14 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                        @Param("cursorSortAt") String cursorSortAt,
                                        @Param("cursorPostId") Long cursorPostId,
                                        @Param("limit") int limit);
+
+
+	@Query("SELECT p FROM Post p WHERE p.meeting.host.userId = :hostUserId")
+	List<Post> findByHostUserId(@Param("hostUserId") Long hostUserId);
+
+	@Query("SELECT DISTINCT p FROM Post p " +
+		"JOIN p.meeting.participants pt " +
+		"WHERE pt.user.userId = :userId AND p.meeting.host.userId != :userId")
+	List<Post> findByParticipantUserIdExcludingHost(@Param("userId") Long userId);
+
 }

@@ -14,6 +14,9 @@ public record KakaoSignUpRequestDto(
 	@NotBlank(message = "OAuth ID는 필수 입력값입니다.")
 	String oauthId,
 
+	@NotBlank(message = "본명은 필수 입력값입니다.")
+	String realName,
+
 	@NotBlank(message = "닉네임은 필수 입력값입니다.")
 	String nickname,
 
@@ -55,6 +58,7 @@ public record KakaoSignUpRequestDto(
 	public User toEntity() {
 		return User.builder()
 			.oauthId(oauthId())
+			.realName(realName())
 			.nickname(nickname())
 			.gender(gender())
 			.birthDate(birthDate())

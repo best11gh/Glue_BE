@@ -4,8 +4,9 @@ import java.util.List;
 import org.glue.glue_be.guestbook.entity.GuestBook;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface GuestBookRepository extends JpaRepository<GuestBook, Long> {
     // 방명록만 조회
     List<GuestBook> findByHost_UserIdAndParentIsNullOrderByGuestBookIdDescCreatedAtDesc(

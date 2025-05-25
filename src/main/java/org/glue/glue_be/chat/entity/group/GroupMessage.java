@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class GroupMessage extends BaseEntity {
 
+    public static final int UNREAD_COUNT_DEFAULT = 1;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long groupMessageId;
@@ -43,11 +45,10 @@ public class GroupMessage extends BaseEntity {
         this.groupChatroom = groupChatroom;
         this.meeting = meeting;
         this.message = message;
-        this.unreadCount = unreadCount;
+        this.unreadCount = (unreadCount == null) ? UNREAD_COUNT_DEFAULT: unreadCount;
     }
 
-    // If message editing is allowed
-    public void updateMessage(String newMessage) {
-        this.message = newMessage;
+    public void updateUnreadCount() {
+        this.unreadCount -= 1;
     }
 }

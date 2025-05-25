@@ -74,6 +74,8 @@ dependencies {
 	// redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+	implementation 'org.springframework.boot:spring-boot-starter-quartz'
+
 	// spring actuator
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 

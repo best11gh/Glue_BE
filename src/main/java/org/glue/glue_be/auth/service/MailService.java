@@ -2,6 +2,9 @@ package org.glue.glue_be.auth.service;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.glue.glue_be.auth.response.AuthResponseStatus;
+import org.glue.glue_be.common.exception.BaseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
@@ -11,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MailService {
 
 	@Value("${spring.mail.username}")
@@ -38,7 +42,8 @@ public class MailService {
 
 			mailSender.send(message);
 		} catch (MailSendException e) {
-			throw new MailSendException("email 코드 전송에 실패했습니다", e);
+			log.error("[이메일 발송 실패]: {}", e.getMessage(), e);
+			throw new BaseException(AuthResponseStatus.FAIL_EMAIL);
 		}
 	}
 

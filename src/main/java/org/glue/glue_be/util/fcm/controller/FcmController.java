@@ -1,5 +1,6 @@
 package org.glue.glue_be.util.fcm.controller;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
@@ -22,17 +23,16 @@ public class FcmController {
 
     // 단일 기기로 fcm 발송
     @PostMapping("/single")
-    public BaseResponse<Void> sendSingle(@RequestBody FcmSendDto dto) {
+    public BaseResponse<Void> sendSingle(@RequestBody @Valid FcmSendDto dto) {
         fcmService.sendMessage(dto);
-        return new BaseResponse<>(FcmResponseStatus.FCM_SEND_SUCCESS);
+        return new BaseResponse<>();
     }
 
     // 여러 기기로 fcm 발송
     @PostMapping("/multi")
-    public BaseResponse<Void> sendMulti(@RequestBody MultiFcmSendDto dto) {
+    public BaseResponse<Void> sendMulti(@RequestBody @Valid MultiFcmSendDto dto) {
         fcmService.sendMultiMessage(dto);
-        return new BaseResponse<>(FcmResponseStatus.FCM_MULTICAST_SUCCESS);
+        return new BaseResponse<>();
     }
-
 
 }
