@@ -111,7 +111,7 @@ public class GroupChatService extends CommonChatService {
             GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
 
             // 채팅방 참여자 목록 조회
-            List<GroupUserChatRoom> participants = groupUserChatRoomRepository.findByGroupChatroom(groupChatRoom);
+            List<GroupUserChatRoom> participants = getChatRoomParticipants(groupChatRoom);
 
             // 요청한 사용자가 채팅방 참여자인지 확인
             boolean isParticipant = participants.stream()
@@ -194,7 +194,7 @@ public class GroupChatService extends CommonChatService {
         return chatRooms.stream()
                 .map(chatRoom -> {
                     // 참여자 수 계산
-                    List<GroupUserChatRoom> participants = groupUserChatRoomRepository.findByGroupChatroom(chatRoom);
+                    List<GroupUserChatRoom> participants = getChatRoomParticipants(chatRoom);
                     int participantCount = participants.size();
 
                     // 최근 메시지 조회
@@ -366,7 +366,7 @@ public class GroupChatService extends CommonChatService {
 
     // 채팅방 참여자 수 계산 (발신자 제외)
     private Integer countOtherParticipants(GroupChatRoom groupChatRoom, Long senderId) {
-        List<GroupUserChatRoom> participants = groupUserChatRoomRepository.findByGroupChatroom(groupChatRoom);
+        List<GroupUserChatRoom> participants = getChatRoomParticipants(groupChatRoom);
         return (int) participants.stream()
                 .filter(p -> !p.getUser().getUserId().equals(senderId))
                 .count();
@@ -429,6 +429,10 @@ public class GroupChatService extends CommonChatService {
     private GroupUserChatRoom validateChatRoomMember(GroupChatRoom chatRoom, User user) {
         return groupUserChatRoomRepository.findByGroupChatroomAndUser(chatRoom, user)
                 .orElseThrow(() -> new BaseException(ChatResponseStatus.USER_NOT_MEMBER));
+    }
+
+    private List<GroupUserChatRoom> getChatRoomParticipants(GroupChatRoom chatRoom) {
+        return groupUserChatRoomRepository.findByGroupChatroom(chatRoom);
     }
 
     @Override
