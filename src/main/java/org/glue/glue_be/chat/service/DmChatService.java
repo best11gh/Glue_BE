@@ -217,12 +217,15 @@ public class DmChatService extends CommonChatService {
     // === 내가 호스트/참석자인 DM 채팅방 목록 조회 ===
     // 내가 호스트인 DM 채팅방 목록 조회
     @Transactional(readOnly = true)
-    public List<DmChatRoomListResponse> getHostedDmChatRooms(Long userId) {
+    public List<DmChatRoomListResponse> getHostedDmChatRooms(Long cursorId, Integer pageSize, Long userId) {
         try {
             return getChatRooms(
+                    cursorId,
+                    pageSize,
                     userId,
                     this::getUserById,
-                    dmChatRoomRepository::findByHost,
+                    dmChatRoomRepository::findByMeetingHostOrderByIdDesc,
+                    dmChatRoomRepository::findByMeetingHostAndIdLessThanOrderByIdDesc,
                     this::convertToChatRoomResponses
             );
         } catch (BaseException e) {
@@ -234,26 +237,28 @@ public class DmChatService extends CommonChatService {
 
     // 내가 참석자인 DM 채팅방 목록 조회
     @Transactional(readOnly = true)
-    public List<DmChatRoomListResponse> getParticipatedDmChatRooms(Long userId) {
+    public List<DmChatRoomListResponse> getParticipatedDmChatRooms(Long cursorId, Integer pageSize, Long userId) {
         try {
             return getChatRooms(
+                    cursorId,
+                    pageSize,
                     userId,
                     this::getUserById,
-                    user -> {
-                        // 참가한 DM 채팅방들을 직접 조회
-                        List<DmChatRoom> participatedDmChatRooms = dmUserChatroomRepository.findDmChatRoomsByUserId(userId);
-
-                        // 내가 호스트가 아닌 미팅의 DM 채팅방만 필터링
-                        return participatedDmChatRooms.stream()
-                                .filter(dmChatRoom -> !dmChatRoom.getMeeting().getHost().getUserId().equals(userId))
+                    dmUserChatroomRepository::findDmChatRoomsByUserOrderByDmChatRoomIdDesc,
+                    dmUserChatroomRepository::findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc,
+                    (chatRooms, user) -> {
+                        // 내가 호스트가 아닌 미팅의 DM 채팅방만 필터링 후 변환
+                        List<DmChatRoom> filteredChatRooms = chatRooms.stream()
+                                .filter(dmChatRoom -> !dmChatRoom.getMeeting().getHost().getUserId().equals(user.getUserId()))
                                 .collect(Collectors.toList());
-                    },
-                    this::convertToChatRoomResponses
+
+                        return convertToChatRoomResponses(filteredChatRooms, user);
+                    }
             );
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND);
+            throw e;
         }
     }
 

@@ -11,6 +11,7 @@ import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.exception.UserException;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.user.SimpSession;
 import org.springframework.messaging.simp.user.SimpSubscription;
@@ -19,10 +20,8 @@ import org.springframework.messaging.simp.user.SimpUserRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.*;
-import java.util.Map;
-import java.util.HashMap;
+import org.springframework.data.domain.Pageable;
 
 @Slf4j
 public abstract class CommonChatService {
@@ -33,7 +32,7 @@ public abstract class CommonChatService {
     @Autowired protected SimpMessagingTemplate messagingTemplate;
     @Autowired private SimpUserRegistry simpUserRegistry;
 
-    // 채팅방 상세 보기에서 방장인지 아닌지 구분하기 위한 매소드
+    // 채팅방 상세 보기에서 방장인지 아닌지 구분하기 위한 매소드(완장 표시 위함)
     protected <UC, C, M> boolean determineIsHost(
             UC userChatroom,
             Function<UC, User> userExtractor,
@@ -46,7 +45,7 @@ public abstract class CommonChatService {
             C chatroom = chatroomExtractor.apply(userChatroom);
 
             if (user == null || chatroom == null) {
-                return false;
+                return false; // 예외 발생 시 기본적으로 호스트가 아님으로 처리
             }
 
             // 채팅방에서 meeting 객체 추출
@@ -73,17 +72,35 @@ public abstract class CommonChatService {
 
     // 채팅방 목록 조회
     protected <C, R> List<R> getChatRooms(
+            Long cursorId,
+            Integer pageSize,
             Long userId,
             Function<Long, User> userFinder,
-            Function<User, List<C>> chatRoomsFinder,
+            BiFunction<User, Pageable, List<C>> initialChatRoomsFinder,    // 첫 페이지 조회
+            TriFunction<User, Long, Pageable, List<C>> cursorChatRoomsFinder, // 커서 기반 조회
             BiFunction<List<C>, User, List<R>> responseConverter) {
 
-        // 로그인한 유저 정보, 채팅방 정보 조회
-        User currentUser = userFinder.apply(userId);
-        List<C> chatRooms = chatRoomsFinder.apply(currentUser);
+        // 1. 페이징 설정 (pageSize + 1건으로 hasNext 판단용)
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
 
-        // 응답 생성
-        return responseConverter.apply(chatRooms, currentUser);
+        // 로그인한 유저 정보 조회
+        User currentUser = userFinder.apply(userId);
+
+        // 2. 커서 기반 채팅방 조회
+        List<C> chatRooms = (cursorId == null)
+                ? initialChatRoomsFinder.apply(currentUser, pageable)
+                : cursorChatRoomsFinder.apply(currentUser, cursorId, pageable);
+
+        // 3. 다음 페이지 존재 확인
+        boolean hasNext = chatRooms.size() > pageSize;
+        if (hasNext) {
+            chatRooms = chatRooms.subList(0, pageSize);  // 실제 데이터는 pageSize만큼만
+        }
+
+        // 4. DTO 반환
+        List<R> responses = responseConverter.apply(chatRooms, currentUser);
+
+        return responses;
     }
 
     // 채팅방 알림 토글
