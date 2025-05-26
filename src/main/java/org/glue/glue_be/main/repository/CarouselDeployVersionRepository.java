@@ -18,25 +18,4 @@ public interface CarouselDeployVersionRepository extends JpaRepository<CarouselD
 
     Optional<CarouselDeployVersion> findByVersion(String version);
 
-    @Query("SELECT COUNT(c) > 0 FROM CarouselDeployVersion c WHERE c.isActive = true")
-    boolean existsActiveVersion();
-
-    @Modifying
-    @Transactional
-    @Query("UPDATE CarouselDeployVersion c SET c.isActive = false WHERE c.isActive = true")
-    void deactivateAllVersions();
-
-    @Modifying
-    @Transactional
-    @Query("UPDATE CarouselDeployVersion c SET c.isActive = false WHERE c.isActive = true AND c.version != :version")
-    void deactivateAllVersionsExcept(@Param("version") String version);
-
-    List<CarouselDeployVersion> findAllByOrderByUpdatedAtDesc();
-
-    List<CarouselDeployVersion> findByIsActiveOrderByUpdatedAtDesc(Boolean isActive);
-
-    boolean existsByVersion(String version);
-
-    @Query("SELECT c FROM CarouselDeployVersion c WHERE c.version LIKE %:pattern% ORDER BY c.version")
-    List<CarouselDeployVersion> findByVersionContaining(@Param("pattern") String pattern);
 }
