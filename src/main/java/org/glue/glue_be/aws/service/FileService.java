@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.aws.dto.GetPresignedUrlResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class FileService {
 
     private final S3Presigner s3Presigner;
+    private final S3Client s3Client;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
@@ -67,6 +70,41 @@ public class FileService {
             .presignedUrl(presignedUrl)
             .build();
 
+    }
+
+    // 캐러셀 전용 presigned URL 생성 메서드
+    public GetPresignedUrlResponse getCarouselPresignedUrl(String fileName, String imageExtension) {
+        return getPreSignedUrl("carousel", imageExtension, "carousel");
+    }
+
+    // S3에서 파일 삭제
+    public void deleteFile(String publicUrl) {
+        try {
+            // publicUrl에서 key 추출
+            String key = extractKeyFromUrl(publicUrl);
+
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build();
+
+            s3Client.deleteObject(deleteRequest);
+            log.info("[FileService] File deleted successfully: {}", key);
+
+        } catch (Exception e) {
+            log.error("[FileService] Failed to delete file: {}", publicUrl, e);
+            throw new RuntimeException("Failed to delete file from S3", e);
+        }
+    }
+
+    // URL에서 S3 key 추출하는 헬퍼 메서드
+    private String extractKeyFromUrl(String publicUrl) {
+        // https://bucket-name.s3.region.amazonaws.com/key 형태에서 key 부분 추출
+        String baseUrl = String.format("https://%s.s3.%s.amazonaws.com/", bucket, region);
+        if (publicUrl.startsWith(baseUrl)) {
+            return publicUrl.substring(baseUrl.length());
+        }
+        throw new IllegalArgumentException("Invalid S3 URL format: " + publicUrl);
     }
 }
 
