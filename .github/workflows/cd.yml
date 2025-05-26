@@ -18,11 +18,19 @@ jobs:
           APP_CONFIG: ${{ secrets.APPLICATION_YML }}
         run: |
           echo "$APP_CONFIG" > src/main/resources/application.yml
+
       - name: Restore Firebase Key file
+        env:
+          FIREBASE_KEY: ${{ secrets.FIREBASE_KEY }}
         run: |
+          mkdir -p src/main/resources/firebase
           printf '%s\n' "$FIREBASE_KEY" > src/main/resources/firebase/serviceAccountKey.json
+
       - name: Restore Apple Key file
+        env:
+          APPLE_LOGIN_AUTH_KEY: ${{ secrets.APPLE_LOGIN_AUTH_KEY }}
         run: |
+          mkdir -p src/main/resources/key
           printf '%s\n' "$APPLE_LOGIN_AUTH_KEY" > src/main/resources/key/AuthKey_F4FRHB4D7Y.p8
           
       - name: Set up JDK 17
