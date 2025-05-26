@@ -7,30 +7,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface DmMessageRepository extends JpaRepository<DmMessage, Long> {
 
     List<DmMessage> findByDmChatRoomOrderByCreatedAtAsc(DmChatRoom dmChatRoom);
-
-    // 채팅방의 가장 최근 메시지 조회
-    @Query("SELECT m FROM DmMessage m " +
-            "WHERE m.dmChatRoom.id = :dmChatRoomId " +
-            "ORDER BY m.createdAt DESC")
-    List<DmMessage> findRecentByDmChatRoomId(@Param("dmChatRoomId") Long dmChatRoomId);
-
-    // 특정 시간 이후의 메시지 개수 조회 (읽지 않은 메시지 수 계산용)
-    @Query("SELECT COUNT(m) FROM DmMessage m " +
-            "WHERE m.dmChatRoom.id = :dmChatRoomId " +
-            "AND m.createdAt > :lastReadTime")
-    int countUnreadMessages(
-            @Param("dmChatRoomId") Long dmChatRoomId,
-            @Param("lastReadTime") LocalDateTime lastReadTime);
-    Object countByDmChatRoomIdAndIsReadAndUserUserIdNot(Long dmChatRoomId, int b, Long userId);
-
 
     Optional<DmMessage> findTopByDmChatRoomOrderByCreatedAtDesc(DmChatRoom chatRoom);
 
@@ -38,4 +22,14 @@ public interface DmMessageRepository extends JpaRepository<DmMessage, Long> {
 
     @Query("SELECT m FROM DmMessage m WHERE m.dmChatRoom.id = :chatRoomId AND m.user.userId != :userId AND m.isRead = 0")
     List<DmMessage> findUnreadMessages(@Param("chatRoomId") Long chatRoomId, @Param("userId") Long userId);
+
+    // 커서 기반 메시지 조회를 위한 새로운 메서드들 (id 필드 사용)
+    // 첫 번째 요청 (cursorId가 null일 때) - 최신 메시지부터 내림차순
+    List<DmMessage> findByDmChatRoomOrderByIdDesc(DmChatRoom dmChatRoom, Pageable pageable);
+
+    // 두 번째 요청부터 (cursorId가 있을 때) - 해당 ID보다 작은 값들을 내림차순으로
+    List<DmMessage> findByDmChatRoomAndIdLessThanOrderByIdDesc(
+            DmChatRoom dmChatRoom,
+            Long cursorId,
+            Pageable pageable);
 }
