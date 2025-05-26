@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MainCarousel API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea, button {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 300px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .delete-btn {
+            background: #dc3545;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        .deploy-btn {
+            background: #28a745;
+        }
+        .deploy-btn:hover {
+            background: #218838;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            font-family: monospace;
+        }
+        .carousel-item {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .carousel-image {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .deploy-status {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .deploy-status.active {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        @media (max-width: 768px) {
+            .grid, .grid-three {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<h1>🎠 MainCarousel API Test (with Deploy Version Management)</h1>
+
+<!-- 0. 배포 버전 관리 섹션 -->
+<div class="section">
+    <h2>🚀 배포 버전 관리 (관리자)</h2>
+    <div id="currentDeployStatus" class="deploy-status"></div>
+
+    <div class="grid">
+        <div>
+            <h3>현재 배포 버전 확인</h3>
+            <button onclick="loadCurrentDeployVersion()" class="deploy-btn">🔍 현재 배포 버전 조회</button>
+            <div id="deployStatusDisplay"></div>
+        </div>
+
+        <div>
+            <h3>새 배포 버전 설정</h3>
+            <div class="form-group">
+                <label>배포할 버전:</label>
+                <select id="deployVersionSelect" style="width: 200px;">
+                    <option value="">버전을 선택하세요</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>배포 설명:</label>
+                <input type="text" id="deployDescription" placeholder="배포 설명 (선택사항)">
+            </div>
+            <button onclick="setDeployVersion()" class="deploy-btn" id="deployBtn">🚀 배포 버전 설정</button>
+            <div id="deploySetStatus"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 1. 조회 섹션 -->
+<div class="section">
+    <h2>📋 1. 캐러셀 조회</h2>
+    <div class="form-group">
+        <label>Version (선택사항):</label>
+        <select id="queryVersion" style="width: 200px;">
+            <option value="">현재 배포 버전 자동 조회</option>
+        </select>
+        <button onclick="loadVersions()">🔄 버전 목록 새로고침</button>
+        <button onclick="loadCarousels()">조회</button>
+    </div>
+    <div id="versionStatus"></div>
+    <div id="bulkDeleteStatus"></div>
+    <div id="carouselList"></div>
+</div>
+
+<!-- 2. 등록 섹션 -->
+<div class="section">
+    <h2>➕ 2. 캐러셀 등록</h2>
+    <div class="form-group">
+        <label>Version:</label>
+        <select id="createVersion" style="width: 200px;">
+            <option value="">기존 버전 선택</option>
+        </select>
+        <input type="text" id="createVersionInput" placeholder="새 버전 직접 입력 (예: v2.0)" style="width: 200px; margin-left: 10px;">
+    </div>
+    <div class="form-group">
+        <label>Description:</label>
+        <input type="text" id="createDescription" placeholder="이미지 설명">
+    </div>
+    <div class="form-group">
+        <label>이미지 파일:</label>
+        <input type="file" id="createImageInput" accept="image/*">
+    </div>
+    <p style="font-size: 12px; color: #666; margin: 5px 0;">
+        💡 순서는 자동으로 설정됩니다 (현재 버전의 마지막 + 1)
+    </p>
+    <button onclick="createCarousel()" id="createBtn">등록</button>
+    <div id="createStatus"></div>
+</div>
+
+<!-- 5. 로그 섹션 -->
+<div class="section">
+    <h2>📝 API 응답 로그</h2>
+    <textarea id="logArea" readonly placeholder="API 응답이 여기에 표시됩니다..."></textarea>
+    <button onclick="clearLog()">로그 클리어</button>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api/main/carousel';
+    const logArea = document.getElementById('logArea');
+
+    // 로그 추가 함수
+    function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        logArea.value += `[${timestamp}] ${message}\n`;
+        logArea.scrollTop = logArea.scrollHeight;
+        console.log(message);
+    }
+
+    // 로그 클리어
+    function clearLog() {
+        logArea.value = '';
+    }
+
+    // 상태 표시 함수
+    function showStatus(elementId, message, type = 'info') {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        setTimeout(() => {
+            element.innerHTML = '';
+        }, 10000);
+    }
+
+    // 0. 현재 배포 버전 조회
+    async function loadCurrentDeployVersion() {
+        try {
+            addLog('현재 배포 버전 조회 시작');
+            const response = await fetch(`${API_BASE}/deploy-version`);
+
+            if (response.ok) {
+                const version = await response.text(); // String 응답이므로 text()로 받음
+                await displayCurrentDeployVersionSimple(version);
+                addLog(`현재 배포 버전: ${version}`, 'success');
+            } else {
+                throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            }
+        } catch (error) {
+            addLog(`배포 버전 조회 실패: ${error.message}`, 'error');
+            showStatus('deployStatusDisplay', `❌ ${error.message}`, 'error');
+
+            // 배포 버전이 없는 경우 안내 메시지
+            const container = document.getElementById('currentDeployStatus');
+            container.className = 'deploy-status';
+            container.innerHTML = `
+                    <h3>⚠️ 배포 버전이 설정되지 않았습니다</h3>
+                    <p>아래에서 배포할 버전을 선택하여 설정해주세요.</p>
+                `;
+        }
+    }
+
+    // 간단한 배포 버전 표시 (버전 문자열만 받는 경우)
+    async function displayCurrentDeployVersionSimple(version) {
+        try {
+            // 해당 버전의 캐러셀 정보를 조회해서 추가 정보 표시
+            const carouselResponse = await fetch(`${API_BASE}?version=${version}`);
+            if (carouselResponse.ok) {
+                const data = await carouselResponse.json();
+                displayCurrentDeployVersion({
+                    version: version,
+                    description: `현재 배포 버전 (자동 조회)`,
+                    hasCarousels: data.totalCount > 0,
+                    carouselCount: data.totalCount
+                });
+            } else {
+                // 캐러셀 조회 실패 시 기본 정보만 표시
+                displayCurrentDeployVersion({
+                    version: version,
+                    description: `현재 배포 버전`,
+                    hasCarousels: false,
+                    carouselCount: 0
+                });
+            }
+        } catch (error) {
+            // 에러 발생 시 기본 정보만 표시
+            displayCurrentDeployVersion({
+                version: version,
+                description: `현재 배포 버전`,
+                hasCarousels: false,
+                carouselCount: 0
+            });
+        }
+    }
+
+    // 현재 배포 버전 표시
+    function displayCurrentDeployVersion(data) {
+        const container = document.getElementById('currentDeployStatus');
+        const statusClass = data.hasCarousels ? 'active' : '';
+
+        container.className = `deploy-status ${statusClass}`;
+        container.innerHTML = `
+                <h3>🚀 현재 배포 중: ${data.version}</h3>
+                <p><strong>설명:</strong> ${data.description || '없음'}</p>
+                <p><strong>캐러셀:</strong> ${data.carouselCount}개 ${data.hasCarousels ? '✅' : '❌'}</p>
+                <p><strong>상태:</strong> ${data.hasCarousels ? '정상 배포 중' : '캐러셀 없음 (배포 불가)'}</p>
+            `;
+
+        const statusMessage = data.hasCarousels
+            ? `현재 "${data.version}" 버전이 배포 중입니다. (${data.carouselCount}개 캐러셀)`
+            : `현재 "${data.version}" 버전이 배포 중이지만 캐러셀이 없습니다.`;
+
+        showStatus('deployStatusDisplay', statusMessage, data.hasCarousels ? 'success' : 'error');
+    }
+
+    // 배포 버전 설정
+    async function setDeployVersion() {
+        const version = document.getElementById('deployVersionSelect').value;
+        const description = document.getElementById('deployDescription').value;
+
+        if (!version) {
+            alert('배포할 버전을 선택하세요.');
+            return;
+        }
+
+        const deployBtn = document.getElementById('deployBtn');
+        deployBtn.disabled = true;
+
+        try {
+            addLog(`배포 버전 설정 시작: ${version}`);
+            showStatus('deploySetStatus', '배포 버전 설정 중...', 'info');
+
+            const requestBody = {
+                version: version,
+                description: description || null
+            };
+
+            const response = await fetch(`${API_BASE}/deploy-version`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`배포 설정 실패: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            addLog(`배포 버전 설정 완료: ${result.version} (활성: ${result.isActive})`, 'success');
+            showStatus('deploySetStatus', `✅ "${result.version}" 버전이 배포되었습니다!`, 'success');
+
+            // 폼 초기화
+            document.getElementById('deployVersionSelect').value = '';
+            document.getElementById('deployDescription').value = '';
+
+            // 현재 배포 버전 새로고침
+            setTimeout(() => loadCurrentDeployVersion(), 1000);
+
+        } catch (error) {
+            addLog(`배포 버전 설정 실패: ${error.message}`, 'error');
+            showStatus('deploySetStatus', `❌ 배포 실패: ${error.message}`, 'error');
+        } finally {
+            deployBtn.disabled = false;
+        }
+    }
+
+    // 1. 버전 목록 로드
+    async function loadVersions() {
+        try {
+            addLog('버전 목록 조회 시작');
+            const response = await fetch(`${API_BASE}/versions`);
+            const data = await response.json();
+
+            if (response.ok) {
+                updateVersionDropdowns(data.versions);
+                addLog(`버전 목록 조회 성공: ${data.totalCount}개 버전`, 'success');
+                showStatus('versionStatus', `📋 총 ${data.totalCount}개 버전 발견`, 'info');
+            } else {
+                throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+            }
+        } catch (error) {
+            addLog(`버전 목록 조회 실패: ${error.message}`, 'error');
+            showStatus('versionStatus', `❌ 버전 목록 조회 실패: ${error.message}`, 'error');
+        }
+    }
+
+    // 버전 드롭다운 업데이트
+    function updateVersionDropdowns(versions) {
+        const querySelect = document.getElementById('queryVersion');
+        const createSelect = document.getElementById('createVersion');
+        const deploySelect = document.getElementById('deployVersionSelect');
+
+        // 조회용 드롭다운
+        querySelect.innerHTML = '<option value="">현재 배포 버전 자동 조회</option>';
+        versions.forEach(version => {
+            querySelect.innerHTML += `<option value="${version}">${version}</option>`;
+        });
+
+        // 등록용 드롭다운
+        createSelect.innerHTML = '<option value="">기존 버전 선택</option>';
+        versions.forEach(version => {
+            createSelect.innerHTML += `<option value="${version}">${version}</option>`;
+        });
+
+        // 배포용 드롭다운
+        deploySelect.innerHTML = '<option value="">배포할 버전 선택</option>';
+        versions.forEach(version => {
+            deploySelect.innerHTML += `<option value="${version}">${version}</option>`;
+        });
+    }
+
+    // 2. 캐러셀 조회
+    async function loadCarousels() {
+        const version = document.getElementById('queryVersion').value;
+        // version이 비어있으면 배포 버전 자동 조회
+
+        try {
+            const versionText = version || '현재 배포 버전';
+            addLog(`캐러셀 조회 시작: ${versionText}`);
+
+            const url = version ? `${API_BASE}?version=${version}` : API_BASE;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (response.ok) {
+                displayCarousels(data);
+                addLog(`캐러셀 조회 성공: ${data.version} 버전 ${data.totalCount}개`, 'success');
+            } else {
+                throw new Error(`HTTP ${response.status}: ${JSON.stringify(data)}`);
+            }
+        } catch (error) {
+            addLog(`캐러셀 조회 실패: ${error.message}`, 'error');
+        }
+    }
+
+    // 캐러셀 목록 표시
+    function displayCarousels(data) {
+        const container = document.getElementById('carouselList');
+        if (data.totalCount === 0) {
+            container.innerHTML = `<p>버전 "${data.version}"에 등록된 캐러셀이 없습니다.</p>`;
+            return;
+        }
+
+        let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>총 ${data.totalCount}개의 캐러셀 (Version: ${data.version})</h3>
+                    <button onclick="bulkDeleteCarousels('${data.version}')" class="delete-btn" style="font-size: 12px; padding: 5px 10px;">
+                        🗑️ 전체 삭제 (${data.totalCount}개)
+                    </button>
+                </div>
+            `;
+
+        data.images.forEach(item => {
+            html += `
+                    <div class="carousel-item">
+                        <strong>ID:</strong> ${item.id} |
+                        <strong>Order:</strong> ${item.displayOrder} |
+                        <strong>Description:</strong> ${item.description || '없음'}
+                        <br>
+                        <img src="${item.imageUrl}" alt="Carousel ${item.id}" class="carousel-image"
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuydtOuvuOyngCDroZzrk5wg7Iuk7YyoPC90ZXh0Pjwvc3ZnPg=='">
+                        <br>
+                        <small>URL: ${item.imageUrl}</small>
+                        <br>
+                        <button class="delete-btn" onclick="deleteCarousel(${item.id})" style="font-size: 12px; padding: 3px 8px;">삭제</button>
+                    </div>
+                `;
+        });
+        container.innerHTML = html;
+    }
+
+    // 3. 캐러셀 등록
+    async function createCarousel() {
+        const selectedVersion = document.getElementById('createVersion').value;
+        const inputVersion = document.getElementById('createVersionInput').value;
+        const version = inputVersion || selectedVersion;
+        const description = document.getElementById('createDescription').value;
+        const fileInput = document.getElementById('createImageInput');
+        const file = fileInput.files[0];
+
+        if (!version || !file) {
+            alert('Version과 이미지 파일을 입력하세요.');
+            return;
+        }
+
+        const createBtn = document.getElementById('createBtn');
+        createBtn.disabled = true;
+
+        try {
+            addLog(`캐러셀 등록 시작: ${file.name} (버전: ${version})`);
+            showStatus('createStatus', '업로드 URL 생성 중...', 'info');
+
+            const requestBody = {
+                version: version,
+                fileName: file.name,
+                description: description
+            };
+
+            const presignResponse = await fetch(`${API_BASE}/presigned-url`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!presignResponse.ok) {
+                const errorData = await presignResponse.json();
+                throw new Error(`Presigned URL 생성 실패: ${JSON.stringify(errorData)}`);
+            }
+
+            const { presignedUrl, publicUrl, carouselId } = await presignResponse.json();
+            addLog(`Presigned URL 생성 성공: ID=${carouselId}`);
+
+            showStatus('createStatus', 'S3에 이미지 업로드 중...', 'info');
+            const uploadResponse = await fetch(presignedUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type
+                },
+                body: file
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error(`S3 업로드 실패: ${uploadResponse.status}`);
+            }
+
+            addLog(`캐러셀 등록 완료: ID=${carouselId}`, 'success');
+            showStatus('createStatus', `✅ 등록 완료! (ID: ${carouselId})`, 'success');
+
+            // 폼 초기화
+            document.getElementById('createDescription').value = '';
+            document.getElementById('createVersionInput').value = '';
+            fileInput.value = '';
+
+            // 목록 새로고침
+            setTimeout(() => {
+                loadVersions();
+                loadCarousels();
+            }, 1000);
+
+        } catch (error) {
+            addLog(`캐러셀 등록 실패: ${error.message}`, 'error');
+            showStatus('createStatus', `❌ 등록 실패: ${error.message}`, 'error');
+        } finally {
+            createBtn.disabled = false;
+        }
+    }
+
+    // 6. 버전별 일괄 삭제
+    async function bulkDeleteCarousels(targetVersion) {
+        const version = targetVersion || document.getElementById('queryVersion').value;
+        if (!version) {
+            alert('삭제할 버전을 선택하세요.');
+            return;
+        }
+
+        const carouselList = document.getElementById('carouselList');
+        const currentItems = carouselList.querySelectorAll('.carousel-item').length;
+
+        let confirmMessage = `정말로 "${version}" 버전의 모든 캐러셀을 삭제하시겠습니까?`;
+        if (currentItems > 0) {
+            confirmMessage += `\n\n현재 ${currentItems}개의 항목이 삭제됩니다.`;
+        }
+        confirmMessage += '\n\n⚠️ 이 작업은 되돌릴 수 없습니다!';
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            addLog(`버전별 일괄 삭제 시작: version=${version}`);
+            showStatus('bulkDeleteStatus', '일괄 삭제 진행 중...', 'info');
+
+            const response = await fetch(`${API_BASE}/version/${version}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.text();
+                throw new Error(`일괄 삭제 실패: HTTP ${response.status} ${errorData}`);
+            }
+
+            const result = await response.json();
+
+            if (result.totalCount === 0) {
+                addLog(`일괄 삭제 완료: 삭제할 항목이 없었습니다.`, 'info');
+                showStatus('bulkDeleteStatus', '삭제할 항목이 없습니다.', 'info');
+            } else if (result.allSuccess) {
+                addLog(`일괄 삭제 완료: ${result.summary}`, 'success');
+                showStatus('bulkDeleteStatus', `✅ ${result.summary}`, 'success');
+            } else {
+                addLog(`일괄 삭제 부분 완료: ${result.summary}`, 'error');
+                showStatus('bulkDeleteStatus', `⚠️ ${result.summary}`, 'error');
+            }
+        } catch (error) {
+                addLog(`캐러셀 삭제 실패: ${error.message}`, 'error');
+                showStatus('deleteStatus', `❌ 삭제 실패: ${error.message}`, 'error');
+            }
+    }
+</script>
