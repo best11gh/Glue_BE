@@ -7,17 +7,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface DmChatRoomRepository extends JpaRepository<DmChatRoom, Long> {
-
-    @Query("SELECT cr FROM DmChatRoom cr " +
-            "JOIN cr.dmUserChatrooms uc " +
-            "WHERE uc.user.userId = :userId")
-    List<DmChatRoom> findByUserId(@Param("userId") Long userId);
 
     // 두 사용자 간 1:1 채팅방 조회
     @Query("SELECT cr FROM DmChatRoom cr " +
@@ -30,9 +26,9 @@ public interface DmChatRoomRepository extends JpaRepository<DmChatRoom, Long> {
             @Param("userId1") Long userId1,
             @Param("userId2") Long userId2);
 
-    List<DmChatRoom> findByMeetingIn(List<Meeting> hostedMeetings);
+    // 호스트 기준 첫 페이지 조회
+    List<DmChatRoom> findByMeetingHostOrderByIdDesc(User host, Pageable pageable);
 
-    @Query("SELECT d FROM DmChatRoom d JOIN d.meeting m WHERE m.host = :host")
-    List<DmChatRoom> findByHost(@Param("host") User host);
-
+    // 호스트 기준 커서 조회
+    List<DmChatRoom> findByMeetingHostAndIdLessThanOrderByIdDesc(User host, Long cursorId, Pageable pageable);
 }

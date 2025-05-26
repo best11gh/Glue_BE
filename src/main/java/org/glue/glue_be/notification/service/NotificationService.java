@@ -96,24 +96,32 @@ public class NotificationService {
 
     // 전체 읽기
     @Transactional(readOnly = true)
-    public NotificationResponse[] getNotifications(Long currentUserId, Long cursorId, Integer pageSize) {
-
-        // 1. 페이징 설정 (pageSize + 1건으로 hasNext 판단용)
+    public NotificationResponse[] getNotifications(Long currentUserId, Long cursorId, Integer pageSize,
+                                                   boolean isNotice) {
         Pageable pageable = PageRequest.of(0, pageSize + 1);
+        List<Notification> notifications;
 
-        // 2. 커서 기반 알림 조회
-        List<Notification> notifications = (cursorId == null)
-                ? notificationRepository.findByReceiver_UserIdOrderByNotificationIdDesc(currentUserId, pageable)
-                : notificationRepository.findByReceiver_UserIdAndNotificationIdLessThanOrderByNotificationIdDesc(
-                        currentUserId, cursorId, pageable);
+        if (isNotice) {
+            // notice만 조회
+            notifications = (cursorId == null)
+                    ? notificationRepository.findByReceiver_UserIdAndTypeOrderByNotificationIdDesc(currentUserId,
+                    "notice", pageable)
+                    : notificationRepository.findByReceiver_UserIdAndTypeAndNotificationIdLessThanOrderByNotificationIdDesc(
+                            currentUserId, "notice", cursorId, pageable);
+        } else {
+            // guestbook + post 조회
+            notifications = (cursorId == null)
+                    ? notificationRepository.findByReceiver_UserIdAndTypeInOrderByNotificationIdDesc(currentUserId,
+                    List.of("guestbook", "post"), pageable)
+                    : notificationRepository.findByReceiver_UserIdAndTypeInAndNotificationIdLessThanOrderByNotificationIdDesc(
+                            currentUserId, List.of("guestbook", "post"), cursorId, pageable);
+        }
 
-        // 3. 다음 페이지 존재 여부 판단
         boolean hasNext = notifications.size() > pageSize;
         if (hasNext) {
             notifications = notifications.subList(0, pageSize);
         }
 
-        // 4. DTO 변환
         return notifications.stream()
                 .map(n -> NotificationResponse.builder()
                         .notificationId(n.getNotificationId())

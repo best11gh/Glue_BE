@@ -40,25 +40,31 @@ public class FcmService {
     }
 
     public void sendMultiMessage(MultiFcmSendDto multiFcmSendDto) {
-        MulticastMessage message = MulticastMessage.builder()
-                .setNotification(Notification.builder()
-                        .setTitle(multiFcmSendDto.getTitle())
-                        .setBody(multiFcmSendDto.getBody())
-                        .build())
-                .addAllTokens(multiFcmSendDto.getTokens())
-                .build();
+        int successCount = 0;
+        int failureCount = 0;
 
-        try {
-            FirebaseMessaging.getInstance().sendMulticast(message);
-        } catch (FirebaseMessagingException e) {
-            log.error("[FCM 단체 전송 실패] tokens: {}, title: {}, body: {}, message: {}",
-                    multiFcmSendDto.getTokens(),
-                    multiFcmSendDto.getTitle(),
-                    multiFcmSendDto.getBody(),
-                    e.getMessage(),
-                    e
-            );
-            throw new BaseException(FcmResponseStatus.FCM_MULTICAST_ERROR, "FCM 다중 전송에 실패했습니다.");
+        for (String token : multiFcmSendDto.getTokens()) {
+            FcmSendDto singleDto = FcmSendDto.builder()
+                    .token(token)
+                    .title(multiFcmSendDto.getTitle())
+                    .body(multiFcmSendDto.getBody())
+                    .build();
+
+            try {
+                sendMessage(singleDto);
+                successCount++;
+            } catch (BaseException e) {
+                failureCount++;
+                log.error("[FCM 단일 전송 실패 - 멀티 전송 중] token: {}, message: {}", token, e.getMessage());
+            }
+        }
+
+        log.info("[FCM 멀티 전송 결과] 성공: {}, 실패: {}", successCount, failureCount);
+
+        if (failureCount > 0) {
+            throw new BaseException(FcmResponseStatus.FCM_MULTICAST_ERROR, "일부 FCM 전송에 실패했습니다.");
         }
     }
+
+
 }

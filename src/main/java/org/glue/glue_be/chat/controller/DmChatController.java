@@ -46,16 +46,20 @@ public class DmChatController {
     // 내가 호스트인 DM 채팅방 목록 조회
     @GetMapping("/rooms/hosted")
     public ResponseEntity<List<DmChatRoomListResponse>> getHostedDmChatRooms(
+            @RequestParam(required = false) Long cursorId,
+            @RequestParam(defaultValue = "10") Integer pageSize,
             @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmChatRoomListResponse> chatRooms = dmChatService.getHostedDmChatRooms(auth.getUserId());
+        List<DmChatRoomListResponse> chatRooms = dmChatService.getHostedDmChatRooms(cursorId, pageSize, auth.getUserId());
         return ResponseEntity.ok(chatRooms);
     }
 
     // 내가 참석자인 DM 채팅방 목록 조회
     @GetMapping("/rooms/participated")
     public ResponseEntity<List<DmChatRoomListResponse>> getParticipatedDmChatRooms(
+            @RequestParam(required = false) Long cursorId,
+            @RequestParam(defaultValue = "10") Integer pageSize,
             @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmChatRoomListResponse> chatRooms = dmChatService.getParticipatedDmChatRooms(auth.getUserId());
+        List<DmChatRoomListResponse> chatRooms = dmChatService.getParticipatedDmChatRooms(cursorId, pageSize, auth.getUserId());
         return ResponseEntity.ok(chatRooms);
     }
 
@@ -69,8 +73,12 @@ public class DmChatController {
 
     // Dm방 클릭 시, 대화 이력을 불러오면서 + 읽지 않은 메시지들 읽음으로 처리
     @PutMapping("/{dmChatRoomId}/all-messages")
-    public ResponseEntity<List<DmMessageResponse>> getDmMessages(@PathVariable Long dmChatRoomId, @AuthenticationPrincipal CustomUserDetails auth) {
-        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, auth.getUserId());
+    public ResponseEntity<List<DmMessageResponse>> getDmMessages(
+            @PathVariable Long dmChatRoomId,
+            @RequestParam(required = false) Long cursorId,
+            @RequestParam(defaultValue = "20") Integer pageSize,
+            @AuthenticationPrincipal CustomUserDetails auth) {
+        List<DmMessageResponse> messages = dmChatService.getDmMessagesByDmChatRoomId(dmChatRoomId, cursorId, pageSize, auth.getUserId());
         return ResponseEntity.ok(messages);
     }
 

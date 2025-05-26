@@ -192,7 +192,7 @@ public class GuestBookService {
 
     private GuestBook findGuestBook(Long guestBookId) {
         return guestBookRepository.findById(guestBookId)
-                .orElseThrow(() -> new BaseException((GuestBookResponseStatus.GUESTBOOK_NOT_FOUND)));
+                .orElseThrow(() -> new BaseException(GuestBookResponseStatus.GUESTBOOK_NOT_FOUND));
 
     }
 
