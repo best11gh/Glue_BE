@@ -37,9 +37,4 @@ public class MainCarousel extends BaseEntity {
         this.displayOrder = displayOrder;
         this.description = description;
     }
-
-    public void updateCarousel(String imageUrl, String description) {
-        if (imageUrl != null) this.imageUrl = imageUrl;
-        if (description != null) this.description = description;
-    }
 }
