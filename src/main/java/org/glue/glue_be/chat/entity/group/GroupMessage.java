@@ -36,19 +36,12 @@ public class GroupMessage extends BaseEntity {
     @Column(name = "message_content")
     private String message;
 
-    @Column(name = "unread_count")
-    private Integer unreadCount;
-
     // Constructor with required fields
-    public GroupMessage(User user, GroupChatRoom groupChatroom, Meeting meeting, String message, Integer unreadCount) {
+    public GroupMessage(User user, GroupChatRoom groupChatroom, Meeting meeting, String message) {
         this.user = user;
         this.groupChatroom = groupChatroom;
         this.meeting = meeting;
         this.message = message;
-        this.unreadCount = (unreadCount == null) ? UNREAD_COUNT_DEFAULT: unreadCount;
     }
 
-    public void updateUnreadCount() {
-        this.unreadCount -= 1;
-    }
 }

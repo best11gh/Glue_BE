@@ -25,6 +25,9 @@ public class GroupUserChatRoom extends BaseEntity {
     @JoinColumn(name = "group_chatroom_id")
     private GroupChatRoom groupChatroom;
 
+    @Column(name = "last_read_message_id")
+    private Long lastReadMessageId = 0L;
+
     private Integer pushNotificationOn = 1;
 
     // Constructor with required fields

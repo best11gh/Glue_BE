@@ -27,6 +27,9 @@ public class DmUserChatroom extends BaseEntity {
 	@Column(name = "push_notification_on", nullable = false)
 	private Integer pushNotificationOn = 1;
 
+	@Column(name = "last_read_message_id")
+	private Long lastReadMessageId = 0L;
+
 	@Builder
 	private DmUserChatroom(User user, DmChatRoom dmChatRoom){
 		this.user = user;
