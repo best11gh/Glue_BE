@@ -1,5 +1,7 @@
 package org.glue.glue_be.invitation.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.common.response.BaseResponse;
@@ -15,12 +17,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/invitations")
+@Tag(name = "Invitation", description = "초대장 API")
 public class InvitationController {
 
     private final InvitationService invitationService;
 
     // 모임 초대장 생성 API
     @PostMapping("/meeting/{meetingId}")
+    @Operation(summary = "모임 초대장 생성")
     public BaseResponse<InvitationDto.Response> createMeetingInvitation(
             @PathVariable Long meetingId,
             @Valid @RequestBody MeetingDto.InvitationRequest request) {
@@ -39,6 +43,7 @@ public class InvitationController {
 
     // 초대장 수락 API
     @PostMapping("/accept")
+    @Operation(summary = "모임 초대장 수락")
     public BaseResponse<Void> acceptInvitation(@Valid @RequestBody InvitationDto.AcceptRequest request) {
         Long currentUserId = getCurrentUserId();
         invitationService.acceptInvitation(request.getCode(), currentUserId);
@@ -47,6 +52,7 @@ public class InvitationController {
 
     // 초대장 목록 조회 API
     @GetMapping
+    @Operation(summary = "모임 초대장 목록 조회")
     public BaseResponse<Page<InvitationDto.Response>> getInvitations(Pageable pageable) {
         Long currentUserId = getCurrentUserId();
         return new BaseResponse<>(invitationService.getInvitations(currentUserId, pageable));
