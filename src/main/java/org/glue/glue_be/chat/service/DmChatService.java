@@ -245,8 +245,8 @@ public class DmChatService extends CommonChatService {
                     pageSize,
                     userId,
                     this::getUserById,
-                    dmUserChatroomRepository::findDmChatRoomsByUserOrderByDmChatRoomIdDesc,
-                    dmUserChatroomRepository::findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc,
+                    (user, pageable) -> dmUserChatroomRepository.findDmChatRoomsByUserOrderByDmChatRoomIdDesc(user.getUserId(), pageable),
+                    (user, curId, pageable) -> dmUserChatroomRepository.findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc(user.getUserId(), curId, pageable),
                     (chatRooms, user) -> {
                         // 내가 호스트가 아닌 미팅의 DM 채팅방만 필터링 후 변환
                         List<DmChatRoom> filteredChatRooms = chatRooms.stream()
@@ -278,8 +278,14 @@ public class DmChatService extends CommonChatService {
                     DmMessage lastMessage = dmMessageRepository.findTopByDmChatRoomOrderByCreatedAtDesc(chatRoom)
                             .orElse(null);
 
-                    boolean hasUnreadMessages = dmMessageRepository.existsByDmChatRoomAndUser_UserIdNotAndIsRead(
-                            chatRoom, currentUser.getUserId(), 0);
+                    // 현재 사용자의 마지막 읽은 메시지 ID 조회
+                    Long currentUserLastReadMessageId = getCurrentUserLastReadMessageId(currentUser.getUserId(), chatRoom.getId());
+
+                    // 채팅방의 가장 최신 메시지 ID 조회
+                    long latestMessageId = getLatestMessageId(chatRoom);
+
+                    // 읽지 않은 메시지 여부 확인
+                    boolean hasUnreadMessages = currentUserLastReadMessageId < latestMessageId;
 
                     return responseMapper.toChatRoomListResponse(
                             chatRoom, otherUser, lastMessage, hasUnreadMessages);
@@ -349,10 +355,8 @@ public class DmChatService extends CommonChatService {
                     userId,
                     this::getChatRoomById,
                     this::validateChatRoomMember,
-                    dmMessageRepository::findUnreadMessages,
-                    message -> message.setIsRead(1),
-                    dmMessageRepository::saveAll,
-                    this::notifyDmMessageRead
+                    this::getLatestMessageId,
+                    dmUserChatroomRepository::updateLastReadMessageId
             );
         } catch (BaseException e) {
             throw e;
@@ -361,7 +365,8 @@ public class DmChatService extends CommonChatService {
         }
     }
 
-    // 웹소켓에 연결되어 있을 때 메시지를 읽었다는 정보를 실시간으로 전달
+    // 메시지 읽음 알림 전송(푸시 알림 아님, 실시간 알림)
+    // TODO: 레디스 도입하며 아마 함께 사용하게 될 메소드 (현재 사용 x)
     private void notifyDmMessageRead(Long dmChatRoomId, Long receiverId, List<DmMessage> readMessages) {
         if (!readMessages.isEmpty()) {
             DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(dmChatRoomId);
@@ -389,10 +394,11 @@ public class DmChatService extends CommonChatService {
     @Transactional
     public DmMessageResponse processDmMessage(Long dmChatRoomId, DmMessageSendRequest request, Long userId) {
         try {
-            // 1. 메시지 저장
+            // 메시지 db에 저장
             DmMessageResponse response = saveDmMessage(dmChatRoomId, userId, request.getContent());
 
-            // 2. 메시지 전송 관리(온라인-웹소켓, 오프라인-푸시알림)
+            // 메시지 전송 및 알림
+            // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
             broadcastMessage(dmChatRoomId, response, userId);
 
             return response;
@@ -429,44 +435,47 @@ public class DmChatService extends CommonChatService {
     }
 
     // 알림 전송: 웹소켓(실시간) + 푸시(비실시간)
-    private void broadcastMessage(Long dmChatRoomId, DmMessageResponse messageResponse, Long senderId) {
+    private void broadcastMessage(Long chatroomId, DmMessageResponse messageResponse, Long senderId) {
         try {
-            // 채팅방 정보 가져오기
-            DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(dmChatRoomId);
+            DmChatRoom dmChatRoom = getChatRoomById(chatroomId);
+            Optional<DmMessage> messageOpt = dmMessageRepository.findById(messageResponse.getDmMessageId());
 
-            // 1. 모든 참여자에게 웹소켓으로 메시지 전송 시도 (온라인 상태인 참여자만 받게 됨)
-            // sendWebSocketMessageToOnlineReceivers 내부의 convertAndSend() 매소드가 연결 상태를 자체적으로 확인한다!
-            sendWebSocketMessageToOnlineReceivers(
-                    chatRoom.getParticipants(),
-                    senderId,
-                    "/queue/dm/",
-                    messageResponse,
-                    UserSummary::getUserId
-            );
+            if (messageOpt.isEmpty()) {
+                throw new BaseException(ChatResponseStatus.MESSAGE_NOT_FOUND);
+            }
 
-            // 2. 오프라인 참여자에게 푸시 알림 전송
-            DmChatRoom dmChatRoom = getChatRoomById(dmChatRoomId);
-            DmMessage message = dmMessageRepository.findById(messageResponse.getDmMessageId())
-                    .orElseThrow(() -> new BaseException(ChatResponseStatus.MESSAGE_NOT_FOUND));
+            DmMessage message = messageOpt.get();
+            DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(chatroomId, Optional.ofNullable(senderId));
 
-            // 이 매소드 내부에서 조건 필터링
+            // 모든 참여자에게 웹소켓 전송
+            // 웹소켓에 연결된 사용자만 실제 수신
+            // 오프라인 수신자는 받지도 않고 에러를 내지도 않고 그냥 무시
+            for (UserSummary participant : chatRoom.getParticipants()) {
+                Long participantId = participant.getUserId();
+
+                if (!participantId.equals(senderId)) {
+                    messagingTemplate.convertAndSend("/queue/dm/" + participantId, messageResponse);
+                }
+            }
+
+            // 모든 오프라인 참여자에게 푸시 알림 전송
             sendPushNotificationsToOfflineReceivers(
                     message,
                     dmChatRoom,
                     senderId,
                     "/queue/dm",
-                    DmMessage::getDmMessageContent,                      // 메시지 내용 추출
-                    DmMessage::getUser,                                  // 발신자 정보 추출
-                    dmUserChatroomRepository::findByDmChatRoom,          // 참여자 목록 조회
-                    DmUserChatroom::getUser,                             // 사용자 정보 추출
-                    DmUserChatroom::getPushNotificationOn,               // 알림 설정 조회
-                    this::isUserConnectedToWebSocket,                    // 웹소켓 연결 확인
-                    (sender, recipient, content) -> FcmSendDto.builder() // 알림 객체 생성
-                            .title(sender.getNickname() + "님의 메시지")
+                    DmMessage::getDmMessageContent,
+                    DmMessage::getUser,
+                    dmUserChatroomRepository::findByDmChatRoom,
+                    DmUserChatroom::getUser,
+                    DmUserChatroom::getPushNotificationOn,
+                    this::isUserConnectedToWebSocket,
+                    (sender, recipient, content) -> FcmSendDto.builder()
+                            .title(sender.getNickname() + "님의 쪽지")
                             .body(content)
                             .token(recipient.getFcmToken())
                             .build(),
-                    fcmService::sendMessage                              // 알림 전송
+                    fcmService::sendMessage
             );
         } catch (BaseException e) {
             throw e;
@@ -486,6 +495,19 @@ public class DmChatService extends CommonChatService {
     private DmUserChatroom validateChatRoomMember(DmChatRoom chatRoom, User user) {
         return dmUserChatroomRepository.findByDmChatRoomAndUser(chatRoom, user)
                 .orElseThrow(() -> new BaseException(ChatResponseStatus.USER_NOT_MEMBER));
+    }
+
+    private Long getCurrentUserLastReadMessageId(Long userId, Long chatroomId) {
+        return dmUserChatroomRepository
+                .findByUser_UserIdAndDmChatRoom_Id(userId, chatroomId)  // Repository 메소드명 수정
+                .map(DmUserChatroom::getLastReadMessageId)              // getId() -> getLastReadMessageId()
+                .orElse(0L);                                            // Optional 처리
+    }
+
+    private Long getLatestMessageId(DmChatRoom chatRoom) {
+        DmMessage lastMessage = dmMessageRepository.findTopByDmChatRoomOrderByCreatedAtDesc(chatRoom)
+                .orElse(null);
+        return lastMessage != null ? lastMessage.getId() : 0L;
     }
 
     @Override

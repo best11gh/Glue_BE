@@ -18,11 +18,6 @@ public interface DmMessageRepository extends JpaRepository<DmMessage, Long> {
 
     Optional<DmMessage> findTopByDmChatRoomOrderByCreatedAtDesc(DmChatRoom chatRoom);
 
-    boolean existsByDmChatRoomAndUser_UserIdNotAndIsRead(DmChatRoom dmChatRoom, Long userId, int isRead);
-
-    @Query("SELECT m FROM DmMessage m WHERE m.dmChatRoom.id = :chatRoomId AND m.user.userId != :userId AND m.isRead = 0")
-    List<DmMessage> findUnreadMessages(@Param("chatRoomId") Long chatRoomId, @Param("userId") Long userId);
-
     // 커서 기반 메시지 조회를 위한 새로운 메서드들 (id 필드 사용)
     // 첫 번째 요청 (cursorId가 null일 때) - 최신 메시지부터 내림차순
     List<DmMessage> findByDmChatRoomOrderByIdDesc(DmChatRoom dmChatRoom, Pageable pageable);

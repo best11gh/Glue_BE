@@ -29,19 +29,6 @@ public class DmMessage extends BaseEntity {
 	@Column(name = "dm_message_content", columnDefinition = "TEXT", nullable = false)
 	private String dmMessageContent;
 
-	@Column(name = "is_read", nullable = false)
-	@ColumnDefault("0")
-	private int isRead;
-
-	// isRead를 boolean으로 바꾸기 (repository에서 쉽게 사용하게 하기 위함)
-	public boolean isRead() {
-		return isRead == 1;
-	}
-
-	public void setIsRead(int isRead) {
-		this.isRead = isRead;
-	}
-
 	@Builder
 	private DmMessage(DmChatRoom chatRoom, User user, String dmMessageContent){
 		this.dmChatRoom = chatRoom;
