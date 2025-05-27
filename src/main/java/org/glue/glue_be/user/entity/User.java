@@ -173,4 +173,29 @@ public class User extends BaseEntity {
         this.guestbooksVisibility = guestbooksVisibility;
     }
 
+    public void anonymizeForSignOut() {
+        // not null 필드들을 기본값으로 설정
+        this.birthDate = LocalDate.parse("1900-01-01T00:00:00");
+        this.email = "deleted@deleted.com";
+        this.gender = -1;
+        this.guestbooksVisibility = VISIBILITY_PRIVATE;
+        this.languageLearn = -1;
+        this.languageLearnLevel = -1;
+        this.languageMain = -1;
+        this.languageMainLevel = -1;
+        this.likeVisibility = VISIBILITY_PRIVATE;
+        this.major = -1;
+        this.majorVisibility = -1;
+        this.meetingVisibility = -1;
+        this.nickname = "탈퇴한 사용자_" + this.userId;
+        this.oauthId = "deleted_oauth_id_" + this.userId;
+        this.school = -1;
+        this.systemLanguage = -1;
+
+        // nullable 필드들을 null로 설정
+        this.description = null;
+        this.fcmToken = null;
+        this.profileImageUrl = null;
+        this.realName = null;
+    }
 }

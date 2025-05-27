@@ -191,6 +191,13 @@ public class UserService {
 		user.changeDescription(description);
 	}
 
+	// 15. 회원 탈퇴
+	public void signOut(Long userId) {
+		User user = getUserById(userId);
+		user.anonymizeForSignOut();
+	}
+
+
 
 
 	// 공용: 공용 유저 조회 메서드
