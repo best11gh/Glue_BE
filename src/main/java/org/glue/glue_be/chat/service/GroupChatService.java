@@ -343,23 +343,21 @@ public class GroupChatService extends CommonChatService {
     // 메시지 db에 저장
     private GroupMessageResponse saveGroupMessage(Long groupChatroomId, Long senderId, String content) {
         try {
-            GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
-            User sender = getUserById(senderId);
-            validateChatRoomMember(groupChatRoom, sender);
-
-            // 메시지 생성
-            GroupMessage groupMessage = new GroupMessage(
-                    sender,
-                    groupChatRoom,
-                    groupChatRoom.getMeeting(),
-                    content
+            return saveMessage(
+                    groupChatroomId,
+                    senderId,
+                    content,
+                    this::getChatRoomById,
+                    this::validateChatRoomMember,
+                    (chatRoom, sender, messageContent) -> new GroupMessage(
+                            sender,
+                            chatRoom,
+                            chatRoom.getMeeting(),
+                            messageContent
+                    ),
+                    groupMessageRepository::save,
+                    responseMapper::toMessageResponse
             );
-
-            // 메시지 저장
-            GroupMessage savedMessage = groupMessageRepository.save(groupMessage);
-
-            // 응답 생성
-            return responseMapper.toMessageResponse(savedMessage);
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
