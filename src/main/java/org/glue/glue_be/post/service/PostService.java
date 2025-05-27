@@ -188,7 +188,7 @@ public class PostService {
 
 
 	// 게시글 끌올
-	public void bumpPost(Long postId, Long userId) {
+	public BumpPostResponse bumpPost(Long postId, Long userId) {
 
 		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
@@ -196,6 +196,13 @@ public class PostService {
 		if (!post.getMeeting().isHost(userId)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
 
 		post.bump(LocalDateTime.now());
+
+		return new BumpPostResponse(
+			post.getBumpCount(),
+			Post.BUMP_LIMIT
+		);
+
+
 	}
 
 

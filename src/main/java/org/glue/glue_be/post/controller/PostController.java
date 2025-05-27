@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
+import org.glue.glue_be.post.dto.response.BumpPostResponse;
 import org.glue.glue_be.post.dto.response.CreatePostResponse;
 import org.glue.glue_be.post.dto.response.GetPostResponse;
 import org.glue.glue_be.post.dto.response.GetPostsResponse;
@@ -42,9 +43,8 @@ public class PostController {
 
 	// 5. 게시글 끌올 (로그인 필수)
 	@GetMapping("/{postId}/bump")
-	public BaseResponse<Void> bumpPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
-		postService.bumpPost(postId, auth.getUserId());
-		return new BaseResponse<>();
+	public BaseResponse<BumpPostResponse> bumpPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
+		return new BaseResponse<BumpPostResponse>(postService.bumpPost(postId, auth.getUserId()));
 	}
 
 	// 6. 게시글 목록 조회 (무한 스크롤 / cursor 기반)
