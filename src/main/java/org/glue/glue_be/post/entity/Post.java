@@ -39,6 +39,11 @@ public class Post {
     @Convert(converter = LocalDateTimeStringConverter.class)
     private LocalDateTime bumpedAt;
 
+    public static final int BUMP_LIMIT = 3;
+
+    @Column(name = "bump_count", nullable = false)
+    private Integer bumpCount;
+
     @OneToMany(mappedBy = "post")
     private List<PostImage> images = new ArrayList<>();
 
@@ -52,6 +57,7 @@ public class Post {
         this.content = content;
         this.viewCount = 0;
         this.bumpedAt = null;
+        this.bumpCount = 0;
     }
 
     public void updatePost(String title, String content) {
@@ -60,13 +66,11 @@ public class Post {
     }
 
     public void bump(LocalDateTime now) {
-
-        final int BUMP_COOLTIME_DAYS = 3;
-
-        if (bumpedAt != null && bumpedAt.plusDays(BUMP_COOLTIME_DAYS).isAfter(now)) {
-            throw new BaseException(PostResponseStatus.POST_CANNOT_BUMP_YET);
+        if (bumpedAt != null && this.bumpCount >= BUMP_LIMIT) {
+            throw new BaseException(PostResponseStatus.POST_CANNOT_BUMP_MORE);
         }
         this.bumpedAt = now;
+        this.bumpCount++;
     }
 
     public void increaseViewCount() {
