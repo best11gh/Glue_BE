@@ -201,9 +201,14 @@ public class GroupChatService extends CommonChatService {
                     GroupMessage lastMessage = groupMessageRepository.findTopByGroupChatroomOrderByCreatedAtDesc(chatRoom)
                             .orElse(null);
 
+                    // 현재 사용자의 마지막 읽은 메시지 ID 조회
+                    Long currentUserLastReadMessageId = getCurrentUserLastReadMessageId(currentUser.getUserId(), chatRoom.getGroupChatroomId());
+
+                    // 채팅방의 가장 최신 메시지 ID 조회
+                    long latestMessageId = lastMessage != null ? lastMessage.getGroupMessageId() : 0L;
+
                     // 읽지 않은 메시지 여부 확인
-                    boolean hasUnreadMessages = groupMessageRepository.existsByGroupChatroomAndUser_UserIdNotAndUnreadCount(
-                            chatRoom, currentUser.getUserId(), 0);
+                    boolean hasUnreadMessages = currentUserLastReadMessageId < latestMessageId;
 
                     return responseMapper.toChatRoomListResponse(
                             chatRoom, lastMessage, hasUnreadMessages, participantCount);
@@ -272,7 +277,6 @@ public class GroupChatService extends CommonChatService {
         }
     }
 
-
     // 안 읽었던 것들 읽음 처리하는 실시간+비실시간 로직을 공통 매소드에 전달
     @Transactional
     public void markMessagesAsRead(Long groupChatroomId, Long userId) {
@@ -280,12 +284,10 @@ public class GroupChatService extends CommonChatService {
             processMarkAsRead(
                     groupChatroomId,
                     userId,
-                    this::getChatRoomById,                           // 채팅방 조회
-                    this::validateChatRoomMember,                    // 채팅방 멤버 검증
-                    groupMessageRepository::findUnreadMessages,      // 읽지 않은 메시지 조회
-                    GroupMessage::updateUnreadCount,                 // 읽음 처리
-                    groupMessageRepository::saveAll,                 // 업데이트된 메시지 저장
-                    this::notifyGroupMessageRead                     // 읽음 알림 전송
+                    this::getChatRoomById,
+                    this::validateChatRoomMember,
+                    this::getLatestMessageIdInChatRoom,
+                    groupUserChatRoomRepository::updateLastReadMessageId
             );
         } catch (BaseException e) {
             throw e;
@@ -294,7 +296,8 @@ public class GroupChatService extends CommonChatService {
         }
     }
 
-    // 메시지 읽음 알림 전송
+    // 메시지 읽음 알림 전송(푸시 알림 아님, 실시간 알림)
+    // TODO: 레디스 도입하며 아마 함께 사용하게 될 메소드 (현재 사용 x)
     private void notifyGroupMessageRead(Long groupChatroomId, Long receiverId, List<GroupMessage> readMessages) {
         if (!readMessages.isEmpty()) {
             GroupChatRoomDetailResponse chatRoom = getGroupChatRoomDetail(groupChatroomId, receiverId);
@@ -322,10 +325,11 @@ public class GroupChatService extends CommonChatService {
     @Transactional
     public GroupMessageResponse processGroupMessage(Long groupChatroomId, GroupMessageSendRequest request, Long userId) {
         try {
-            // 메시지 저장
+            // 메시지 db에 저장
             GroupMessageResponse response = saveGroupMessage(groupChatroomId, userId, request.content());
 
             // 메시지 전송 및 알림
+            // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
             broadcastMessage(groupChatroomId, response, userId);
 
             return response;
@@ -336,7 +340,7 @@ public class GroupChatService extends CommonChatService {
         }
     }
 
-    // 메시지 저장
+    // 메시지 db에 저장
     private GroupMessageResponse saveGroupMessage(Long groupChatroomId, Long senderId, String content) {
         try {
             GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
@@ -348,8 +352,7 @@ public class GroupChatService extends CommonChatService {
                     sender,
                     groupChatRoom,
                     groupChatRoom.getMeeting(),
-                    content,
-                    countOtherParticipants(groupChatRoom, senderId)
+                    content
             );
 
             // 메시지 저장
@@ -364,53 +367,50 @@ public class GroupChatService extends CommonChatService {
         }
     }
 
-    // 채팅방 참여자 수 계산 (발신자 제외)
-    private Integer countOtherParticipants(GroupChatRoom groupChatRoom, Long senderId) {
-        List<GroupUserChatRoom> participants = getChatRoomParticipants(groupChatRoom);
-        return (int) participants.stream()
-                .filter(p -> !p.getUser().getUserId().equals(senderId))
-                .count();
-    }
-
-    // 메시지 브로드캐스트 및 알림 전송
+    // 온라인 유저에게 메시지 웹소켓으로 브로드캐스트, 오프라인 유저에겐 푸시 알림 전송
     private void broadcastMessage(Long groupChatroomId, GroupMessageResponse messageResponse, Long senderId) {
         try {
-            // 채팅방 정보 조회
+            GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
+            Optional<GroupMessage> messageOpt = groupMessageRepository.findById(messageResponse.groupMessageId());
+
+            if (messageOpt.isEmpty()) {
+                throw new BaseException(ChatResponseStatus.MESSAGE_NOT_FOUND);
+            }
+
+            GroupMessage message = messageOpt.get();
             GroupChatRoomDetailResponse chatRoom = getGroupChatRoomDetail(groupChatroomId, senderId);
 
-            // 1. 온라인 참여자에게 웹소켓으로 메시지 전송
-            sendWebSocketMessageToOnlineReceivers(
-                    chatRoom.participants(),
-                    senderId,
-                    "/topic/group/",
-                    messageResponse,
-                    UserSummary::getUserId
-            );
+            // 모든 참여자에게 웹소켓 전송
+            // 웹소켓에 연결된 사용자만 실제 수신
+            // 오프라인 수신자는 받지도 않고 에러를 내지도 않고 그냥 무시
+            for (UserSummary participant : chatRoom.participants()) {
+                Long participantId = participant.getUserId();
 
-            // 2. 오프라인 참여자에게 푸시 알림 전송
-            GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
-            GroupMessage message = groupMessageRepository.findById(messageResponse.groupMessageId())
-                    .orElseThrow(() -> new BaseException(ChatResponseStatus.MESSAGE_NOT_FOUND));
+                if (!participantId.equals(senderId)) {
+                    messagingTemplate.convertAndSend("/topic/group/" + participantId, messageResponse);
+                }
+            }
 
-            // 오프라인 참여자에게 푸시 알림 전송
+            // 모든 오프라인 참여자에게 푸시 알림 전송
             sendPushNotificationsToOfflineReceivers(
                     message,
                     groupChatRoom,
                     senderId,
                     "/topic/group",
-                    GroupMessage::getMessage,                         // 메시지 내용 추출
-                    GroupMessage::getUser,                            // 발신자 정보 추출
-                    groupUserChatRoomRepository::findByGroupChatroom, // 참여자 목록 조회
-                    GroupUserChatRoom::getUser,                       // 사용자 정보 추출
-                    GroupUserChatRoom::getPushNotificationOn,         // 알림 설정 조회
-                    this::isUserConnectedToWebSocket,                 // 웹소켓 연결 확인
-                    (sender, recipient, content) -> FcmSendDto.builder() // 알림 객체 생성
+                    GroupMessage::getMessage,
+                    GroupMessage::getUser,
+                    groupUserChatRoomRepository::findByGroupChatroom,
+                    GroupUserChatRoom::getUser,
+                    GroupUserChatRoom::getPushNotificationOn,
+                    this::isUserConnectedToWebSocket,
+                    (sender, recipient, content) -> FcmSendDto.builder()
                             .title(sender.getNickname() + "님의 그룹 메시지")
                             .body(content)
                             .token(recipient.getFcmToken())
                             .build(),
-                    fcmService::sendMessage                           // 알림 전송
+                    fcmService::sendMessage
             );
+
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
@@ -443,5 +443,19 @@ public class GroupChatService extends CommonChatService {
             throw new BaseException(ChatResponseStatus.INVALID_GROUP_USER);
         }
     }
+
+    private Long getLatestMessageIdInChatRoom(GroupChatRoom chatroom) {
+        return groupMessageRepository.findTopByGroupChatroomOrderByCreatedAtDesc(chatroom)
+                .map(GroupMessage::getGroupMessageId)
+                .orElse(0L);
+    }
+
+    private Long getCurrentUserLastReadMessageId(Long userId, Long chatroomId) {
+        return groupUserChatRoomRepository
+                .findByUser_UserIdAndGroupChatroom_GroupChatroomId(userId, chatroomId)
+                .map(GroupUserChatRoom::getLastReadMessageId)
+                .orElse(0L);
+    }
+
     // =====
 }

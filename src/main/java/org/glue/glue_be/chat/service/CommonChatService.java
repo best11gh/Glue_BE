@@ -10,6 +10,8 @@ import org.glue.glue_be.meeting.repository.ParticipantRepository;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.exception.UserException;
 import org.glue.glue_be.user.repository.UserRepository;
+import org.glue.glue_be.util.fcm.dto.FcmSendDto;
+import org.glue.glue_be.util.fcm.service.FcmService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -19,6 +21,7 @@ import org.springframework.messaging.simp.user.SimpUser;
 import org.springframework.messaging.simp.user.SimpUserRegistry;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import java.util.ArrayList;
@@ -34,6 +37,7 @@ public abstract class CommonChatService {
     @Autowired protected ParticipantRepository participantRepository;
     @Autowired protected SimpMessagingTemplate messagingTemplate;
     @Autowired private SimpUserRegistry simpUserRegistry;
+    @Autowired private FcmService fcmService;
 
     // 채팅방 상세 보기에서 방장인지 아닌지 구분하기 위한 매소드(완장 표시 위함)
     protected <UC, C, M> boolean determineIsHost(
@@ -282,27 +286,25 @@ public abstract class CommonChatService {
         }
     }
 
-    // 메시지 읽음 처리
-    protected <M, C, UC> void processMarkAsRead(
+    // 읽음 처리
+    protected <C, UC> void processMarkAsRead(
             Long chatRoomId,
             Long userId,
             Function<Long, C> chatRoomFinder,
             BiFunction<C, User, UC> memberValidator,
-            BiFunction<Long, Long, List<M>> unreadMessagesFinder,
-            Consumer<M> messageReader,
-            Consumer<List<M>> saveUpdatedMessages,
-            TriConsumer<Long, Long, List<M>> notifyMessageRead) {
+            Function<C, Long> latestMessageIdFinder,
+            TriConsumer<Long, Long, Long> lastReadMessageUpdater) {
 
         User user = getUserById(userId);
         C chatRoom = chatRoomFinder.apply(chatRoomId);
         memberValidator.apply(chatRoom, user);
 
-        List<M> unreadMessages = unreadMessagesFinder.apply(chatRoomId, userId);
+        // 해당 채팅방의 가장 최신 메시지 ID 조회
+        Long latestMessageId = latestMessageIdFinder.apply(chatRoom);
 
-        if (!unreadMessages.isEmpty()) {
-            unreadMessages.forEach(messageReader);
-            saveUpdatedMessages.accept(unreadMessages);
-            notifyMessageRead.accept(chatRoomId, userId, unreadMessages);
+        if (latestMessageId != null && latestMessageId > 0) {
+            // 마지막 읽은 메시지 ID 업데이트
+            lastReadMessageUpdater.accept(userId, chatRoomId, latestMessageId);
         }
     }
 
@@ -370,6 +372,48 @@ public abstract class CommonChatService {
             // 알림 전송
             notificationSender.accept(notification);
         }
+    }
+
+    protected <M, C, UC> void sendPushNotificationToUser(
+            M message,
+            Long recipientId,
+            C chatRoom,
+            Function<C, Long> chatRoomIdExtractor,              // 추가: 채팅방 ID 추출
+            Function<M, String> contentExtractor,
+            Function<M, User> senderExtractor,
+            BiFunction<Long, Long, Optional<UC>> userChatRoomFinder, // userId, chatRoomId -> UserChatRoom
+            Function<UC, Integer> notificationSettingGetter,
+            String notificationTitle) {
+
+        // 채팅방 ID 추출
+        Long chatRoomId = chatRoomIdExtractor.apply(chatRoom);
+
+        // 알림 설정 확인
+        Optional<UC> userChatRoom = userChatRoomFinder.apply(recipientId, chatRoomId);
+
+        if (userChatRoom.isEmpty() || notificationSettingGetter.apply(userChatRoom.get()) != 1) {
+            return; // 알림 설정이 꺼져있음
+        }
+
+        User recipient = getUserById(recipientId);
+        if (recipient.getFcmToken() == null) {
+            return; // FCM 토큰이 없음
+        }
+
+        String content = contentExtractor.apply(message);
+        if (content.length() > 100) {
+            content = content.substring(0, 97) + "...";
+        }
+
+        User sender = senderExtractor.apply(message);
+
+        FcmSendDto fcmDto = FcmSendDto.builder()
+                .title(sender.getNickname() + notificationTitle)
+                .body(content)
+                .token(recipient.getFcmToken())
+                .build();
+
+        fcmService.sendMessage(fcmDto);
     }
 
     protected User getUserById(Long userId) {

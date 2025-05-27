@@ -9,7 +9,6 @@ public record GroupMessageResponse(
         Long groupChatroomId,
         UserSummary sender,
         String message,
-        Integer unreadCount,
         LocalDateTime createdAt
 ) {
     // Static builder method to maintain compatibility with builder pattern
@@ -23,7 +22,6 @@ public record GroupMessageResponse(
         private Long groupChatroomId;
         private UserSummary sender;
         private String message;
-        private Integer unreadCount;
         private LocalDateTime createdAt;
 
         public Builder groupMessageId(Long groupMessageId) {
@@ -46,11 +44,6 @@ public record GroupMessageResponse(
             return this;
         }
 
-        public Builder unreadCount(Integer unreadCount) {
-            this.unreadCount = unreadCount;
-            return this;
-        }
-
         public Builder createdAt(LocalDateTime createdAt) {
             this.createdAt = createdAt;
             return this;
@@ -62,7 +55,6 @@ public record GroupMessageResponse(
                     groupChatroomId,
                     sender,
                     message,
-                    unreadCount,
                     createdAt
             );
         }
