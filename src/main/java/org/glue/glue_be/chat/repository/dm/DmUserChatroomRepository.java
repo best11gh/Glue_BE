@@ -5,6 +5,7 @@ import org.glue.glue_be.chat.entity.dm.DmUserChatroom;
 import org.glue.glue_be.user.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,4 +39,13 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
             @Param("user") User user,
             @Param("cursorId") Long cursorId,
             Pageable pageable);
+
+    DmChatRoom findByUser_UserIdAndDmChatRoom_id(Long userId, Long dmChatRoomId);
+
+    @Modifying
+    @Query("UPDATE DmUserChatroom du SET du.lastReadMessageId = :messageId " +
+            "WHERE du.user.userId = :userId AND du.dmChatRoom.id = :dmChatroomId")
+    void updateLastReadMessageId(@Param("userId") Long userId,
+                                 @Param("groupChatroomId") Long dmChatroomId,
+                                 @Param("messageId") Long messageId);
 }
