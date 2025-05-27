@@ -22,6 +22,7 @@ import java.util.Optional;
 public class DmChatController {
 
     private final DmChatService dmChatService;
+//    private final MeterRegistry registry;
 
     // Dm 채팅방 생성
     @PostMapping("/rooms/create")
@@ -97,6 +98,13 @@ public class DmChatController {
             @PathVariable Long dmChatRoomId,
             @RequestBody DmMessageSendRequest request,
             @AuthenticationPrincipal CustomUserDetails auth) {
+
+//        // 메시지 전송 API 호출 전 카운터 증가
+//        registry.counter("dm.messages.sent", "room", dmChatRoomId.toString())
+//                .increment();
+//
+//        DmMessageResponse response = dmChatService.processDmMessage(
+//                dmChatRoomId, request, auth.getUserId());
         DmMessageResponse response = dmChatService.processDmMessage(dmChatRoomId, request, auth.getUserId());
         return ResponseEntity.ok(response);
     }
