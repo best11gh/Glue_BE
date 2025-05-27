@@ -21,9 +21,9 @@ public class GroupChatController {
 
     private final GroupChatService groupChatService;
 
-    // 그룹 채팅방 생성
+    // 그룹 채팅방 침야
     @GetMapping("/rooms/create/{meetingId}")
-    @Operation(summary = "그룹 채팅방 생성")
+    @Operation(summary = "그룹 채팅방 참여")
     public ResponseEntity<GroupChatRoomCreateResult> createGroupChatRoom(@PathVariable Long meetingId,
                                                                          @AuthenticationPrincipal CustomUserDetails auth) {
         GroupChatRoomCreateResult result = groupChatService.createGroupChatRoom(meetingId, auth.getUserId());

@@ -63,7 +63,7 @@ public class MainController {
 
     // 버전별 일괄 삭제 (관리자용)
     @DeleteMapping("/version/{version}")
-    @Operation(summary = "[관리자] 캐러셀 이미지 일괄 삭제")
+    @Operation(summary = "[관리자] 캐러셀 이미지 버전별 일괄 삭제")
     public ResponseEntity<CarouselBulkDeleteResponse> deleteCarouselsByVersion(@PathVariable String version) {
         CarouselBulkDeleteResponse response = mainService.deleteCarouselsByVersion(version);
         return ResponseEntity.ok(response);
