@@ -374,48 +374,6 @@ public abstract class CommonChatService {
         }
     }
 
-    protected <M, C, UC> void sendPushNotificationToUser(
-            M message,
-            Long recipientId,
-            C chatRoom,
-            Function<C, Long> chatRoomIdExtractor,              // 추가: 채팅방 ID 추출
-            Function<M, String> contentExtractor,
-            Function<M, User> senderExtractor,
-            BiFunction<Long, Long, Optional<UC>> userChatRoomFinder, // userId, chatRoomId -> UserChatRoom
-            Function<UC, Integer> notificationSettingGetter,
-            String notificationTitle) {
-
-        // 채팅방 ID 추출
-        Long chatRoomId = chatRoomIdExtractor.apply(chatRoom);
-
-        // 알림 설정 확인
-        Optional<UC> userChatRoom = userChatRoomFinder.apply(recipientId, chatRoomId);
-
-        if (userChatRoom.isEmpty() || notificationSettingGetter.apply(userChatRoom.get()) != 1) {
-            return; // 알림 설정이 꺼져있음
-        }
-
-        User recipient = getUserById(recipientId);
-        if (recipient.getFcmToken() == null) {
-            return; // FCM 토큰이 없음
-        }
-
-        String content = contentExtractor.apply(message);
-        if (content.length() > 100) {
-            content = content.substring(0, 97) + "...";
-        }
-
-        User sender = senderExtractor.apply(message);
-
-        FcmSendDto fcmDto = FcmSendDto.builder()
-                .title(sender.getNickname() + notificationTitle)
-                .body(content)
-                .token(recipient.getFcmToken())
-                .build();
-
-        fcmService.sendMessage(fcmDto);
-    }
-
     protected User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserException.UserNotFoundException(userId));
