@@ -21,31 +21,26 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
 
     Optional<DmUserChatroom> findByDmChatRoomAndUser(DmChatRoom dmChatRoom, User sender);
 
-    @Query("SELECT ducr.dmChatRoom FROM DmUserChatroom ducr WHERE ducr.user.userId = :userId")
-    List<DmChatRoom> findDmChatRoomsByUserId(@Param("userId") Long userId);
+    @Query(value = "SELECT DISTINCT dc.* FROM dm_chatroom dc " +
+            "JOIN dm_user_chatroom duc ON dc.dm_chatroom_id = duc.dm_chatroom_id " +
+            "WHERE duc.user_id = :userId " +
+            "ORDER BY dc.dm_chatroom_id DESC",
+            nativeQuery = true)
+    List<DmChatRoom> findDmChatRoomsByUserOrderByDmChatRoomIdDesc(@Param("userId") Long userId, Pageable pageable);
 
-    @Query("SELECT duc.dmChatRoom FROM DmUserChatroom duc " +
-            "WHERE duc.user = :user " +
-            "ORDER BY duc.dmChatRoom.id DESC")
-    List<DmChatRoom> findDmChatRoomsByUserOrderByDmChatRoomIdDesc(
-            @Param("user") User user,
-            Pageable pageable);
+    @Query(value = "SELECT DISTINCT dc.* FROM dm_chatroom dc " +
+            "JOIN dm_user_chatroom duc ON dc.dm_chatroom_id = duc.dm_chatroom_id " +
+            "WHERE duc.user_id = :userId AND dc.dm_chatroom_id < :cursorId " +
+            "ORDER BY dc.dm_chatroom_id DESC",
+            nativeQuery = true)
+    List<DmChatRoom> findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc(@Param("userId") Long userId, @Param("cursorId") Long cursorId, Pageable pageable);
 
-    @Query("SELECT duc.dmChatRoom FROM DmUserChatroom duc " +
-            "WHERE duc.user = :user " +
-            "AND duc.dmChatRoom.id < :cursorId " +
-            "ORDER BY duc.dmChatRoom.id DESC")
-    List<DmChatRoom> findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc(
-            @Param("user") User user,
-            @Param("cursorId") Long cursorId,
-            Pageable pageable);
-
-    DmChatRoom findByUser_UserIdAndDmChatRoom_id(Long userId, Long dmChatRoomId);
+    Optional<DmUserChatroom> findByUser_UserIdAndDmChatRoom_Id(Long userId, Long dmChatRoomId);
 
     @Modifying
     @Query("UPDATE DmUserChatroom du SET du.lastReadMessageId = :messageId " +
             "WHERE du.user.userId = :userId AND du.dmChatRoom.id = :dmChatroomId")
     void updateLastReadMessageId(@Param("userId") Long userId,
-                                 @Param("groupChatroomId") Long dmChatroomId,
+                                 @Param("dmChatroomId") Long dmChatroomId,
                                  @Param("messageId") Long messageId);
 }
