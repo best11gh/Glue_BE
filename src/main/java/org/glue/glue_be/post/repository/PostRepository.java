@@ -90,4 +90,47 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 		"WHERE pt.user.userId = :userId AND p.meeting.host.userId != :userId")
 	List<Post> findByParticipantUserIdExcludingHost(@Param("userId") Long userId);
 
+
+	// 1) 검색어 기반 첫 페이지 조회
+	@Query(value = """
+        SELECT p.*
+        FROM   post p
+        JOIN   meeting m ON m.meeting_id = p.meeting_id
+        WHERE  (p.post_title LIKE :kw OR p.content LIKE :kw)
+        ORDER BY
+          COALESCE(p.bumped_at, m.created_at) DESC,
+          p.post_id DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+	List<Post> fetchFirstPageByKeyword(
+		@Param("kw") String kw,
+		@Param("limit") int limit
+	);
+
+	// 2) 검색어 + 커서 기반 다음 페이지 조회
+	@Query(value = """
+        SELECT p.*
+        FROM   post p
+        JOIN   meeting m ON m.meeting_id = p.meeting_id
+        WHERE  
+          (p.post_title LIKE :kw OR p.content LIKE :kw)
+          AND (
+            COALESCE(p.bumped_at, m.created_at) < :cursorSortAt
+            OR (
+              COALESCE(p.bumped_at, m.created_at) = :cursorSortAt
+              AND p.post_id < :lastPostId
+            )
+          )
+        ORDER BY
+          COALESCE(p.bumped_at, m.created_at) DESC,
+          p.post_id DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+	List<Post> fetchNextPageByKeyword(
+		@Param("kw")           String kw,
+		@Param("cursorSortAt") String cursorSortAt,
+		@Param("lastPostId")   Long lastPostId,
+		@Param("limit")        int limit
+	);
+
 }
