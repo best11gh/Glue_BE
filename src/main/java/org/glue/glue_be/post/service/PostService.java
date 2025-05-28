@@ -355,13 +355,16 @@ public class PostService {
 		List<PostImage> postImages = postImageRepository.findAllByPost_Id(postId);
 
 		// 4-1. s3 버킷에 삭제요청
-		// todo: 현재 버킷에 삭제요청은 정상처리되는데 실제 삭제 안되는 문제 있음. 민혁형한테 권한 변경 요청한거 반영되면 다시 테스트
-		// todo: try-catch로 실패해도 삭제는 잘 처리되게 놔두기
-		if (!postImages.isEmpty())
-			for(PostImage postImage : postImages) {
-				log.info("Deleting post image {}", postImage.getImageUrl());
-				fileService.deleteFile(postImage.getImageUrl());
+		for (PostImage postImage : postImages) {
+			String url = postImage.getImageUrl();
+			try {
+				fileService.deleteFile(url);
+			} catch (Exception e) {
+				log.error("해당 s3 이미지 url을 삭제하는데 실패! -> {}, db 삭제는 지속됨", url, e);
+				// (언젠가 투두) 실패 항목을 DB나 메시지 큐에 기록 → 백그라운드 재시도
+				// failedDeletionQueue.add(url);
 			}
+		}
 
 		// 4-2. PostImage, Like 삭제
 		postImageRepository.deleteByPost_Id(postId);
