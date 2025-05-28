@@ -3,9 +3,19 @@ package org.glue.glue_be.post.service;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
+import org.glue.glue_be.aws.service.FileService;
+import org.glue.glue_be.chat.entity.dm.DmChatRoom;
+import org.glue.glue_be.chat.entity.group.GroupChatRoom;
+import org.glue.glue_be.chat.repository.dm.DmChatRoomRepository;
+import org.glue.glue_be.chat.repository.dm.DmMessageRepository;
+import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
+import org.glue.glue_be.chat.repository.group.GroupChatRoomRepository;
+import org.glue.glue_be.chat.repository.group.GroupMessageRepository;
+import org.glue.glue_be.chat.repository.group.GroupUserChatRoomRepository;
 import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
 import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
@@ -35,15 +45,24 @@ import java.util.stream.Collectors;
 @Transactional
 public class PostService {
 
+	// 게시글 관련
 	private final PostRepository postRepository;
 	private final MeetingRepository meetingRepository;
 	private final ParticipantRepository participantRepository;
 	private final UserRepository userRepository;
 	private final LikeRepository likeRepository;
 	private final PostImageRepository postImageRepository;
+	private final InvitationRepository invitationRepository;
+	// 채팅 관련
+	private final DmChatRoomRepository dmChatRoomRepository;
+	private final DmUserChatroomRepository dmUserChatroomRepository;
+	private final DmMessageRepository dmMessageRepository;
+	private final GroupChatRoomRepository groupChatRoomRepository;
+	private final GroupUserChatRoomRepository groupUserChatRoomRepository;
+	private final GroupMessageRepository groupMessageRepository;
 
 	private final ReminderSchedulerService reminderSchedulerService;
-
+	private final FileService fileService;
 
 
 	// 게시글 사진이 추가 및 삭제될 때 meeting image url도 함께 업데이트 시키는 메소드
@@ -153,10 +172,9 @@ public class PostService {
 
 		Boolean isLiked = likeRepository.existsByUser_UserIdAndPost_Id(userId, postId);
 
-		var meetingDto = GetPostResponse.MeetingDto.builder().
-			meetingId(meeting.getMeetingId())
+		var meetingDto = GetPostResponse.MeetingDto.builder()
+			.meetingId(meeting.getMeetingId())
 			.categoryId(meeting.getCategoryId())
-			.creator(creator)
 			.meetingTime(meeting.getMeetingTime())
 			.currentParticipants(meeting.getCurrentParticipants())
 			.meetingPlaceName(meeting.getMeetingPlaceName())
@@ -164,9 +182,10 @@ public class PostService {
 			.mainLanguageId(meeting.getMeetingMainLanguageId())
 			.exchangeLanguageId(meeting.getMeetingExchangeLanguageId())
 			.meetingStatus(meeting.getStatus())
-			.participants(participantDtos)
 			.createdAt(meeting.getCreatedAt())
 			.updatedAt(meeting.getUpdatedAt())
+			.participants(participantDtos)
+			.creator(creator)
 			.build();
 
 		var postDto = GetPostResponse.PostDto.builder()
@@ -288,7 +307,6 @@ public class PostService {
 		if (hasNext) result = result.subList(0, size);
 
 		// [유저의 각 게시글 좋아요 여부를 확인하는 절차]
-
 		// 1. 가져온 게시글들의 id만의 목록을 생성
 		List<Long> postIds = result.stream().map(Post::getId).toList();
 
@@ -305,12 +323,92 @@ public class PostService {
 
 	}
 
+	// 게시글 삭제 -> cascade 쓰면 딸깍이긴 할텐데 주의해야하는 부분이긴하다..ㅠㅠㅠㅠ
+	// 삭제할 엔티티들간의 연관관계 도식도
+	//	POST ──┐─ PostImage, Like
+	//	       │
+	//         │
+	//         │
+	//	MEETING(ID = M) ┬─── Participant
+	//                  ├─ Invitation
+	//                  ├─ DmChatRoom─────┬─ DmUserChatroom
+	//                  │                 └─ DmMessage
+	//                  └─ GroupChatRoom ─┬─ GroupUserChatRoom
+	//                                    └─ GroupMessage
+	public void deletePost(Long postId, Long userId) {
+
+		// 1. 삭제할 post, meeting을 가져온다. 이 둘을 루트로 하는 연관관계 엔티티 요소들을 싹 삭제
+		Post post = postRepository.findById(postId)
+			.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+		Meeting meeting = post.getMeeting();
+		Long meetingId = meeting.getMeetingId();
+
+		// 2. 게시자만 삭제가능
+		if(!meeting.isHost(userId)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
+
+		// 2.5. 리마인더 제거호출 위한 참여자 id 목록 제작
+		List<Long> participantsIdList = meeting.getParticipants().stream().map(
+			participant -> participant.getUser().getUserId()
+		).toList();
+
+		// 3. 리마인더 제거
+		reminderSchedulerService.removeRemindersByPost(postId, participantsIdList);
+
+		// 4. Post 연관 엔티티 삭제
+		List<PostImage> postImages = postImageRepository.findAllByPost_Id(postId);
+
+		// 4-1. s3 버킷에 삭제요청
+		// todo: 현재 버킷에 삭제요청은 정상처리되는데 실제 삭제 안되는 문제 있음. 민혁형한테 권한 변경 요청한거 반영되면 다시 테스트
+		// todo: try-catch로 실패해도 삭제는 잘 처리되게 놔두기
+		if (!postImages.isEmpty())
+			for(PostImage postImage : postImages) {
+				log.info("Deleting post image {}", postImage.getImageUrl());
+				fileService.deleteFile(postImage.getImageUrl());
+			}
+
+		// 4-2. PostImage, Like 삭제
+		postImageRepository.deleteByPost_Id(postId);
+		likeRepository.deleteByPost_Id(postId);
+
+		// 4-3. Post 삭제
+		postRepository.delete(post);
+
+
+		// 5. Meeting 연관 엔티티 삭제
+		// 5-1. Participants, Invitation 삭제
+		participantRepository.deleteByMeeting_MeetingId(meetingId);
+		invitationRepository.deleteByMeeting_MeetingId(meetingId);
+
+		// 5-2. DM챗 삭제작업
+		List<DmChatRoom> dmChatRooms = dmChatRoomRepository.findByMeeting_MeetingId(meetingId);
+		for(DmChatRoom dmChatRoom : dmChatRooms){
+			Long roomId = dmChatRoom.getId();
+			dmUserChatroomRepository.deleteByDmChatRoom_Id(roomId);
+			dmChatRoomRepository.delete(dmChatRoom);
+		}
+		// 남은 dmChatRoom 벌크를 N번이 아닌 1번에 삭제 (자식 엔티티 다 삭제했으니 벌크로 1번에 몰살해도 안전함이 보장된 상황)
+		dmChatRoomRepository.deleteAllInBatch(dmChatRooms);
+
+		List<GroupChatRoom> groupRooms = groupChatRoomRepository.findByMeeting_MeetingId(meetingId);
+		for (GroupChatRoom groupRoom : groupRooms) {
+			Long roomId = groupRoom.getGroupChatroomId();
+			groupUserChatRoomRepository.deleteByGroupChatroom_GroupChatroomId(roomId);
+			groupMessageRepository.deleteByGroupChatroom_GroupChatroomId(roomId);
+		}
+		groupChatRoomRepository.deleteAllInBatch(groupRooms);
+
+		// 5-3. meeting 최종 삭제 후 로그출력
+		meetingRepository.delete(meeting);
+
+		log.info("Post {}와 Meeting {}이 User {}에 의해 삭제완료됐습니다", postId, meetingId, userId);
+
+	}
+
 
 	// TODO: 게시글 수정 시 해야할 것 들
 	// 1. reminderSchedulerService의 rescheduleReminder 함수를 써야함. (리마인더 새로 등록)
 	// 2. 모임에 모인 사람들한테 게시글 수정 알림을 보내주어야 함. - NotificationService의 createBulk함수 사용 (모임을 만든 사람 제외!!!)
 
-	// TODO: 게시글 삭제 시 해야할 것 - reminderSchedulerService의 removeRemindersByPost 함수 사용
 
 
 }

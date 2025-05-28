@@ -39,12 +39,17 @@ public class PostController {
 	// 3. 게시글 수정 (로그인 필수)
 
 	// 4. 게시글 삭제 (로그인 필수)
+	@DeleteMapping("/{postId}")
+	public BaseResponse<Void> deletePost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
+		postService.deletePost(postId, auth.getUserId());
+		return new BaseResponse<>();
+	}
 
 
 	// 5. 게시글 끌올 (로그인 필수)
 	@GetMapping("/{postId}/bump")
 	public BaseResponse<BumpPostResponse> bumpPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
-		return new BaseResponse<BumpPostResponse>(postService.bumpPost(postId, auth.getUserId()));
+		return new BaseResponse<>(postService.bumpPost(postId, auth.getUserId()));
 	}
 
 	// 6. 게시글 목록 조회 (무한 스크롤 / cursor 기반)
