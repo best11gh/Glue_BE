@@ -8,7 +8,6 @@ import org.glue.glue_be.common.dto.UserSummary;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
-import org.glue.glue_be.meeting.response.MeetingResponseStatus;
 import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.response.*;
@@ -22,8 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 
@@ -236,7 +237,7 @@ public class PostService {
 	// 게시글 목록 조회
 	// 무한스크롤 + 카테고리별 필터링
 	@Transactional(readOnly = true)
-	public GetPostsResponse getPosts(Long lastPostId, int size, Integer categoryId) {
+	public GetPostsResponse getPosts(Long lastPostId, int size, Integer categoryId, Long userId) {
 
 		int limit = size + 1;
 		List<Post> result;
@@ -280,10 +281,19 @@ public class PostService {
 
 		if (hasNext) result = result.subList(0, size);
 
+		// [유저의 각 게시글 좋아요 여부를 확인하는 절차]
+
+		// 1. 가져온 게시글들의 id만의 목록을 생성
+		List<Long> postIds = result.stream().map(Post::getId).toList();
+
+		// 2. Like 테이블의 user_id가 userID와 같고 동시에 post_id가 postIds에 들어있는 것들의 post_id 리턴 (by sql IN 문법)
+		List<Long> likedPostIds = likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds);
+		Set<Long> likedPostIdsSet = new HashSet<>(likedPostIds); // hash 조회 = O(1)
+
 		return GetPostsResponse.builder()
 				.hasNext(hasNext)
 				.posts(result.stream()
-						.map(GetPostsResponse::ofEntity)
+						.map(post -> GetPostsResponse.ofEntity(post, likedPostIdsSet.contains(post.getId())))
 						.collect(Collectors.toList()))
 				.build();
 
