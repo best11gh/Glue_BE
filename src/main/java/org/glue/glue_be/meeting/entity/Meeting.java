@@ -52,22 +52,19 @@ public class Meeting extends BaseEntity {
     @Column(name = "status", nullable = false)
     private Integer status;
 
-    @Column(name = "meeting_place_latitude", nullable = true)
-    private Double meetingPlaceLatitude;
-
-    @Column(name = "meeting_place_longitude", nullable = true)
-    private Double meetingPlaceLongitude;
-
-    @Column(name = "meeting_place_name", nullable = true)
+    @Column(name = "meeting_place_name")
     private String meetingPlaceName;
 
     @Column(name = "category_id", nullable = false)
     private Integer categoryId;
 
-    @Column(name = "language_id", nullable = false)
-    private Integer languageId;
+    @Column(name = "meeting_main_language_id", nullable = false)
+    private Integer meetingMainLanguageId;
 
-    @Column(name = "meeting_image_url", nullable = true)
+    @Column(name = "meeting_exchange_language_id", nullable = false)
+    private Integer meetingExchangeLanguageId;
+
+    @Column(name = "meeting_image_url")
     private String meetingImageUrl;
 
     @Builder
@@ -78,11 +75,12 @@ public class Meeting extends BaseEntity {
                     Integer minParticipants,
                     Integer maxParticipants,
                     Integer status,
-                    Double meetingPlaceLatitude,
-                    Double meetingPlaceLongitude,
                     String meetingPlaceName,
                     Integer categoryId,
-                    Integer languageId) {
+                    Integer meetingMainLanguageId,
+                    Integer meetingExchangeLanguageId,
+                    String meetingImageUrl
+        ) {
         this.host = host;
         this.meetingTitle = meetingTitle;
         this.meetingTime = meetingTime;
@@ -90,12 +88,12 @@ public class Meeting extends BaseEntity {
         this.minParticipants = minParticipants;
         this.maxParticipants = maxParticipants;
         this.status = status;
-        this.meetingPlaceLatitude = meetingPlaceLatitude;
-        this.meetingPlaceLongitude = meetingPlaceLongitude;
         this.meetingPlaceName = meetingPlaceName;
         this.participants = new ArrayList<>();
         this.categoryId = categoryId;
-        this.languageId = languageId;
+        this.meetingMainLanguageId = meetingMainLanguageId;
+        this.meetingExchangeLanguageId = meetingExchangeLanguageId;
+        this.meetingImageUrl = meetingImageUrl;
     }
 
     public List<Participant> getParticipants() {
@@ -106,12 +104,7 @@ public class Meeting extends BaseEntity {
         this.meetingTitle = newTitle;
     }
 
-    public void changeLocation(Double latitude, Double longitude, String placeName) {
-        this.meetingPlaceLatitude = latitude;
-        this.meetingPlaceLongitude = longitude;
-        this.meetingPlaceName = placeName;
-    }
-
+    public void changeLocation(String placeName) { this.meetingPlaceName = placeName; }
 
     public void changeMinimumCapacity(int newMinPpl) {
         this.minParticipants = newMinPpl;
