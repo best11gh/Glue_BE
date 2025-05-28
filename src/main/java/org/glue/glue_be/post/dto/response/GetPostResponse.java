@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
 import lombok.Getter;
 import org.glue.glue_be.common.dto.UserSummary;
-import org.glue.glue_be.post.entity.Post;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -86,6 +85,7 @@ public class GetPostResponse {
 		private Integer bumpLimit;
 
 		private Integer likeCount;
+		private Boolean isLiked;
 
 		private List<PostImageDto> postImageUrl;
 
