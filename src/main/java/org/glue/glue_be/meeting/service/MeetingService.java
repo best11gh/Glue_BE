@@ -39,7 +39,7 @@ public class MeetingService {
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
         // 2. 모임 생성
-        Meeting meeting = Meeting.builder() // todo: toEntity 팩토리 메서드로 대체
+        Meeting meeting = Meeting.builder()
             .meetingTitle(meetingRequest.getMeetingTitle())
             .meetingTime(meetingRequest.getMeetingTime())
             .meetingPlaceName(meetingRequest.getMeetingPlaceName())
