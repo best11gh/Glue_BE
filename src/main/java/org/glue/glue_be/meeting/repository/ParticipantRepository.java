@@ -15,4 +15,6 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     List<Participant> findByUser_UserId(Long userId);
     Optional<Participant> findByUserAndMeeting(User user, Meeting meeting);
     boolean existsByUserAndMeeting(User user, Meeting meeting);
+	void deleteByMeeting_MeetingId(Long meetingMeetingId);
+
 }

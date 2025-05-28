@@ -21,4 +21,7 @@ public interface GroupUserChatRoomRepository extends JpaRepository<GroupUserChat
 
     // 채팅방과 유저로 삭제
     void deleteByGroupChatroomAndUser(GroupChatRoom groupChatroom, User user);
+
+	void deleteByGroupChatroom_GroupChatroomId(Long roomId);
+
 }

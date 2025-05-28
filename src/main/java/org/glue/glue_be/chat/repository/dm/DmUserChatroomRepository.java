@@ -38,4 +38,7 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
             @Param("user") User user,
             @Param("cursorId") Long cursorId,
             Pageable pageable);
+
+	void deleteByDmChatRoom_Id(Long dmChatRoomId);
+
 }
