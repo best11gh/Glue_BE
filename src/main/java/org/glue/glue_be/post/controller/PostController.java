@@ -66,6 +66,14 @@ public class PostController {
 	}
 
 	// 7. 검색 결과 게시글 목록 조회
+	@GetMapping("/search")
+	public BaseResponse<GetPostsResponse> searchPosts(
+		@RequestParam String keyword, @RequestParam(required = false) Long lastPostId,
+		@RequestParam(defaultValue = "10") int size,
+		@AuthenticationPrincipal CustomUserDetails auth
+	) {
+		return new BaseResponse<>(postService.searchPosts(lastPostId, size, keyword, auth.getUserId()));
+	}
 
 
 	// 8. 좋아요 등록(토글) (로그인 필수)

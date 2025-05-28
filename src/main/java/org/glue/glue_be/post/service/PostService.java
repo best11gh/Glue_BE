@@ -217,7 +217,6 @@ public class PostService {
 
 	// 게시글 끌올
 	public BumpPostResponse bumpPost(Long postId, Long userId) {
-
 		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
 		// 끌올은 게시글 작성자만 가능
@@ -229,7 +228,6 @@ public class PostService {
 			post.getBumpCount(),
 			Post.BUMP_LIMIT
 		);
-
 
 	}
 
@@ -275,13 +273,13 @@ public class PostService {
 				Post cursor = postRepository.findById(lastPostId)
 						.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
-				LocalDateTime cursorSortAt = cursor.getBumpedAt() != null
+				LocalDateTime cursorTimeStamp = cursor.getBumpedAt() != null
 						? cursor.getBumpedAt()
 						: cursor.getMeeting().getCreatedAt();
 
-				String cursorSortAtString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorSortAt);
+				String cursorTimeStampString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorTimeStamp);
 
-				result = postRepository.fetchNextPage(cursorSortAtString, lastPostId, limit);
+				result = postRepository.fetchNextPage(cursorTimeStampString, lastPostId, limit);
 			}
 		} else { // 카테고리 지정!!
 
@@ -291,13 +289,13 @@ public class PostService {
 				Post cursor = postRepository.findById(lastPostId)
 						.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 
-				LocalDateTime cursorSortAt = cursor.getBumpedAt() != null
+				LocalDateTime cursorTimeStamp = cursor.getBumpedAt() != null
 						? cursor.getBumpedAt()
 						: cursor.getMeeting().getCreatedAt();
 
-				String cursorSortAtString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorSortAt);
+				String cursorTimeStampString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorTimeStamp);
 
-				result = postRepository.fetchNextPageByCategory(categoryId, cursorSortAtString, lastPostId, limit);
+				result = postRepository.fetchNextPageByCategory(categoryId, cursorTimeStampString, lastPostId, limit);
 			}
 		}
 
@@ -329,12 +327,11 @@ public class PostService {
 	//	       │
 	//         │
 	//         │
-	//	MEETING(ID = M) ┬─── Participant
-	//                  ├─ Invitation
-	//                  ├─ DmChatRoom─────┬─ DmUserChatroom
-	//                  │                 └─ DmMessage
-	//                  └─ GroupChatRoom ─┬─ GroupUserChatRoom
-	//                                    └─ GroupMessage
+	//	    MEETING ────┬─── Participant, Invitation
+	//                  ├─── DmChatRoom─────┬─ DmUserChatroom
+	//                  │                   └─ DmMessage
+	//                  └─── GroupChatRoom ─┬─ GroupUserChatRoom
+	//                                      └─ GroupMessage
 	public void deletePost(Long postId, Long userId) {
 
 		// 1. 삭제할 post, meeting을 가져온다. 이 둘을 루트로 하는 연관관계 엔티티 요소들을 싹 삭제
@@ -404,6 +401,56 @@ public class PostService {
 
 	}
 
+
+	// 게시글 검색
+	@Transactional(readOnly = true)
+	public GetPostsResponse searchPosts(Long lastPostId, int size, String keyword, Long userId) {
+
+		int limit = size + 1;
+		String kw = "%" + keyword + "%";
+		List<Post> result;
+
+		if (lastPostId == null) {
+			// 최초 검색 페이지
+			result = postRepository.fetchFirstPageByKeyword(kw, limit);
+		} else {
+			// 커서로 다음 검색 페이지
+			Post cursor = postRepository.findById(lastPostId)
+				.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+
+			LocalDateTime cursorTimeStamp = cursor.getBumpedAt() != null
+				? cursor.getBumpedAt()
+				: cursor.getMeeting().getCreatedAt();
+
+			String cursorTimeStampString =
+				new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorTimeStamp);
+
+			result = postRepository.fetchNextPageByKeyword(
+				kw, cursorTimeStampString, lastPostId, limit
+			);
+		}
+
+		boolean hasNext = result.size() > size;
+		if (hasNext) {
+			result = result.subList(0, size);
+		}
+
+		// [좋아요 여부까지 포함]
+		List<Long> postIds = result.stream().map(Post::getId).toList();
+		Set<Long> likedPostIds = new HashSet<>(
+			likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds)
+		);
+
+		return GetPostsResponse.builder()
+			.hasNext(hasNext)
+			.posts(
+				result.stream()
+					.map(post -> GetPostsResponse.ofEntity(post,
+						likedPostIds.contains(post.getId())))
+					.collect(Collectors.toList())
+			)
+			.build();
+	}
 
 	// TODO: 게시글 수정 시 해야할 것 들
 	// 1. reminderSchedulerService의 rescheduleReminder 함수를 써야함. (리마인더 새로 등록)
