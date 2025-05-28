@@ -51,7 +51,7 @@ public class Post {
     private List<Like> likes = new ArrayList<>();
 
     @Builder
-    private Post(Meeting meeting, String title, String content, LocalDateTime bumpedAt) {
+    private Post(Meeting meeting, String title, String content) {
         this.meeting = meeting;
         this.title = title;
         this.content = content;
