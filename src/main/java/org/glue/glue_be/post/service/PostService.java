@@ -66,10 +66,9 @@ public class PostService {
 			.maxParticipants(meetingRequest.getMaxParticipants())
 			.currentParticipants(1)
 			.status(1)
-			.meetingPlaceLatitude(meetingRequest.getMeetingPlaceLatitude())
-			.meetingPlaceLongitude(meetingRequest.getMeetingPlaceLongitude())
 			.categoryId(meetingRequest.getCategoryId())
-			.languageId(meetingRequest.getLanguageId())
+			.meetingMainLanguageId(meetingRequest.getMainLanguageId())
+			.meetingExchangeLanguageId(meetingRequest.getExchangeLanguageId())
 			.host(creator)
 			.build();
 		Meeting savedMeeting = meetingRepository.save(meeting);
@@ -79,7 +78,6 @@ public class PostService {
 		participantRepository.save(participant);
 
 		// 3.5. onetomany로 관리하는 participants 리스트에 추가
-		// todo: 직접적인 연관관계 매핑이 너무 많아 생각보다 어려운듯 나중에 논의하기
 		savedMeeting.addParticipant(participant);
 
 		// 4. 게시글 생성
@@ -155,8 +153,10 @@ public class PostService {
 			.creator(creator)
 			.meetingTime(meeting.getMeetingTime())
 			.currentParticipants(meeting.getCurrentParticipants())
+			.meetingPlaceName(meeting.getMeetingPlaceName())
 			.maxParticipants(meeting.getMaxParticipants())
-			.languageId(meeting.getLanguageId())
+			.mainLanguageId(meeting.getMeetingMainLanguageId())
+			.exchangeLanguageId(meeting.getMeetingExchangeLanguageId())
 			.meetingStatus(meeting.getStatus())
 			.participants(participantDtos)
 			.createdAt(meeting.getCreatedAt())
@@ -169,6 +169,8 @@ public class PostService {
 			.content(post.getContent())
 			.viewCount(post.getViewCount())
 			.bumpedAt(post.getBumpedAt())
+			.bumpedCount(post.getBumpCount())
+			.bumpLimit(Post.BUMP_LIMIT)
 			.likeCount(post.getLikes().size())
 			.postImageUrl(imageUrls)
 			.build();
@@ -231,6 +233,8 @@ public class PostService {
 		}
 	}
 
+	// 게시글 목록 조회
+	// 무한스크롤 + 카테고리별 필터링
 	@Transactional(readOnly = true)
 	public GetPostsResponse getPosts(Long lastPostId, int size, Integer categoryId) {
 
