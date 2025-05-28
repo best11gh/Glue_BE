@@ -53,9 +53,10 @@ public class PostController {
 	@GetMapping
 	public BaseResponse<GetPostsResponse> getPosts(@RequestParam(required = false) Long lastPostId,
 		@RequestParam(defaultValue = "10") int size,
-		@RequestParam(required = false) Integer categoryId
+		@RequestParam(required = false) Integer categoryId,
+		@AuthenticationPrincipal CustomUserDetails auth
 	) {
-		GetPostsResponse response = postService.getPosts(lastPostId, size, categoryId);
+		GetPostsResponse response = postService.getPosts(lastPostId, size, categoryId, auth.getUserId());
 		return new BaseResponse<>(response);
 	}
 
