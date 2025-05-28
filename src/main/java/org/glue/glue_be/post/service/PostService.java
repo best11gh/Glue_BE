@@ -44,6 +44,8 @@ public class PostService {
 
 	private final ReminderSchedulerService reminderSchedulerService;
 
+
+
 	// 게시글 사진이 추가 및 삭제될 때 meeting image url도 함께 업데이트 시키는 메소드
 	public void updateMeetingImageUrl(Long meetingId) {
 		meetingRepository.updateMeetingImageUrl(meetingId);
@@ -120,7 +122,6 @@ public class PostService {
 		// 1. post, meeting, user 객체 가져오기
 		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 		Meeting meeting = post.getMeeting();
-		User user = userRepository.findById(userId).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
 
 		// 2. 응답 dto 구성
