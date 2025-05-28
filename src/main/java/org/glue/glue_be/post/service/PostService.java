@@ -115,20 +115,22 @@ public class PostService {
 
 
 	// 게시글 단건 조회
-	public GetPostResponse getPost(Long postId) {
+	public GetPostResponse getPost(Long postId, Long userId) {
 
-		// 1. post, meeting 객체 가져오기
+		// 1. post, meeting, user 객체 가져오기
 		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
 		Meeting meeting = post.getMeeting();
+		User user = userRepository.findById(userId).orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+
 
 		// 2. 응답 dto 구성
 		var participantDtos = meeting.getParticipants().stream().map(participant -> {
-			User user = participant.getUser();
+			User participantUser = participant.getUser();
 
 			return GetPostResponse.MeetingDto.ParticipantDto.builder()
-				.userId(user.getUserId())
-				.nickname(user.getNickname())
-				.profileImageUrl(user.getProfileImageUrl()).build();
+				.userId(participantUser.getUserId())
+				.nickname(participantUser.getNickname())
+				.profileImageUrl(participantUser.getProfileImageUrl()).build();
 		}).collect(Collectors.toList());
 
 		// creator 정보는 common dto인 UserSummary 사용
@@ -147,6 +149,8 @@ public class PostService {
 				.imageOrder(pi.getImageOrder())
 				.build())
 			.toList(); // 게시글 이미지
+
+		Boolean isLiked = likeRepository.existsByUser_UserIdAndPost_Id(userId, postId);
 
 		var meetingDto = GetPostResponse.MeetingDto.builder().
 			meetingId(meeting.getMeetingId())
@@ -173,6 +177,7 @@ public class PostService {
 			.bumpedCount(post.getBumpCount())
 			.bumpLimit(Post.BUMP_LIMIT)
 			.likeCount(post.getLikes().size())
+			.isLiked(isLiked)
 			.postImageUrl(imageUrls)
 			.build();
 

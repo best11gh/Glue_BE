@@ -32,8 +32,8 @@ public class PostController {
 
 	// 2. 게시글 단건 조회
 	@GetMapping("/{postId}")
-	public BaseResponse<GetPostResponse> getPost(@PathVariable Long postId) {
-		return new BaseResponse<>(postService.getPost(postId));
+	public BaseResponse<GetPostResponse> getPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
+		return new BaseResponse<>(postService.getPost(postId, auth.getUserId()));
 	}
 
 	// 3. 게시글 수정 (로그인 필수)

@@ -27,4 +27,6 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 	@Query("SELECT l.post.id FROM Like l WHERE l.user.userId = :userId AND l.post.id IN :postIds")
 	List<Long> findLikedPostIdsByUserAndPostIds(@Param("userId") Long userId, @Param("postIds") List<Long> postIds);
 
+	Boolean existsByUser_UserIdAndPost_Id(Long userId, Long postId);
+
 }
