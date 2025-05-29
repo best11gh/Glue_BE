@@ -11,7 +11,6 @@ import org.glue.glue_be.user.entity.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -91,7 +90,6 @@ public class DmResponseMapper {
                         .build())
                 .content(dmMessage.getDmMessageContent())
                 .createdAt(dmMessage.getCreatedAt())
-                .isRead(dmMessage.getIsRead())
                 .build();
     }
 }
