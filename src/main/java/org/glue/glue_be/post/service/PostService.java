@@ -31,6 +31,8 @@ import org.glue.glue_be.post.response.PostResponseStatus;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -548,10 +550,56 @@ public class PostService {
 		notificationService.createBulk(bulkReq);
 	}
 
-	// TODO: 게시글 수정 시 해야할 것 들
-	// 1. reminderSchedulerService의 rescheduleReminder 함수를 써야함. (리마인더 새로 등록)
-	// 2. 모임에 모인 사람들한테 게시글 수정 알림을 보내주어야 함. - NotificationService의 createBulk함수 사용 (모임을 만든 사람 제외!!!)
 
+	// PostService.java
+	@Transactional(readOnly = true)
+	public List<MainPagePostResponse> getMainPagePosts(int size, Long userId) {
+		LocalDateTime now = LocalDateTime.now();
+		Pageable page = PageRequest.of(0, size);
 
+		// 1) 미팅 시간이 지나지 않은 인기 게시글 size개 조회
+		List<Post> posts = postRepository.findPopularPosts(now, page);
+
+		// 2) 로그인한 사용자의 좋아요 상태
+		List<Long> postIds = posts.stream().map(Post::getId).toList();
+		Set<Long> likedSet = new HashSet<>(
+			likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds)
+		);
+
+		// 3) MainPagePostResponse 로 매핑
+		return posts.stream()
+			.map(p -> MainPagePostResponse.builder()
+				.postId(Math.toIntExact(p.getId()))
+				.categoryId(p.getMeeting().getCategoryId())
+				.createdAt(p.getMeeting().getCreatedAt())
+				.title(p.getTitle())
+				.content(p.getContent())
+				.likeCount(p.getLikes().size())
+				.isLiked(likedSet.contains(p.getId()) ? 1 : 0)
+				.currentParticipants(p.getMeeting().getCurrentParticipants())
+				.maxParticipants(p.getMeeting().getMaxParticipants())
+				.build()
+			).toList();
+	}
+
+	@Transactional(readOnly = true)
+	public GetPostsResponse getPopularDetailed(int size, Long userId) {
+		LocalDateTime now = LocalDateTime.now();
+		Pageable page = PageRequest.of(0, size);
+		List<Post> posts = postRepository.findPopularPosts(now, page);
+
+		List<Long> ids = posts.stream().map(Post::getId).toList();
+		Set<Long> liked = new HashSet<>( likeRepository.findLikedPostIdsByUserAndPostIds(userId, ids) );
+
+		List<GetPostsResponse.PostItem> items = posts.stream()
+			.map(p -> GetPostsResponse.ofEntity(p, liked.contains(p.getId())))
+			.toList();
+
+		// 더 가져올 게 없으니 hasNext=false
+		return GetPostsResponse.builder()
+			.hasNext(false)
+			.posts(items)
+			.build();
+	}
 
 }

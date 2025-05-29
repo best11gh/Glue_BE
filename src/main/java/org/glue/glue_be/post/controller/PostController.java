@@ -7,13 +7,12 @@ import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.request.UpdatePostRequest;
-import org.glue.glue_be.post.dto.response.BumpPostResponse;
-import org.glue.glue_be.post.dto.response.CreatePostResponse;
-import org.glue.glue_be.post.dto.response.GetPostResponse;
-import org.glue.glue_be.post.dto.response.GetPostsResponse;
+import org.glue.glue_be.post.dto.response.*;
 import org.glue.glue_be.post.service.PostService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @RestController
@@ -24,7 +23,7 @@ public class PostController {
 	private final PostService postService;
 
 
-	// 1. 게시글 작성 (로그인 필수)
+	// 1. 게시글 작성
 	@PostMapping
 	public BaseResponse<CreatePostResponse> createPost(@RequestBody @Valid CreatePostRequest req, @AuthenticationPrincipal CustomUserDetails auth) {
 		return new BaseResponse<>(postService.createPost(req, auth.getUserId()));
@@ -37,7 +36,7 @@ public class PostController {
 		return new BaseResponse<>(postService.getPost(postId, auth.getUserId()));
 	}
 
-	// 3. 게시글 수정 (로그인 필수)
+	// 3. 게시글 수정
 	@PostMapping("/{postId}")
 	public BaseResponse<Void> updatePost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth,
 		@RequestBody @Valid UpdatePostRequest req) {
@@ -45,7 +44,7 @@ public class PostController {
 		return new BaseResponse<>();
 	}
 
-	// 4. 게시글 삭제 (로그인 필수)
+	// 4. 게시글 삭제
 	@DeleteMapping("/{postId}")
 	public BaseResponse<Void> deletePost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
 		postService.deletePost(postId, auth.getUserId());
@@ -53,7 +52,7 @@ public class PostController {
 	}
 
 
-	// 5. 게시글 끌올 (로그인 필수)
+	// 5. 게시글 끌올
 	@GetMapping("/{postId}/bump")
 	public BaseResponse<BumpPostResponse> bumpPost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
 		return new BaseResponse<>(postService.bumpPost(postId, auth.getUserId()));
@@ -83,11 +82,25 @@ public class PostController {
 	}
 
 
-	// 8. 좋아요 등록(토글) (로그인 필수)
+	// 8. 좋아요 등록(토글)
 	@GetMapping("/{postId}/like")
 	public BaseResponse<Void> toggleLike(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth) {
 		postService.toggleLike(postId, auth.getUserId());
 		return new BaseResponse<>();
 	}
+
+	// 9. 홈화면 인기 게시글
+	@GetMapping("/popular")
+	public BaseResponse<?> getPopularPosts(@AuthenticationPrincipal CustomUserDetails auth,
+		@RequestParam(defaultValue = "3") int size) {
+		if(size <= 3){
+			List<MainPagePostResponse> list = postService.getMainPagePosts(size, auth.getUserId());
+			return new BaseResponse<>(list);
+		} else {
+			GetPostsResponse response = postService.getPopularDetailed(size, auth.getUserId());
+			return new BaseResponse<>(response);
+		}
+	}
+
 
 }

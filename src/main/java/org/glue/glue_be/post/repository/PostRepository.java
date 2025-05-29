@@ -3,6 +3,7 @@ package org.glue.glue_be.post.repository;
 
 import java.util.Optional;
 import org.glue.glue_be.post.entity.Post;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -133,4 +134,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 		@Param("limit")        int limit
 	);
 
+
+
+	// 미팅시간 안넘긴 게시글 중 좋아요 상위 순 가져오기
+	@Query("""
+        SELECT p
+        FROM Post p
+        WHERE p.meeting.meetingTime > :now
+        ORDER BY SIZE(p.likes) DESC
+        """)
+	List<Post> findPopularPosts(
+		@Param("now") LocalDateTime now,
+		Pageable pageable
+	);
 }
+
