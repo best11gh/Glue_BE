@@ -18,7 +18,9 @@ import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
+import org.glue.glue_be.notification.dto.request.BulkNotificationRequest;
 import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
+import org.glue.glue_be.notification.service.NotificationService;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
 import org.glue.glue_be.post.dto.request.UpdatePostRequest;
 import org.glue.glue_be.post.dto.response.*;
@@ -65,6 +67,7 @@ public class PostService {
 
 	private final ReminderSchedulerService reminderSchedulerService;
 	private final FileService fileService;
+	private final NotificationService notificationService;
 
 
 	// 게시글 사진이 추가 및 삭제될 때 meeting image url도 함께 업데이트 시키는 메소드
@@ -521,10 +524,28 @@ public class PostService {
 			order++;
 		}
 
+		// 5. 미팅 썸네일 수정
+		updateMeetingImageUrl(meeting.getMeetingId());
 
+		// 6. 리마인더 새로 등록
+		reminderSchedulerService.rescheduleReminder(userId, postId, meeting.getMeetingTime());
 
+		// 7. host 제외 모임 수정 알림 발송
+		List<Long> receiverIds = meeting.getParticipants().stream()
+			.map(pt -> pt.getUser().getUserId())
+			.filter(id -> !id.equals(meeting.getHost().getUserId()))
+			.toList();
 
+		BulkNotificationRequest bulkReq = BulkNotificationRequest.builder()
+			.receiverIds(receiverIds)
+			.type("post")
+			.title("모임글에 수정이 발생했습니다. 확인해주세요!")
+			.content(p.getTitle() + " 게시글이 수정되었습니다.")
+			.targetId(postId)
+			.guestbookHostId(null)
+			.build();
 
+		notificationService.createBulk(bulkReq);
 	}
 
 	// TODO: 게시글 수정 시 해야할 것 들
