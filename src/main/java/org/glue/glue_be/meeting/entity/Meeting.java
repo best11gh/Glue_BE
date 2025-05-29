@@ -36,6 +36,8 @@ public class Meeting extends BaseEntity {
     @OneToMany(mappedBy = "meeting")
     private List<Participant> participants = new ArrayList<>();
 
+    public static final long UPDATE_LIMIT_HOUR = 3; // 모임 수정이 불가능한 남은 모임시간
+
     @Column(name = "meeting_time", nullable = false)
     @Convert(converter = LocalDateTimeStringConverter.class)
     private LocalDateTime meetingTime;
@@ -100,27 +102,23 @@ public class Meeting extends BaseEntity {
         return Collections.unmodifiableList(participants);
     }
 
-    public void changeTitle(String newTitle) {
+
+    // 수정 api에서 meeting쪽 속성 일괄 변경하는 메서드
+    public void updateMeeting(String newTitle, String newPlaceName, LocalDateTime newMeetingTime, Integer newMainLanguageId, Integer newExchangeLanguageId, Integer newMaxParticipants) {
         this.meetingTitle = newTitle;
+        this.meetingPlaceName = newPlaceName;
+        this.meetingTime = newMeetingTime;
+        this.meetingMainLanguageId = newMainLanguageId;
+        this.meetingExchangeLanguageId = newExchangeLanguageId;
+        this.maxParticipants = newMaxParticipants;
     }
 
-    public void changeLocation(String placeName) { this.meetingPlaceName = placeName; }
+    public void changeStatus(int newStatus) {this.status = newStatus;}
 
-    public void changeMinimumCapacity(int newMinPpl) {
-        this.minParticipants = newMinPpl;
+    public void changeImageUrl(String newImageUrl) {
+        this.meetingImageUrl = newImageUrl;
     }
 
-    public void changeMaximumCapacity(int newMaxPpl) {
-        this.maxParticipants = newMaxPpl;
-    }
-
-    public void rescheduleMeeting(LocalDateTime newTime) {
-        this.meetingTime = newTime;
-    }
-
-    public void changeStatus(int newStatus) {
-        this.status = newStatus;
-    }
 
     /**
      * 미팅을 활성화 상태로 변경합니다.
