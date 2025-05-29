@@ -20,9 +20,11 @@ import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
 import org.glue.glue_be.notification.reminder.ReminderSchedulerService;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
+import org.glue.glue_be.post.dto.request.UpdatePostRequest;
 import org.glue.glue_be.post.dto.response.*;
 import org.glue.glue_be.post.entity.*;
 import org.glue.glue_be.post.repository.*;
+import org.glue.glue_be.post.response.PostImageResponseStatus;
 import org.glue.glue_be.post.response.PostResponseStatus;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
@@ -453,6 +455,76 @@ public class PostService {
 					.collect(Collectors.toList())
 			)
 			.build();
+	}
+
+
+	public void updatePost(Long postId, Long userId, UpdatePostRequest req) {
+		Post post = postRepository.findById(postId).orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+		Meeting meeting = post.getMeeting();
+
+		// 1. 글쓴 유저인지 + 지금이 기존 모임 시각 3시간 이내인지 검증
+		LocalDateTime now = LocalDateTime.now();
+		if(!meeting.isHost(userId)) throw new BaseException(PostResponseStatus.POST_NOT_AUTHOR);
+		if(meeting.getMeetingTime().isBefore(now.plusHours(Meeting.UPDATE_LIMIT_HOUR))) throw new BaseException(PostResponseStatus.POST_CANNOT_UPDATE_CLOSE_TO_MEETING);
+
+		// 2. meeting 칼럼 수정
+		UpdatePostRequest.MeetingDto m = req.getMeeting();
+		meeting.updateMeeting(
+			m.getMeetingTitle(), m.getMeetingPlaceName(), m.getMeetingTime(),
+			m.getMainLanguageId(), m.getExchangeLanguageId(), m.getMaxParticipants()
+		);
+
+		// 3. post 칼럼 수정
+		UpdatePostRequest.PostDto p = req.getPost();
+		post.updatePost(p.getTitle(), p.getContent());
+
+
+		// 4. 이미지 처리
+		List<String> newUrls = p.getImageUrls() != null ? p.getImageUrls() : List.of();
+
+		// 4-1) 기존 imageUrl과 수정 imageUrl을 set에 넣음
+		List<PostImage> existingUrls = post.getImages();
+		Set<String> existingSet = existingUrls.stream().map(PostImage::getImageUrl).collect(Collectors.toSet());
+		Set<String> newSet = new HashSet<>(newUrls);
+
+		// 4-2) 삭제해야할 urls 수집 및 삭제: existingSet 중 newSet에 없는 것들만 추려내서 s3 버킷, PostImage 레코드 삭제
+		List<String> toDelete = existingSet.stream().filter(url -> !newSet.contains(url)).toList();
+		for (String url : toDelete) {
+			try {
+				fileService.deleteFile(url);
+			} catch (Exception e) {
+				log.error("해당 s3 이미지 url을 삭제하는데 실패! -> {}, db 삭제는 지속됨: {}", url, e.getMessage());
+			}
+			postImageRepository.deleteByPost_IdAndImageUrl(postId, url);
+		}
+
+		// 4-3) 입력으로 들어온 새로운 imageUrls 처리
+		int order = 0;
+		for (String url : newUrls) {
+			if (existingSet.contains(url)) {
+				// 기존에 있다면 순서만 업데이트
+				PostImage pi = existingUrls.stream()
+					.filter(ei -> ei.getImageUrl().equals(url))
+					.findFirst()
+					.orElseThrow(() -> new BaseException(PostImageResponseStatus.POST_IMAGE_NOT_FOUND));
+				pi.updateImageOrder(order);
+			} else {
+				// 신규는 엔티티 생성
+				PostImage pi = PostImage.builder()
+					.post(post)
+					.imageUrl(url)
+					.imageOrder(order)
+					.build();
+				postImageRepository.save(pi);
+				post.getImages().add(pi);
+			}
+			order++;
+		}
+
+
+
+
+
 	}
 
 	// TODO: 게시글 수정 시 해야할 것 들

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.post.dto.request.CreatePostRequest;
+import org.glue.glue_be.post.dto.request.UpdatePostRequest;
 import org.glue.glue_be.post.dto.response.BumpPostResponse;
 import org.glue.glue_be.post.dto.response.CreatePostResponse;
 import org.glue.glue_be.post.dto.response.GetPostResponse;
@@ -37,6 +38,12 @@ public class PostController {
 	}
 
 	// 3. 게시글 수정 (로그인 필수)
+	@PostMapping("/{postId}")
+	public BaseResponse<Void> updatePost(@PathVariable Long postId, @AuthenticationPrincipal CustomUserDetails auth,
+		@RequestBody @Valid UpdatePostRequest req) {
+		postService.updatePost(postId, auth.getUserId(), req);
+		return new BaseResponse<>();
+	}
 
 	// 4. 게시글 삭제 (로그인 필수)
 	@DeleteMapping("/{postId}")
