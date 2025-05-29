@@ -266,66 +266,92 @@ public class PostService {
 
 	// 게시글 목록 조회
 	// 무한스크롤 + 카테고리별 필터링
+	// PostService.java
+
 	@Transactional(readOnly = true)
-	public GetPostsResponse getPosts(Long lastPostId, int size, Integer categoryId, Long userId) {
+	public GetPostsResponse getPosts(
+		Long lastPostId,
+		int size,
+		Integer categoryId,
+		boolean languageToggle,   // ← 추가
+		Long userId
+	) {
 
 		int limit = size + 1;
 		List<Post> result;
 
-		if (categoryId == null) { // 카테고리 지정이 아닌 경우
+		if (languageToggle) {
+			// — 토글 ON: 학습 언어 기준만으로 페이징 —
+			// 1) 내 학습 언어 조회
+			User me = userRepository.findById(userId)
+				.orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+			Integer learnLang = me.getLanguageLearn();
 
-			if (lastPostId == null) { // 최초 페이지
-				result = postRepository.fetchFirstPage(limit);
-			} else { // 2번째 이상 페이지 -> 이전 페이지의 마지막 게시글을 커서로 삼아 다음 스크롤 fetch
+			if (lastPostId == null) {
+				result = postRepository.fetchFirstPageByLanguage(learnLang, limit);
+			} else {
 				Post cursor = postRepository.findById(lastPostId)
-						.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+					.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+				LocalDateTime cursorTime = Optional.ofNullable(cursor.getBumpedAt())
+					.orElse(cursor.getMeeting().getCreatedAt());
+				String cursorStr = new LocalDateTimeStringConverter()
+					.convertToDatabaseColumn(cursorTime);
 
-				LocalDateTime cursorTimeStamp = cursor.getBumpedAt() != null
-						? cursor.getBumpedAt()
-						: cursor.getMeeting().getCreatedAt();
-
-				String cursorTimeStampString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorTimeStamp);
-
-				result = postRepository.fetchNextPage(cursorTimeStampString, lastPostId, limit);
+				result = postRepository.fetchNextPageByLanguage(
+					learnLang, cursorStr, lastPostId, limit
+				);
 			}
-		} else { // 카테고리 지정!!
 
+		} else if (categoryId == null) {
+			// — 기존 로직 (토글 OFF, 카테고리 미지정) —
+			if (lastPostId == null) {
+				result = postRepository.fetchFirstPage(limit);
+			} else {
+				// ... 기존 fetchNextPage 로직 그대로 ...
+				Post cursor = postRepository.findById(lastPostId)
+					.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+				LocalDateTime cursorTime = Optional.ofNullable(cursor.getBumpedAt())
+					.orElse(cursor.getMeeting().getCreatedAt());
+				String cursorStr = new LocalDateTimeStringConverter()
+					.convertToDatabaseColumn(cursorTime);
+
+				result = postRepository.fetchNextPage(cursorStr, lastPostId, limit);
+			}
+
+		} else {
+			// — 기존 로직 (토글 OFF, 카테고리 지정) —
 			if (lastPostId == null) {
 				result = postRepository.fetchFirstPageByCategory(categoryId, limit);
 			} else {
+				// ... 기존 fetchNextPageByCategory 로직 그대로 ...
 				Post cursor = postRepository.findById(lastPostId)
-						.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+					.orElseThrow(() -> new BaseException(PostResponseStatus.POST_NOT_FOUND));
+				LocalDateTime cursorTime = Optional.ofNullable(cursor.getBumpedAt())
+					.orElse(cursor.getMeeting().getCreatedAt());
+				String cursorStr = new LocalDateTimeStringConverter()
+					.convertToDatabaseColumn(cursorTime);
 
-				LocalDateTime cursorTimeStamp = cursor.getBumpedAt() != null
-						? cursor.getBumpedAt()
-						: cursor.getMeeting().getCreatedAt();
-
-				String cursorTimeStampString = new LocalDateTimeStringConverter().convertToDatabaseColumn(cursorTimeStamp);
-
-				result = postRepository.fetchNextPageByCategory(categoryId, cursorTimeStampString, lastPostId, limit);
+				result = postRepository.fetchNextPageByCategory(
+					categoryId, cursorStr, lastPostId, limit
+				);
 			}
 		}
 
+		// hasNext, subList, 좋아요 여부 매핑은 기존대로
 		boolean hasNext = result.size() > size;
-		// 필요로 하는 size보다 1개를 더 가져와보는데 잘 받아와진다? == 다음 스크롤을 위한 게시글이 적어도 1개 존재 == hasNext is True
-
 		if (hasNext) result = result.subList(0, size);
 
-		// [유저의 각 게시글 좋아요 여부를 확인하는 절차]
-		// 1. 가져온 게시글들의 id만의 목록을 생성
 		List<Long> postIds = result.stream().map(Post::getId).toList();
-
-		// 2. Like 테이블의 user_id가 userID와 같고 동시에 post_id가 postIds에 들어있는 것들의 post_id 리턴 (by sql IN 문법)
-		List<Long> likedPostIds = likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds);
-		Set<Long> likedPostIdsSet = new HashSet<>(likedPostIds); // hash 조회 = O(1)
+		Set<Long> likedSet = new HashSet<>(
+			likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds)
+		);
 
 		return GetPostsResponse.builder()
-				.hasNext(hasNext)
-				.posts(result.stream()
-						.map(post -> GetPostsResponse.ofEntity(post, likedPostIdsSet.contains(post.getId())))
-						.collect(Collectors.toList()))
-				.build();
-
+			.hasNext(hasNext)
+			.posts(result.stream()
+				.map(post -> GetPostsResponse.ofEntity(post, likedSet.contains(post.getId())))
+				.collect(Collectors.toList()))
+			.build();
 	}
 
 	// 게시글 삭제 -> cascade 쓰면 딸깍이긴 할텐데 주의해야하는 부분이긴하다..ㅠㅠㅠㅠ

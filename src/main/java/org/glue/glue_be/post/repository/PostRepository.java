@@ -168,5 +168,45 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 		@Param("now") LocalDateTime now,
 		Pageable pageable
 	);
+
+
+	// ① 토글 ON: 최초 페이지 (언어만 필터)
+	@Query(value = """
+        SELECT p.* FROM post p
+        JOIN meeting m ON m.meeting_id = p.meeting_id
+        WHERE m.meeting_exchange_language_id = :langId
+        ORDER BY
+          COALESCE(p.bumped_at, m.created_at) DESC,
+          p.post_id DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+	List<Post> fetchFirstPageByLanguage(
+		@Param("langId") Integer languageId,
+		@Param("limit") int limit
+	);
+
+	// ② 토글 ON: 다음 페이지
+	@Query(value = """
+        SELECT p.* FROM post p
+        JOIN meeting m ON m.meeting_id = p.meeting_id
+        WHERE m.meeting_exchange_language_id = :langId
+          AND (
+            COALESCE(p.bumped_at, m.created_at) < :cursorSortAt
+            OR (
+              COALESCE(p.bumped_at, m.created_at) = :cursorSortAt
+              AND p.post_id < :cursorPostId
+            )
+          )
+        ORDER BY
+          COALESCE(p.bumped_at, m.created_at) DESC,
+          p.post_id DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+	List<Post> fetchNextPageByLanguage(
+		@Param("langId") Integer languageId,
+		@Param("cursorSortAt") String cursorSortAt,
+		@Param("cursorPostId") Long cursorPostId,
+		@Param("limit") int limit
+	);
 }
 
