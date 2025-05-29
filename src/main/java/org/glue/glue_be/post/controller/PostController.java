@@ -103,4 +103,21 @@ public class PostController {
 	}
 
 
+	 // 9. 언어 매칭 게시글 조회
+	@GetMapping("/language-match")
+	public BaseResponse<?> getLanguageMatch(
+		@RequestParam(defaultValue = "3") int size,
+		@AuthenticationPrincipal CustomUserDetails auth
+	) {
+		Long userId = auth.getUserId();
+		if (size <= 3) {
+			List<MainPagePostResponse> list = postService.getLanguageMatchedMain(size, userId);
+			return new BaseResponse<>(list);
+		} else {
+			GetPostsResponse resp = postService.getLanguageMatchedDetailed(size, userId);
+			return new BaseResponse<>(resp);
+		}
+	}
+
+
 }

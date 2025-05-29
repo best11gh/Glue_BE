@@ -551,7 +551,7 @@ public class PostService {
 	}
 
 
-	// PostService.java
+	// 홈화면 인기게시글
 	@Transactional(readOnly = true)
 	public List<MainPagePostResponse> getMainPagePosts(int size, Long userId) {
 		LocalDateTime now = LocalDateTime.now();
@@ -582,6 +582,7 @@ public class PostService {
 			).toList();
 	}
 
+	// 홈화면 인기게시글 더보기
 	@Transactional(readOnly = true)
 	public GetPostsResponse getPopularDetailed(int size, Long userId) {
 		LocalDateTime now = LocalDateTime.now();
@@ -596,6 +597,80 @@ public class PostService {
 			.toList();
 
 		// 더 가져올 게 없으니 hasNext=false
+		return GetPostsResponse.builder()
+			.hasNext(false)
+			.posts(items)
+			.build();
+	}
+
+
+	// 홈화면 내 매칭언어
+	@Transactional(readOnly = true)
+	public List<MainPagePostResponse> getLanguageMatchedMain(int size, Long userId) {
+		// 1) 유저 언어 정보 조회
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+		Integer mainLang = user.getLanguageMain();
+		Integer exchLang = user.getLanguageLearn();
+
+		// 2) now 이후의 매칭 게시글 size개 조회
+		LocalDateTime now = LocalDateTime.now();
+		List<Post> posts = postRepository.findByLanguageMatch(
+			mainLang, exchLang, now,
+			PageRequest.of(0, size)
+		);
+
+		// 3) 로그인 유저 좋아요 여부 집합
+		List<Long> ids = posts.stream().map(Post::getId).toList();
+		Set<Long> liked = new HashSet<>(
+			likeRepository.findLikedPostIdsByUserAndPostIds(userId, ids)
+		);
+
+		// 4) DTO 변환
+		return posts.stream()
+			.map(p -> MainPagePostResponse.builder()
+				.postId(Math.toIntExact(p.getId()))
+				.categoryId(p.getMeeting().getCategoryId())
+				.createdAt(p.getMeeting().getCreatedAt())
+				.title(p.getTitle())
+				.content(p.getContent())
+				.likeCount(p.getLikes().size())
+				.isLiked(liked.contains(p.getId()) ? 1 : 0)
+				.currentParticipants(p.getMeeting().getCurrentParticipants())
+				.maxParticipants(p.getMeeting().getMaxParticipants())
+				.build()
+			).toList();
+	}
+
+
+	// 홈화면 내 매칭언어 더보기
+	@Transactional(readOnly = true)
+	public GetPostsResponse getLanguageMatchedDetailed(int size, Long userId) {
+		// 1) 유저 언어 정보 조회
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+		Integer mainLang = user.getLanguageMain();
+		Integer exchLang = user.getLanguageLearn();
+
+		// 2) now 이후의 매칭 게시글 size개 조회
+		LocalDateTime now = LocalDateTime.now();
+		List<Post> posts = postRepository.findByLanguageMatch(
+			mainLang, exchLang, now,
+			PageRequest.of(0, size)
+		);
+
+		// 3) 좋아요 여부
+		List<Long> ids = posts.stream().map(Post::getId).toList();
+		Set<Long> liked = new HashSet<>(
+			likeRepository.findLikedPostIdsByUserAndPostIds(userId, ids)
+		);
+
+		// 4) PostItem 변환
+		List<GetPostsResponse.PostItem> items = posts.stream()
+			.map(p -> GetPostsResponse.ofEntity(p, liked.contains(p.getId())))
+			.toList();
+
+		// 5) 더보기 엔드포인트는 고정 개수만 가져오므로 hasNext=false
 		return GetPostsResponse.builder()
 			.hasNext(false)
 			.posts(items)

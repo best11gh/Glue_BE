@@ -137,6 +137,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
 
 	// 미팅시간 안넘긴 게시글 중 좋아요 상위 순 가져오기
+	// Pageable 인자로 받지만 고정 사이즈의 게시글만 받아오므로 List<Post>로 리턴타입 지정
 	@Query("""
         SELECT p
         FROM Post p
@@ -144,6 +145,26 @@ public interface PostRepository extends JpaRepository<Post, Long> {
         ORDER BY SIZE(p.likes) DESC
         """)
 	List<Post> findPopularPosts(
+		@Param("now") LocalDateTime now,
+		Pageable pageable
+	);
+
+
+	// 미팅시간 안넘긴 게시글 중 입력으로 들어온 주언어, 학습언어와 일치하는 게시글 가져오기
+	// Pageable 인자로 받지만 고정 사이즈의 게시글만 받아오므로 List<Post>로 리턴타입 지정
+	@Query("""
+        SELECT p
+        FROM Post p
+        WHERE p.meeting.meetingMainLanguageId = :mainLang
+          AND p.meeting.meetingExchangeLanguageId = :exchangeLang
+          AND p.meeting.meetingTime > :now
+        ORDER BY
+          COALESCE(p.bumpedAt, p.meeting.createdAt) DESC,
+          p.id DESC
+        """)
+	List<Post> findByLanguageMatch(
+		@Param("mainLang") Integer mainLang,
+		@Param("exchangeLang") Integer exchangeLang,
 		@Param("now") LocalDateTime now,
 		Pageable pageable
 	);
