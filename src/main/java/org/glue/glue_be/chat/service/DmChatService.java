@@ -394,8 +394,13 @@ public class DmChatService extends CommonChatService {
     @Transactional
     public DmMessageResponse processDmMessage(Long dmChatRoomId, DmMessageSendRequest request, Long userId) {
         try {
+            DmChatRoom dmChatRoom = getChatRoomById(dmChatRoomId);
+            User sender = getUserById(userId);
+            validateChatRoomMember(dmChatRoom, sender);
+            validateRecipientNotDeleted(dmChatRoom, userId);
+
             // 메시지 db에 저장
-            DmMessageResponse response = saveDmMessage(dmChatRoomId, userId, request.getContent());
+            DmMessageResponse response = saveDmMessage(dmChatRoom, sender, request.getContent());
 
             // 메시지 전송 및 알림
             // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
@@ -410,23 +415,16 @@ public class DmChatService extends CommonChatService {
     }
 
     // DB에 전송한 메시지 저장
-    private DmMessageResponse saveDmMessage(Long dmChatRoomId, Long senderId, String content) {
+    private DmMessageResponse saveDmMessage(DmChatRoom chatRoom, User sender, String content) {
         try {
-            return saveMessage(
-                    dmChatRoomId,
-                    senderId,
-                    content,
-                    this::getChatRoomById,                           // 채팅방 찾기
-                    this::validateChatRoomMember,                    // 멤버십 검증
-                    (chatRoom, sender, messageContent) ->            // 메시지 생성
-                            DmMessage.builder()
-                                    .chatRoom(chatRoom)
-                                    .user(sender)
-                                    .dmMessageContent(messageContent)
-                                    .build(),
-                    dmMessageRepository::save,                       // 메시지 저장
-                    responseMapper::toMessageResponse                // 응답 매핑
-            );
+            DmMessage message = DmMessage.builder()
+                    .chatRoom(chatRoom)
+                    .user(sender)
+                    .dmMessageContent(content)
+                    .build();
+
+            DmMessage savedMessage = dmMessageRepository.save(message);
+            return responseMapper.toMessageResponse(savedMessage);
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
@@ -515,6 +513,22 @@ public class DmChatService extends CommonChatService {
         // DM 특화 검증: 2명 참여 확인 및 현재 사용자 포함 확인
         if (userIds.size() != 2 || !userIds.contains(currentUserId)) {
             throw new BaseException(ChatResponseStatus.INVALID_DM_USER_COUNT);
+        }
+    }
+
+    private void validateRecipientNotDeleted(DmChatRoom chatRoom, Long senderId) {
+        List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(chatRoom);
+
+        // 상대방 찾기 (나를 제외한 참여자)
+        User recipient = participants.stream()
+                .map(DmUserChatroom::getUser)
+                .filter(user -> !user.getUserId().equals(senderId))
+                .findFirst()
+                .orElseThrow(() -> new BaseException(ChatResponseStatus.USER_NOT_MEMBER));
+
+        // 상대방이 탈퇴한 유저인지 확인
+        if (recipient.getIsDeleted() == 1) {
+            throw new BaseException(ChatResponseStatus.RECIPIENT_USER_DELETED);
         }
     }
 }
