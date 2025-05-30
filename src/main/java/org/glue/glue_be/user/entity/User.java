@@ -185,7 +185,7 @@ public class User extends BaseEntity {
         this.isDeleted = IS_DELETED;
 
         // not null 필드들을 기본값으로 설정
-        this.birthDate = LocalDate.parse("1900-01-01T00:00:00");
+        this.birthDate = LocalDate.parse("1900-01-01");
         this.email = "deleted@deleted.com";
         this.gender = -1;
         this.guestbooksVisibility = VISIBILITY_PRIVATE;
