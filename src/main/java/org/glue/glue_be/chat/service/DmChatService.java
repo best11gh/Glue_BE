@@ -34,6 +34,7 @@ public class DmChatService extends CommonChatService {
 
     final int INVITE_AVAILABLE = 1;
     final int INVITE_NOT_NECESSARY = -1;
+    final boolean OTHER_USER_NOT_NECESSARY = false;
 
     private final DmChatRoomRepository dmChatRoomRepository;
     private final DmUserChatroomRepository dmUserChatroomRepository;
@@ -115,11 +116,12 @@ public class DmChatService extends CommonChatService {
             // 해당 dm방의 참여자 목록 조회
             List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(dmChatRoom);
 
-            // 초대장 로직 - 사용자가 로그인한 경우에만 초대 정보 확인
-            // "모임 초대하기"가 아예 필요 없는 상황
+            // 초대장 로직, 대화 상대방 탈퇴 여부 확인 - 사용자가 로그인한 경우에만 초대 정보 확인
             Integer invitationStatus = INVITE_NOT_NECESSARY;
+            Boolean isOtherUserDeleted = OTHER_USER_NOT_NECESSARY;
             if (userId.isPresent()) {
                 invitationStatus = checkInvitationStatus(dmChatRoom, participants, userId.get());
+                isOtherUserDeleted = checkIfRecipientDeleted(participants, userId.get());
             }
 
             // 아직 초대장이 한 번도 안 만들어진 상태일 때: 무조건 초대 가능하도록
@@ -129,7 +131,7 @@ public class DmChatService extends CommonChatService {
 
             // 응답 생성
             DmChatRoomDetailResponse responseWithoutHostInfo = responseMapper.toChatRoomDetailResponse(
-                    dmChatRoom, participants, userId.orElse(null), invitationStatus);
+                    dmChatRoom, participants, userId.orElse(null), invitationStatus, isOtherUserDeleted);
 
             // 호스트 정보를 추가한 참가자 목록 생성
             List<UserSummaryWithHostInfo> participantsWithHostInfo = participants.stream()
@@ -516,18 +518,19 @@ public class DmChatService extends CommonChatService {
         }
     }
 
+    private Boolean checkIfRecipientDeleted(List<DmUserChatroom> participants, Long userId) {
+        return participants.stream()
+                .map(DmUserChatroom::getUser)
+                .filter(user -> !user.getUserId().equals(userId))
+                .findFirst()
+                .map(user -> user.getIsDeleted() == 1)
+                .orElse(false);
+    }
+
     private void validateRecipientNotDeleted(DmChatRoom chatRoom, Long senderId) {
         List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(chatRoom);
 
-        // 상대방 찾기 (나를 제외한 참여자)
-        User recipient = participants.stream()
-                .map(DmUserChatroom::getUser)
-                .filter(user -> !user.getUserId().equals(senderId))
-                .findFirst()
-                .orElseThrow(() -> new BaseException(ChatResponseStatus.USER_NOT_MEMBER));
-
-        // 상대방이 탈퇴한 유저인지 확인
-        if (recipient.getIsDeleted() == 1) {
+        if (checkIfRecipientDeleted(participants, senderId)) {
             throw new BaseException(ChatResponseStatus.RECIPIENT_USER_DELETED);
         }
     }
