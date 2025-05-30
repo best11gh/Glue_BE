@@ -4,6 +4,7 @@ package org.glue.glue_be.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.guestbook.repository.GuestBookRepository;
 import org.glue.glue_be.meeting.repository.MeetingRepository;
 import org.glue.glue_be.post.dto.response.GetLikedPostsResponse;
 import org.glue.glue_be.post.entity.Like;
@@ -34,6 +35,7 @@ public class UserService {
 	private final LikeRepository likeRepository;
 	private final PostRepository postRepository;
 	private final MeetingRepository meetingRepository;
+	private final GuestBookRepository guestBookRepository;
 
 
 
@@ -197,11 +199,16 @@ public class UserService {
 	public void signOut(Long userId) {
 		User user = getUserById(userId);
 
+		// 호스트로서 진행 중인 모임이 있으면 탈퇴 불가
 		if (!meetingRepository.findByHost_UserId(userId).isEmpty()) {
 			throw new BaseException(UserResponseStatus.CANNOT_DELETE_WITH_ACTIVE_MEETINGS);
 		}
 
+		// soft delete 및 개인정보 익명화
 		user.anonymizeForSignOut();
+
+		// 해당 유저의 방명록 모두 삭제
+		guestBookRepository.deleteByHost_UserId(userId);
 	}
 
 
