@@ -152,6 +152,7 @@ public class UserController {
 
 	// 15. 회원 탈퇴
 	@PutMapping("/signout")
+	@Operation(summary = "회원 탈퇴")
 	public BaseResponse<Void> signOut(@AuthenticationPrincipal CustomUserDetails auth) {
 		userService.signOut(auth.getUserId());
 		return new BaseResponse<>();
