@@ -34,6 +34,7 @@ public class DmChatService extends CommonChatService {
 
     final int INVITE_AVAILABLE = 1;
     final int INVITE_NOT_NECESSARY = -1;
+    final int INVITE_NOT_AVAILABLE = 3; // invitation 엔티티의 status 속성이 가질 수 있는 값 중 "fully used"값이 3이다.
     final boolean OTHER_USER_NOT_NECESSARY = false;
 
     private final DmChatRoomRepository dmChatRoomRepository;
@@ -120,8 +121,13 @@ public class DmChatService extends CommonChatService {
             Integer invitationStatus = INVITE_NOT_NECESSARY;
             Boolean isOtherUserDeleted = OTHER_USER_NOT_NECESSARY;
             if (userId.isPresent()) {
-                invitationStatus = checkInvitationStatus(dmChatRoom, participants, userId.get());
                 isOtherUserDeleted = checkIfRecipientDeleted(participants, userId.get());
+                if (isOtherUserDeleted) {
+                    // 대화 상대방이 탈퇴했다면 초대 불가
+                    invitationStatus = INVITE_NOT_AVAILABLE;
+                } else {
+                    invitationStatus = checkInvitationStatus(dmChatRoom, participants, userId.get());
+                }
             }
 
             // 아직 초대장이 한 번도 안 만들어진 상태일 때: 무조건 초대 가능하도록
