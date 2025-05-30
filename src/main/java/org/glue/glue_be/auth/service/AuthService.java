@@ -19,17 +19,13 @@ import org.glue.glue_be.auth.response.AuthResponseStatus;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.redis.RedisUtil;
 import org.glue.glue_be.user.entity.User;
+import org.glue.glue_be.user.entity.UserRole;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import javax.naming.AuthenticationException;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 
 
 @Slf4j
@@ -130,7 +126,7 @@ public class AuthService {
     }
 
     private String getToken(User user) {
-        CustomUserDetails customUserDetails = new CustomUserDetails(user.getUserId(), user.getNickname());
+        CustomUserDetails customUserDetails = new CustomUserDetails(user.getUserId(), user.getNickname(), user.getRole());
         UserAuthentication authentication = new UserAuthentication(customUserDetails, null, null);
 
         return jwtTokenProvider.generateToken(authentication);
@@ -169,6 +165,20 @@ public class AuthService {
         // 3. 코드가 통과됐으므로 재사용 방지하게끔 기존 코드 삭제
         redisUtil.deleteData(email);
 
+    }
+
+
+
+    @Transactional
+    public String toggleRole(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+
+        UserRole current = user.getRole();
+        UserRole newRole = (current == UserRole.ROLE_USER) ? UserRole.ROLE_ADMIN : UserRole.ROLE_USER;
+        user.changeRole(newRole);
+
+        return newRole.name();
     }
 
 }
