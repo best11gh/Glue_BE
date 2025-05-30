@@ -8,6 +8,7 @@ import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.report.dto.request.ReportReasonRequest;
 import org.glue.glue_be.report.dto.response.ReportReasonResponse;
 import org.glue.glue_be.report.service.ReportReasonService;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,10 +19,9 @@ public class ReportReasonController {
 
     private final ReportReasonService reportReasonService;
 
-    // TODO: [관리자] => 어드민만 접근 가능하게 하기
-
     @PostMapping
     @Operation(summary = "[관리자] 신고 사유 추가")
+    @Secured(value = "ROLE_ADMIN")
     public BaseResponse<ReportReasonResponse> create(@Valid @RequestBody ReportReasonRequest request) {
         ReportReasonResponse reason = reportReasonService.create(request);
         return new BaseResponse<>(reason);
@@ -29,6 +29,7 @@ public class ReportReasonController {
 
     @PutMapping("/{reportReasonId}")
     @Operation(summary = "[관리자] 신고 사유 수정")
+    @Secured(value = "ROLE_ADMIN")
     public BaseResponse<ReportReasonResponse> update(@PathVariable Long reportReasonId,
                                                      @Valid @RequestBody ReportReasonRequest request) {
         ReportReasonResponse reason = reportReasonService.update(reportReasonId, request);
@@ -45,6 +46,7 @@ public class ReportReasonController {
 
     @DeleteMapping("/{reportReasonId}")
     @Operation(summary = "[관리자] 신고 사유 삭제")
+    @Secured(value = "ROLE_ADMIN")
     public BaseResponse<Void> delete(@PathVariable Long reportReasonId) {
         reportReasonService.delete(reportReasonId);
         return new BaseResponse<>();
