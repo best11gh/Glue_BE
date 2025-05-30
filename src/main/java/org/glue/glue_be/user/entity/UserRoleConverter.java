@@ -2,6 +2,8 @@ package org.glue.glue_be.user.entity;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
+import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.user.response.UserResponseStatus;
 
 @Converter(autoApply = true)
 public class UserRoleConverter implements AttributeConverter<UserRole, Integer> {
@@ -22,6 +24,6 @@ public class UserRoleConverter implements AttributeConverter<UserRole, Integer> 
             }
         }
 
-        throw new IllegalArgumentException("Unknown db role code: " + dbData);
+        throw new BaseException(UserResponseStatus.INVALID_ROLE);
     }
 }
