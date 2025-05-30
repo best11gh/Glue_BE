@@ -505,9 +505,9 @@ public class DmChatService extends CommonChatService {
 
     private Long getCurrentUserLastReadMessageId(Long userId, Long chatroomId) {
         return dmUserChatroomRepository
-                .findByUser_UserIdAndDmChatRoom_Id(userId, chatroomId)  // Repository 메소드명 수정
-                .map(DmUserChatroom::getLastReadMessageId)              // getId() -> getLastReadMessageId()
-                .orElse(0L);                                            // Optional 처리
+                .findByUser_UserIdAndDmChatRoom_Id(userId, chatroomId)
+                .map(DmUserChatroom::getLastReadMessageId)
+                .orElse(0L);
     }
 
     private Long getLatestMessageId(DmChatRoom chatRoom) {
