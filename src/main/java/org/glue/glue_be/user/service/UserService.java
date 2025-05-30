@@ -4,6 +4,7 @@ package org.glue.glue_be.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.meeting.repository.MeetingRepository;
 import org.glue.glue_be.post.dto.response.GetLikedPostsResponse;
 import org.glue.glue_be.post.entity.Like;
 import org.glue.glue_be.post.entity.Post;
@@ -32,6 +33,7 @@ public class UserService {
 	private final UserRepository userRepository;
 	private final LikeRepository likeRepository;
 	private final PostRepository postRepository;
+	private final MeetingRepository meetingRepository;
 
 
 
@@ -194,6 +196,11 @@ public class UserService {
 	// 15. 회원 탈퇴
 	public void signOut(Long userId) {
 		User user = getUserById(userId);
+
+		if (!meetingRepository.findByHost_UserId(userId).isEmpty()) {
+			throw new BaseException(UserResponseStatus.CANNOT_DELETE_WITH_ACTIVE_MEETINGS);
+		}
+
 		user.anonymizeForSignOut();
 	}
 
