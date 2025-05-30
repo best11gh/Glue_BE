@@ -32,4 +32,17 @@ public class AuthController {
 		return new BaseResponse<>(true);
 	}
 
+	@GetMapping("/nickname/{nickname}")
+	BaseResponse<Boolean> nickname(@PathVariable("nickname") String nickname) {
+		authService.checkNickname(nickname);
+		return new BaseResponse<>(true);
+	}
+
+	@GetMapping("/email/{email}")
+	BaseResponse<Boolean> nickEmail(@PathVariable("email") String email) {
+		authService.checkEmail(email);
+		return new BaseResponse<>(true);
+	}
+
+
 }
