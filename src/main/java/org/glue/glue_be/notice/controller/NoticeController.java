@@ -9,6 +9,7 @@ import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.notice.dto.request.NoticeRequest;
 import org.glue.glue_be.notice.dto.response.NoticeResponse;
 import org.glue.glue_be.notice.service.NoticeService;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,7 @@ public class NoticeController {
     private final NoticeService noticeService;
     @PostMapping
     @Operation(summary = "[관리자] 공지 등록")
+    @Secured(value = "ROLE_ADMIN")
     public BaseResponse<NoticeResponse> create(@Valid @RequestBody NoticeRequest request) {
         NoticeResponse response = noticeService.create(request);
         return new BaseResponse<>(response);
@@ -27,6 +29,7 @@ public class NoticeController {
 
     @PutMapping("/{noticeId}")
     @Operation(summary = "[관리자] 공지 수정")
+    @Secured(value = "ROLE_ADMIN")
     public BaseResponse<NoticeResponse> update(@PathVariable Long noticeId, @Valid @RequestBody NoticeRequest request){
         NoticeResponse response = noticeService.update(noticeId, request);
         return new BaseResponse<>(response);
@@ -52,6 +55,7 @@ public class NoticeController {
 
     @DeleteMapping("/{noticeId}")
     @Operation(summary = "[관리자] 공지 삭제")
+    @Secured(value = "ROLE_ADMIN")
     public BaseResponse<Void> delete(@PathVariable Long noticeId){
         noticeService.delete(noticeId);
         return new BaseResponse<>();
