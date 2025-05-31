@@ -9,7 +9,7 @@ import org.springframework.http.*;
 @AllArgsConstructor
 public enum NoticeResponseStatus implements ResponseStatus {
 
-    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, false, 404, "존재하지 않는 방명록입니다");
+    NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, false, 404, "존재하지 않는 공지입니다");
 
 
     private final HttpStatusCode httpStatusCode;

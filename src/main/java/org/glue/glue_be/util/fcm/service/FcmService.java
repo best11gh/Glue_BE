@@ -16,7 +16,14 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class FcmService {
 
+    // TODO: 개발 완료 후, 예외를 던지지 않도록 수정 예정
     public void sendMessage(FcmSendDto fcmSendDto) {
+        if (fcmSendDto.getToken() == null || fcmSendDto.getToken().isBlank()) {
+            log.error("[FCM 단일 전송 실패] 유효하지 않은 토큰: null 또는 빈 값");
+            throw new BaseException(FcmResponseStatus.FCM_SEND_ERROR, "FCM 토큰이 비어있습니다.");
+        }
+
+
         Message message = Message.builder()
                 .setNotification(Notification.builder()
                         .setTitle(fcmSendDto.getTitle())
