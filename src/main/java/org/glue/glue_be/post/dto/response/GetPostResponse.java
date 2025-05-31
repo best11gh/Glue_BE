@@ -35,6 +35,8 @@ public class GetPostResponse {
 
 		private Integer maxParticipants;
 
+		private String meetingTitle;
+
 		private String meetingPlaceName;
 
 		private Integer mainLanguageId;

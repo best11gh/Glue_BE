@@ -186,6 +186,7 @@ public class PostService {
 			.currentParticipants(meeting.getCurrentParticipants())
 			.meetingPlaceName(meeting.getMeetingPlaceName())
 			.maxParticipants(meeting.getMaxParticipants())
+			.meetingTitle(meeting.getMeetingTitle())
 			.mainLanguageId(meeting.getMeetingMainLanguageId())
 			.exchangeLanguageId(meeting.getMeetingExchangeLanguageId())
 			.meetingStatus(meeting.getStatus())
