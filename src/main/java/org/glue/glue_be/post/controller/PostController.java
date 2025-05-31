@@ -96,8 +96,8 @@ public class PostController {
 	// 9. 홈화면 인기 게시글
 	@GetMapping("/popular")
 	public BaseResponse<?> getPopularPosts(@AuthenticationPrincipal CustomUserDetails auth,
-		@RequestParam(defaultValue = "3") int size) {
-		if(size <= 3){
+		@RequestParam(defaultValue = "2") int size) {
+		if(size <= 2){
 			List<MainPagePostResponse> list = postService.getMainPagePosts(size, auth.getUserId());
 			return new BaseResponse<>(list);
 		} else {
@@ -110,11 +110,11 @@ public class PostController {
 	 // 9. 언어 매칭 게시글 조회
 	@GetMapping("/language-match")
 	public BaseResponse<?> getLanguageMatch(
-		@RequestParam(defaultValue = "3") int size,
+		@RequestParam(defaultValue = "2") int size,
 		@AuthenticationPrincipal CustomUserDetails auth
 	) {
 		Long userId = auth.getUserId();
-		if (size <= 3) {
+		if (size <= 2) {
 			List<MainPagePostResponse> list = postService.getLanguageMatchedMain(size, userId);
 			return new BaseResponse<>(list);
 		} else {
