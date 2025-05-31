@@ -264,16 +264,35 @@ public class PostService {
 		}
 	}
 
+	// 게시글 목록 조회, 검색에서 쓰이는 응답부 조립 공통 메서드
+	private GetPostsResponse buildPostsResponse(List<Post> raw, int pageSize, Long userId) {
+
+		boolean hasNext = raw.size() > pageSize;
+		List<Post> page = hasNext ? raw.subList(0, pageSize) : raw;
+
+		// 좋아요 매핑
+		List<Long> postIds = page.stream().map(Post::getId).toList();
+		Set<Long> liked = new HashSet<>(
+			likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds)
+		);
+
+		return GetPostsResponse.builder()
+			.hasNext(hasNext)
+			.posts(page.stream()
+				.map(p -> GetPostsResponse.ofEntity(p,
+					liked.contains(p.getId())))
+				.toList())
+			.build();
+	}
+
 	// 게시글 목록 조회
 	// 무한스크롤 + 카테고리별 필터링
-	// PostService.java
-
 	@Transactional(readOnly = true)
 	public GetPostsResponse getPosts(
 		Long lastPostId,
 		int size,
 		Integer categoryId,
-		boolean languageToggle,   // ← 추가
+		boolean languageToggle,
 		Long userId
 	) {
 
@@ -337,21 +356,7 @@ public class PostService {
 			}
 		}
 
-		// hasNext, subList, 좋아요 여부 매핑은 기존대로
-		boolean hasNext = result.size() > size;
-		if (hasNext) result = result.subList(0, size);
-
-		List<Long> postIds = result.stream().map(Post::getId).toList();
-		Set<Long> likedSet = new HashSet<>(
-			likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds)
-		);
-
-		return GetPostsResponse.builder()
-			.hasNext(hasNext)
-			.posts(result.stream()
-				.map(post -> GetPostsResponse.ofEntity(post, likedSet.contains(post.getId())))
-				.collect(Collectors.toList()))
-			.build();
+		return buildPostsResponse(result, size, userId);
 	}
 
 	// 게시글 삭제 -> cascade 쓰면 딸깍이긴 할텐데 주의해야하는 부분이긴하다..ㅠㅠㅠㅠ
@@ -466,26 +471,7 @@ public class PostService {
 			);
 		}
 
-		boolean hasNext = result.size() > size;
-		if (hasNext) {
-			result = result.subList(0, size);
-		}
-
-		// [좋아요 여부까지 포함]
-		List<Long> postIds = result.stream().map(Post::getId).toList();
-		Set<Long> likedPostIds = new HashSet<>(
-			likeRepository.findLikedPostIdsByUserAndPostIds(userId, postIds)
-		);
-
-		return GetPostsResponse.builder()
-			.hasNext(hasNext)
-			.posts(
-				result.stream()
-					.map(post -> GetPostsResponse.ofEntity(post,
-						likedPostIds.contains(post.getId())))
-					.collect(Collectors.toList())
-			)
-			.build();
+		return buildPostsResponse(result, size, userId);
 	}
 
 
