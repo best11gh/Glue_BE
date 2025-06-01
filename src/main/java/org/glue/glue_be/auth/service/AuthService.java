@@ -169,6 +169,17 @@ public class AuthService {
 
 
 
+    // 닉네임 중복체크(중복말고도 추후 적절한 닉넴 검증등에 대한 추가 로직이 들어올수도 있단 생각에 일반화된 네이밍 사용)
+	public void checkNickname(String nickname) {
+        if(userRepository.existsByNickname(nickname))
+            throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 닉네임입니다.");
+    }
+
+
+    public void checkEmail(String email) {
+        if(userRepository.existsByEmail(email))
+            throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 이메일입니다.");
+
     @Transactional
     public String toggleRole(Long id) {
         User user = userRepository.findById(id)
@@ -179,6 +190,7 @@ public class AuthService {
         user.changeRole(newRole);
 
         return newRole.name();
+
     }
 
 }

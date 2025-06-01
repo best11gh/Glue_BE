@@ -21,6 +21,13 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
 
     Optional<DmUserChatroom> findByDmChatRoomAndUser(DmChatRoom dmChatRoom, User sender);
 
+
+    @Query("SELECT ducr.dmChatRoom FROM DmUserChatroom ducr WHERE ducr.user.userId = :userId")
+    List<DmChatRoom> findDmChatRoomsByUserId(@Param("userId") Long userId);
+
+	void deleteByDmChatRoom_Id(Long dmChatRoomId);
+
+
     @Query(value = "SELECT DISTINCT dc.* FROM dm_chatroom dc " +
             "JOIN dm_user_chatroom duc ON dc.dm_chatroom_id = duc.dm_chatroom_id " +
             "WHERE duc.user_id = :userId " +

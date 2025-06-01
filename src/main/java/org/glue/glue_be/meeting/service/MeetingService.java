@@ -32,39 +32,33 @@ public class MeetingService {
      * 모임 생성
      */
     @Transactional
-    public MeetingDto.CreateResponse createMeeting(MeetingDto.CreateRequest request, Long creatorId) {
-        // 유효성 검증
-        if (request.getMinPpl() > request.getMaxPpl()) {
-            throw new BaseException(MeetingResponseStatus.MIN_OVER_MAX);
-        }
+    public MeetingDto.CreateResponse createMeeting(MeetingDto.CreateRequest meetingRequest, Long creatorId) {
 
         // 사용자 조회
         User creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
-        // 모임 생성
+        // 2. 모임 생성
         Meeting meeting = Meeting.builder()
-                .meetingTitle(request.getMeetingTitle())
-                .meetingTime(request.getMeetingTime())
-                .meetingPlaceName(request.getMeetingPlaceName())
-                .meetingPlaceLatitude(request.getMeetingPlaceLatitude())
-                .meetingPlaceLongitude(request.getMeetingPlaceLongitude())
-                .minParticipants(request.getMinPpl())
-                .maxParticipants(request.getMaxPpl())
-                .currentParticipants(1) // 생성자가 첫 번째 참가자
-                .status(1) // 1: 활성화 상태
-                .host(creator) // 호스트 설정
-                .build();
-
+            .meetingTitle(meetingRequest.getMeetingTitle())
+            .meetingTime(meetingRequest.getMeetingTime())
+            .meetingPlaceName(meetingRequest.getMeetingPlaceName())
+            .minParticipants(0) // 1.0에선 최소인원이 안쓰이기에 일단 0으로 고정
+            .maxParticipants(meetingRequest.getMaxParticipants())
+            .currentParticipants(1)
+            .status(1)
+            .categoryId(meetingRequest.getCategoryId())
+            .meetingMainLanguageId(meetingRequest.getMainLanguageId())
+            .meetingExchangeLanguageId(meetingRequest.getExchangeLanguageId())
+            .host(creator)
+            .build();
         Meeting savedMeeting = meetingRepository.save(meeting);
 
-        // 생성자를 참가자로 추가
-        Participant participant = Participant.builder()
-                .user(creator)
-                .meeting(savedMeeting)
-                .build();
-
+        // 3. 게시자를 참가자 테이블에 추가
+        Participant participant = Participant.builder().user(creator).meeting(savedMeeting).build();
         participantRepository.save(participant);
+
+        // 3.5. onetomany로 관리하는 participants 리스트에 추가
         savedMeeting.addParticipant(participant);
 
         return MeetingDto.CreateResponse.builder()

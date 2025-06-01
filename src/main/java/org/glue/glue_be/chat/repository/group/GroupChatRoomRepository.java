@@ -15,9 +15,11 @@ import org.springframework.data.domain.Pageable;
 
 public interface GroupChatRoomRepository extends JpaRepository<GroupChatRoom, Long> {
 
-    // 미팅 ID로 그룹 채팅방 조회
-    Optional<GroupChatRoom> findByMeeting_MeetingId(Long meetingId);
+    // 미팅 ID로 그룹 채팅방 리스트 조회
+    List<GroupChatRoom> findByMeeting_MeetingId(Long meetingId);
 
+    // meeting_id fk로 첫번째 그룹 단톡방 가져오기 (지금 서비스 플로우에선 사실상 일대일 관계이긴함)
+    Optional<GroupChatRoom> findFirstByMeeting_MeetingId(Long meetingId);
 
     @Query("SELECT DISTINCT gc FROM GroupChatRoom gc " +
             "JOIN gc.groupUserChatrooms guc " +
@@ -34,4 +36,7 @@ public interface GroupChatRoomRepository extends JpaRepository<GroupChatRoom, Lo
             @Param("user") User user,
             @Param("cursorId") Long cursorId,
             Pageable pageable);
+    boolean existsByMeeting_MeetingId(Long meetingMeetingId);
+
+
 }

@@ -35,7 +35,13 @@ public class GetPostResponse {
 
 		private Integer maxParticipants;
 
-		private Integer languageId;
+		private String meetingTitle;
+
+		private String meetingPlaceName;
+
+		private Integer mainLanguageId;
+
+		private Integer exchangeLanguageId;
 
 		private Integer meetingStatus;
 
@@ -76,7 +82,12 @@ public class GetPostResponse {
 		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 		private LocalDateTime bumpedAt;
 
+		// 끌올 직전 유저에게 몇번 했는지 알려주기 위해 끌올 카운트 포함
+		private Integer bumpedCount;
+		private Integer bumpLimit;
+
 		private Integer likeCount;
+		private Boolean isLiked;
 
 		private List<PostImageDto> postImageUrl;
 

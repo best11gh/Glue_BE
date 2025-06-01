@@ -31,4 +31,7 @@ public interface DmChatRoomRepository extends JpaRepository<DmChatRoom, Long> {
 
     // 호스트 기준 커서 조회
     List<DmChatRoom> findByMeetingHostAndIdLessThanOrderByIdDesc(User host, Long cursorId, Pageable pageable);
+
+	List<DmChatRoom> findByMeeting_MeetingId(Long meetingMeetingId);
+
 }

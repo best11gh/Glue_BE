@@ -39,11 +39,25 @@ public class AuthController {
 		return new BaseResponse<>(true);
 	}
 
+
+	@GetMapping("/nickname/{nickname}")
+	BaseResponse<Boolean> nickname(@PathVariable("nickname") String nickname) {
+		authService.checkNickname(nickname);
+		return new BaseResponse<>(true);
+	}
+
+	@GetMapping("/email/{email}")
+	BaseResponse<Boolean> nickEmail(@PathVariable("email") String email) {
+		authService.checkEmail(email);
+		return new BaseResponse<>(true);
+	}
+
 	@PatchMapping("/test/toggle-role")
 	@Operation(summary = "[테스트용] 로그인한 사용자의 역할 변경")
 	public BaseResponse<String> toggleRole(@AuthenticationPrincipal CustomUserDetails userDetails) {
 		String newRole = authService.toggleRole(userDetails.getUserId());
 		return new BaseResponse<>("변경된 역할: " + newRole);
 	}
+
 
 }

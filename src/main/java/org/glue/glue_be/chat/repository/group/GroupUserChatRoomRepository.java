@@ -22,6 +22,9 @@ public interface GroupUserChatRoomRepository extends JpaRepository<GroupUserChat
     // 채팅방과 유저로 삭제
     void deleteByGroupChatroomAndUser(GroupChatRoom groupChatroom, User user);
 
+
+	void deleteByGroupChatroom_GroupChatroomId(Long roomId);
+
     Optional<GroupUserChatRoom> findByUser_UserIdAndGroupChatroom_GroupChatroomId(Long userId, Long groupChatroomId);
 
     @Modifying
@@ -30,4 +33,5 @@ public interface GroupUserChatRoomRepository extends JpaRepository<GroupUserChat
     void updateLastReadMessageId(@Param("userId") Long userId,
                                  @Param("groupChatroomId") Long groupChatroomId,
                                  @Param("messageId") Long messageId);
+
 }
