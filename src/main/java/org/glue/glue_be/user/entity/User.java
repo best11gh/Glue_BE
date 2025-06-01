@@ -22,6 +22,10 @@ public class User extends BaseEntity {
     @Column(name = "oauth_id", nullable = false, unique = true)
     private String oauthId;
 
+    @Convert(converter = UserRoleConverter.class)
+    @Column(name = "user_role", nullable = false)
+    private UserRole role;
+
     @Column(name = "real_name", nullable = false)
     private String realName;
 
@@ -88,7 +92,11 @@ public class User extends BaseEntity {
 
 
     @Builder
-    public User(String oauthId, String realName, String nickname, Integer gender, LocalDate birthDate, String description, Integer major, Integer school, String email, Integer systemLanguage, Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel, String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility, Integer guestbooksVisibility) {
+    public User(String oauthId, String realName, String nickname, Integer gender, LocalDate birthDate,
+                String description, Integer major, Integer school, String email, Integer systemLanguage,
+                Integer languageMain, Integer languageLearn, Integer languageMainLevel, Integer languageLearnLevel,
+                String profileImageUrl, Integer majorVisibility, Integer meetingVisibility, Integer likeVisibility,
+                Integer guestbooksVisibility) {
         this.oauthId = oauthId;
         this.realName = realName;
         this.nickname = nickname;
@@ -108,6 +116,7 @@ public class User extends BaseEntity {
         this.meetingVisibility = (meetingVisibility == null) ? VISIBILITY_PUBLIC : meetingVisibility;
         this.likeVisibility = (likeVisibility == null) ? VISIBILITY_PUBLIC : likeVisibility;
         this.guestbooksVisibility = (guestbooksVisibility == null) ? VISIBILITY_PUBLIC : guestbooksVisibility;
+        this.role = UserRole.ROLE_USER;
     }
 
 
@@ -171,6 +180,10 @@ public class User extends BaseEntity {
 
     public void changeGuestbooksVisibility(Integer guestbooksVisibility) {
         this.guestbooksVisibility = guestbooksVisibility;
+    }
+
+    public void changeRole(UserRole newRole) {
+        this.role = newRole;
     }
 
 }

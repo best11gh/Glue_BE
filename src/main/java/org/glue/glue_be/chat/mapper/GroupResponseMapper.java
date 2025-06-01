@@ -116,7 +116,6 @@ public class GroupResponseMapper {
                 .groupChatroomId(message.getGroupChatroom().getGroupChatroomId())
                 .sender(senderSummary)
                 .message(message.getMessage())
-                .unreadCount(message.getUnreadCount())
                 .createdAt(message.getCreatedAt())
                 .build();
     }
