@@ -30,8 +30,6 @@ public class NoticeService {
 
     private final NotificationService notificationService;
 
-    // TODO: 작성, 수정, 삭제는 어드민만 가능
-
     // 공지사항 작성
     public NoticeResponse create(NoticeRequest request) {
 

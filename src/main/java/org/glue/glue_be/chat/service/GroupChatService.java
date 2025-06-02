@@ -48,12 +48,12 @@ public class GroupChatService extends CommonChatService {
 
             User user = getUserById(userId);
 
-            // 기존에 해당 미팅에 대한 그룹 채팅방이 있는지 확인
-            Optional<GroupChatRoom> existingChatRoom = groupChatRoomRepository.findByMeeting_MeetingId(meetingId);
-
-            if (existingChatRoom.isPresent()) {
+            // 기존에 해당 미팅에 대한 그룹 채팅방이 있는지 여부에 따라 로직 처리가 다르게 됨
+            if (groupChatRoomRepository.existsByMeeting_MeetingId(meetingId)) {
                 // 기존 채팅방이 있으면 사용자만 추가
-                GroupChatRoom chatRoom = existingChatRoom.get();
+                GroupChatRoom chatRoom = groupChatRoomRepository
+                    .findFirstByMeeting_MeetingId(meetingId)
+                    .orElseThrow(() -> new BaseException(ChatResponseStatus.CHATROOM_NOT_FOUND));
 
                 // 이미 사용자가 채팅방에 참여 중인지 확인
                 Optional<GroupUserChatRoom> existingUserChatroom =

@@ -7,11 +7,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -89,7 +92,7 @@ public class FileService {
                     .build();
 
             s3Client.deleteObject(deleteRequest);
-            log.info("[FileService] File deleted successfully: {}", key);
+
 
         } catch (Exception e) {
             log.error("[FileService] Failed to delete file: {}", publicUrl, e);
@@ -99,12 +102,19 @@ public class FileService {
 
     // URL에서 S3 key 추출하는 헬퍼 메서드
     private String extractKeyFromUrl(String publicUrl) {
-        // https://bucket-name.s3.region.amazonaws.com/key 형태에서 key 부분 추출
+        // 1) 기존 baseUrl 매칭 로직 유지
         String baseUrl = String.format("https://%s.s3.%s.amazonaws.com/", bucket, region);
-        if (publicUrl.startsWith(baseUrl)) {
-            return publicUrl.substring(baseUrl.length());
+        if (!publicUrl.startsWith(baseUrl)) {
+            throw new IllegalArgumentException("Invalid S3 URL format: " + publicUrl);
         }
-        throw new IllegalArgumentException("Invalid S3 URL format: " + publicUrl);
+
+        // 2) baseUrl 뒤의 부분만 잘라 내기
+        String encodedKey = publicUrl.substring(baseUrl.length());
+
+        // 3) URLDecoder로 디코딩 -> 이래야 key 값이 동일해져서 제대로 bucket의 객체가 삭제가된다!!!!!
+        String key = URLDecoder.decode(encodedKey, StandardCharsets.UTF_8);
+
+        return key;
     }
 }
 

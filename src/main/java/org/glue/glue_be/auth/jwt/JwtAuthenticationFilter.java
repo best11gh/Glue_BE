@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.auth.response.AuthResponseStatus;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.user.entity.UserRole;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -46,17 +47,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			// 2. 만약 토큰이 유효한 토큰이라면
 			if (jwtTokenProvider.validateToken(token) == VALID_JWT) {
 
-				// 2-1. 토큰에서 userId, userNickname 추출
+				// 2-1. 토큰에서 userId, userNickname, role 추출
 				Long userId = jwtTokenProvider.getUserIdFromJwt(token);
 				String userNickname = jwtTokenProvider.getUserNicknameFromJwt(token);
+				UserRole role = jwtTokenProvider.getUserRoleFromJwt(token);
 
 				// 2-2. 유저정보를 담는 객체를 만들기 위해 userDetails 인터페이스에 따른 커스텀 객체를 초기화합니다.
-				CustomUserDetails userDetails = new CustomUserDetails(userId, userNickname);
+				CustomUserDetails userDetails = new CustomUserDetails(userId, userNickname, role);
 
 				// 유저 핵심정보를 넣는 principal은 추후 컨트롤러의 @AuthenticationPrincipal로 받게되는 타입이 됩니다.
 				// 따라서 우리가 컨트롤러에서 해당 어노테이션을 붙인 값의 타입은 CustomUserDetails가 돼야합니다!
 				UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-					userDetails, null, null
+					userDetails, null,  userDetails.getAuthorities()
 				);
 				auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 

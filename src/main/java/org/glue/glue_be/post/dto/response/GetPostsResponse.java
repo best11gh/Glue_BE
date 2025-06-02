@@ -21,6 +21,10 @@ public class GetPostsResponse {
 	@Builder
 	public static class PostItem {
 
+		// 좋아요 상태 상수
+		public static final int LIKED = 1;
+		public static final int NOT_LIKED = 0;
+
 		private Long postId;
 
 		private Integer viewCount;
@@ -41,10 +45,13 @@ public class GetPostsResponse {
 
 		private String thumbnailUrl;
 
+		// 현재 로그인한 유저가 이 게시글에 좋아요를 눌렀는지 1(예), 0(아니오)
+		private Integer isUserLikedThisPost;
+
 	}
 
 	// 엔티티 → 목록 itemDTO 변환용 메서드
-	public static PostItem ofEntity(Post p) {
+	public static PostItem ofEntity(Post p, boolean isLiked) {
 		return PostItem.builder()
 			.postId(p.getId())
 			.viewCount(p.getViewCount())
@@ -58,6 +65,7 @@ public class GetPostsResponse {
 			.thumbnailUrl(p.getImages().isEmpty()
 				? null
 				: p.getImages().get(0).getImageUrl())
+			.isUserLikedThisPost(isLiked ? PostItem.LIKED : PostItem.NOT_LIKED)
 			.build();
 	}
 

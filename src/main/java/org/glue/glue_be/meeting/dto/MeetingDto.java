@@ -36,17 +36,24 @@ public class MeetingDto {
         @NotBlank(message = "모임 장소는 필수입니다")
         private String meetingPlaceName;
 
-        private Double meetingPlaceLatitude;
-        private Double meetingPlaceLongitude;
-
-        @NotNull(message = "최소 인원은 필수입니다")
-        @Min(value = 1, message = "최소 인원은 1명 이상이어야 합니다")
-        private Integer minPpl;
-
         @NotNull(message = "최대 인원은 필수입니다")
         @Max(value = 100, message = "최대 인원은 100명을 초과할 수 없습니다")
-        private Integer maxPpl;
+        private Integer maxParticipants;
+
+        @NotNull
+        private Integer categoryId;
+
+        @NotNull
+        private Integer mainLanguageId;
+
+        @NotNull
+        private Integer exchangeLanguageId;
+
+
+
+
     }
+
 
     @Getter
     @Setter
@@ -58,11 +65,11 @@ public class MeetingDto {
         private String meetingTitle;
         private LocalDateTime meetingTime;
         private String meetingPlaceName;
-        private Double meetingPlaceLatitude;
-        private Double meetingPlaceLongitude;
         private Integer currentParticipants;
-        private Integer minParticipants;
         private Integer maxParticipants;
+        private Integer categoryId;
+        private Integer mainLanguageId;
+        private Integer exchangeLanguageId;
         private Integer status;
         private List<Long> participantIds;
         private Long hostId;
@@ -73,11 +80,11 @@ public class MeetingDto {
                     .meetingTitle(meeting.getMeetingTitle())
                     .meetingTime(meeting.getMeetingTime())
                     .meetingPlaceName(meeting.getMeetingPlaceName())
-                    .meetingPlaceLatitude(meeting.getMeetingPlaceLatitude())
-                    .meetingPlaceLongitude(meeting.getMeetingPlaceLongitude())
                     .currentParticipants(meeting.getCurrentParticipants())
-                    .minParticipants(meeting.getMinParticipants())
                     .maxParticipants(meeting.getMaxParticipants())
+                    .categoryId(meeting.getCategoryId())
+                    .mainLanguageId(meeting.getMeetingMainLanguageId())
+                    .exchangeLanguageId(meeting.getMeetingExchangeLanguageId())
                     .status(meeting.getStatus())
                     .hostId(meeting.getHost().getUserId())
                     .participantIds(meeting.getParticipants().stream()
