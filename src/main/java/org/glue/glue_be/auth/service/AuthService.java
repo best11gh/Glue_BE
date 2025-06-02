@@ -181,7 +181,6 @@ public class AuthService {
             throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 이메일입니다.");
     }
 
-    @Transactional
     public String toggleRole(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
@@ -193,5 +192,4 @@ public class AuthService {
         return newRole.name();
 
     }
-
 }
