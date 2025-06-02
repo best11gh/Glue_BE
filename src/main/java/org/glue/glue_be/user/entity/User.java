@@ -190,7 +190,7 @@ public class User extends BaseEntity {
     }
 
     public void anonymizeForSignOut() {
-        // 탈퇴
+        // soft delete
         this.isDeleted = IS_DELETED;
 
         // not null 필드들을 기본값으로 설정
