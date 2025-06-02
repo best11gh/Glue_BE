@@ -27,4 +27,7 @@ public interface GroupMessageRepository extends JpaRepository<GroupMessage, Long
             GroupChatRoom groupChatroom,
             Long cursorId,
             Pageable pageable);
+
+	void deleteByGroupChatroom_GroupChatroomId(Long roomId);
+
 }

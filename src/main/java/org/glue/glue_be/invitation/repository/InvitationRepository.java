@@ -36,4 +36,7 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
             @Param("meetingId") Long meetingId,
             @Param("creatorUserId") Long creatorUserId,
             @Param("inviteeUserId") Long inviteeUserId);
-} 
+
+	void deleteByMeeting_MeetingId(Long meetingMeetingId);
+
+}

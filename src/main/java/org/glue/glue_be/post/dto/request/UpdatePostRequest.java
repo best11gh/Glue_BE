@@ -1,9 +1,10 @@
 package org.glue.glue_be.post.dto.request;
 
+
+
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -11,9 +12,14 @@ import java.util.List;
 
 
 @Getter
-public class CreatePostRequest {
+public class UpdatePostRequest {
 
+	@NotNull
+	@Valid
 	private MeetingDto meeting;
+
+	@NotNull
+	@Valid
 	private PostDto post;
 
 	@Getter
@@ -21,9 +27,6 @@ public class CreatePostRequest {
 
 		@NotBlank(message = "모임 제목은 필수값입니다.")
 		private String meetingTitle;
-
-		@NotNull(message = "카테고리 id는 필수값입니다")
-		private Integer categoryId;
 
 		@NotBlank(message = "모임 장소는 필수값입니다")
 		private String meetingPlaceName;
@@ -39,7 +42,8 @@ public class CreatePostRequest {
 		@NotNull(message = "모임 교환언어 id는 필수값입니다")
 		private Integer exchangeLanguageId;
 
-		@NotNull(message = "최대 참가자수는 필수값입니다")
+		@Min(value = 1, message = "최대 참가자수는 최소 1명 이상이어야 합니다")
+		@Max(value = 10, message = "최대 참가자수는 10명을 초과할 수 없습니다")
 		private Integer maxParticipants;
 	}
 

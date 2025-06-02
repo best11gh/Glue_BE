@@ -6,8 +6,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.auth.service.AuthService;
 import org.glue.glue_be.common.response.BaseResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,5 +38,26 @@ public class AuthController {
 		authService.verifyCode(email, code);
 		return new BaseResponse<>(true);
 	}
+
+
+	@GetMapping("/nickname/{nickname}")
+	BaseResponse<Boolean> nickname(@PathVariable("nickname") String nickname) {
+		authService.checkNickname(nickname);
+		return new BaseResponse<>(true);
+	}
+
+	@GetMapping("/email/{email}")
+	BaseResponse<Boolean> nickEmail(@PathVariable("email") String email) {
+		authService.checkEmail(email);
+		return new BaseResponse<>(true);
+	}
+
+	@PatchMapping("/test/toggle-role")
+	@Operation(summary = "[테스트용] 로그인한 사용자의 역할 변경")
+	public BaseResponse<String> toggleRole(@AuthenticationPrincipal CustomUserDetails userDetails) {
+		String newRole = authService.toggleRole(userDetails.getUserId());
+		return new BaseResponse<>("변경된 역할: " + newRole);
+	}
+
 
 }
