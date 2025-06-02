@@ -180,17 +180,16 @@ public class AuthService {
         if(userRepository.existsByEmail(email))
             throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 이메일입니다.");
 
-    @Transactional
-    public String toggleRole(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
-
-        UserRole current = user.getRole();
-        UserRole newRole = (current == UserRole.ROLE_USER) ? UserRole.ROLE_ADMIN : UserRole.ROLE_USER;
-        user.changeRole(newRole);
-
-        return newRole.name();
-
+//    @Transactional
+//    public String toggleRole(Long id) {
+//        User user = userRepository.findById(id)
+//                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+//
+//        UserRole current = user.getRole();
+//        UserRole newRole = (current == UserRole.ROLE_USER) ? UserRole.ROLE_ADMIN : UserRole.ROLE_USER;
+//        user.changeRole(newRole);
+//
+//        return newRole.name();
+//
     }
-
 }
