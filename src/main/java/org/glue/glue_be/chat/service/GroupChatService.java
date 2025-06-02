@@ -325,8 +325,12 @@ public class GroupChatService extends CommonChatService {
     @Transactional
     public GroupMessageResponse processGroupMessage(Long groupChatroomId, GroupMessageSendRequest request, Long userId) {
         try {
+            GroupChatRoom groupChatRoom = getChatRoomById(groupChatroomId);
+            User sender = getUserById(userId);
+            validateChatRoomMember(groupChatRoom, sender);
+
             // 메시지 db에 저장
-            GroupMessageResponse response = saveGroupMessage(groupChatroomId, userId, request.content());
+            GroupMessageResponse response = saveGroupMessage(groupChatRoom, sender, request.content());
 
             // 메시지 전송 및 알림
             // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
@@ -341,25 +345,18 @@ public class GroupChatService extends CommonChatService {
     }
 
     // 메시지 db에 저장
-    private GroupMessageResponse saveGroupMessage(Long groupChatroomId, Long senderId, String content) {
+    private GroupMessageResponse saveGroupMessage(GroupChatRoom chatRoom, User sender, String content) {
         try {
-            return saveMessage(
-                    groupChatroomId,
-                    senderId,
-                    content,
-                    this::getChatRoomById,
-                    this::validateChatRoomMember,
-                    (chatRoom, sender, messageContent) -> new GroupMessage(
-                            sender,
-                            chatRoom,
-                            chatRoom.getMeeting(),
-                            messageContent
-                    ),
-                    groupMessageRepository::save,
-                    responseMapper::toMessageResponse
+            // 메시지 생성 및 저장
+            GroupMessage message = new GroupMessage(
+                    sender,
+                    chatRoom,
+                    chatRoom.getMeeting(),
+                    content
             );
-        } catch (BaseException e) {
-            throw e;
+
+            GroupMessage savedMessage = groupMessageRepository.save(message);
+            return responseMapper.toMessageResponse(savedMessage);
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.MESSAGE_SENDING_FAILED);
         }

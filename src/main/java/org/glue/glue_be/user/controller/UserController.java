@@ -35,7 +35,7 @@ public class UserController {
 		return new BaseResponse<>(response);
 	}
 
-	//	// 2-1. 내 언어/수준 변경
+	// 2-1. 내 언어/수준 변경
 	@PutMapping("/main-language")
 	@Operation(summary = "내 언어/수준 변경")
 	public BaseResponse<Void> updateMainLanguage(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
@@ -43,7 +43,7 @@ public class UserController {
 		return new BaseResponse<>();
 	}
 
-	//	// 2-2. 학습 언어/수준 변경
+	// 2-2. 학습 언어/수준 변경
 	@PutMapping("/learning-language")
 	@Operation(summary = "학습 언어/수준 변경")
 	public BaseResponse<Void> updateLearningLanguage(@AuthenticationPrincipal CustomUserDetails auth, @Valid @RequestBody UpdateLanguageRequest request) {
@@ -51,7 +51,7 @@ public class UserController {
 		return new BaseResponse<>();
 	}
 
-	//	// 3. 프로필 조회 (본인)
+	// 3. 프로필 조회 (본인)
 	@GetMapping("/profile/me")
 	@Operation(summary = "본인 프로필 조회")
 	public BaseResponse<MyProfileResponse> getMyProfile(@AuthenticationPrincipal CustomUserDetails auth) {
@@ -150,7 +150,12 @@ public class UserController {
 		return new BaseResponse<>();
 	}
 
-
-
+	// 15. 회원 탈퇴
+	@PutMapping("/signout")
+	@Operation(summary = "회원 탈퇴")
+	public BaseResponse<Void> signOut(@AuthenticationPrincipal CustomUserDetails auth) {
+		userService.signOut(auth.getUserId());
+		return new BaseResponse<>();
+	}
 
 }

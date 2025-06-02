@@ -27,4 +27,6 @@ public interface GuestBookRepository extends JpaRepository<GuestBook, Long> {
     );
 
     Long countByHost_UserId(Long userId);
+
+    void deleteByHost_UserId(Long userId);
 }
