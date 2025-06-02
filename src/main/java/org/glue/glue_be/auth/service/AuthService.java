@@ -177,8 +177,9 @@ public class AuthService {
 
 
     public void checkEmail(String email) {
-        if(userRepository.existsByEmail(email))
+        if (userRepository.existsByEmail(email))
             throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 이메일입니다.");
+    }
 
 //    @Transactional
 //    public String toggleRole(Long id) {
