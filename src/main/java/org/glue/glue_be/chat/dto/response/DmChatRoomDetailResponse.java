@@ -37,6 +37,8 @@ public class DmChatRoomDetailResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private Boolean isOtherUserDeleted;
+
     /**
      * JSON 직렬화 시 participants 또는 participantsWithHostInfo 중 하나만 사용
      * @return 적절한 참가자 목록

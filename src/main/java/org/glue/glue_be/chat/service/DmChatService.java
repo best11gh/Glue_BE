@@ -34,6 +34,8 @@ public class DmChatService extends CommonChatService {
 
     final int INVITE_AVAILABLE = 1;
     final int INVITE_NOT_NECESSARY = -1;
+    final int INVITE_NOT_AVAILABLE = 3; // invitation 엔티티의 status 속성이 가질 수 있는 값 중 "fully used"값이 3이다.
+    final boolean OTHER_USER_NOT_NECESSARY = false;
 
     private final DmChatRoomRepository dmChatRoomRepository;
     private final DmUserChatroomRepository dmUserChatroomRepository;
@@ -115,11 +117,17 @@ public class DmChatService extends CommonChatService {
             // 해당 dm방의 참여자 목록 조회
             List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(dmChatRoom);
 
-            // 초대장 로직 - 사용자가 로그인한 경우에만 초대 정보 확인
-            // "모임 초대하기"가 아예 필요 없는 상황
+            // 초대장 로직, 대화 상대방 탈퇴 여부 확인 - 사용자가 로그인한 경우에만 초대 정보 확인
             Integer invitationStatus = INVITE_NOT_NECESSARY;
+            Boolean isOtherUserDeleted = OTHER_USER_NOT_NECESSARY;
             if (userId.isPresent()) {
-                invitationStatus = checkInvitationStatus(dmChatRoom, participants, userId.get());
+                isOtherUserDeleted = checkIfRecipientDeleted(participants, userId.get());
+                if (isOtherUserDeleted) {
+                    // 대화 상대방이 탈퇴했다면 초대 불가
+                    invitationStatus = INVITE_NOT_AVAILABLE;
+                } else {
+                    invitationStatus = checkInvitationStatus(dmChatRoom, participants, userId.get());
+                }
             }
 
             // 아직 초대장이 한 번도 안 만들어진 상태일 때: 무조건 초대 가능하도록
@@ -129,7 +137,7 @@ public class DmChatService extends CommonChatService {
 
             // 응답 생성
             DmChatRoomDetailResponse responseWithoutHostInfo = responseMapper.toChatRoomDetailResponse(
-                    dmChatRoom, participants, userId.orElse(null), invitationStatus);
+                    dmChatRoom, participants, userId.orElse(null), invitationStatus, isOtherUserDeleted);
 
             // 호스트 정보를 추가한 참가자 목록 생성
             List<UserSummaryWithHostInfo> participantsWithHostInfo = participants.stream()
@@ -394,8 +402,13 @@ public class DmChatService extends CommonChatService {
     @Transactional
     public DmMessageResponse processDmMessage(Long dmChatRoomId, DmMessageSendRequest request, Long userId) {
         try {
+            DmChatRoom dmChatRoom = getChatRoomById(dmChatRoomId);
+            User sender = getUserById(userId);
+            validateChatRoomMember(dmChatRoom, sender);
+            validateRecipientNotDeleted(dmChatRoom, userId);
+
             // 메시지 db에 저장
-            DmMessageResponse response = saveDmMessage(dmChatRoomId, userId, request.getContent());
+            DmMessageResponse response = saveDmMessage(dmChatRoom, sender, request.getContent());
 
             // 메시지 전송 및 알림
             // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
@@ -410,23 +423,16 @@ public class DmChatService extends CommonChatService {
     }
 
     // DB에 전송한 메시지 저장
-    private DmMessageResponse saveDmMessage(Long dmChatRoomId, Long senderId, String content) {
+    private DmMessageResponse saveDmMessage(DmChatRoom chatRoom, User sender, String content) {
         try {
-            return saveMessage(
-                    dmChatRoomId,
-                    senderId,
-                    content,
-                    this::getChatRoomById,                           // 채팅방 찾기
-                    this::validateChatRoomMember,                    // 멤버십 검증
-                    (chatRoom, sender, messageContent) ->            // 메시지 생성
-                            DmMessage.builder()
-                                    .chatRoom(chatRoom)
-                                    .user(sender)
-                                    .dmMessageContent(messageContent)
-                                    .build(),
-                    dmMessageRepository::save,                       // 메시지 저장
-                    responseMapper::toMessageResponse                // 응답 매핑
-            );
+            DmMessage message = DmMessage.builder()
+                    .chatRoom(chatRoom)
+                    .user(sender)
+                    .dmMessageContent(content)
+                    .build();
+
+            DmMessage savedMessage = dmMessageRepository.save(message);
+            return responseMapper.toMessageResponse(savedMessage);
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
@@ -499,9 +505,9 @@ public class DmChatService extends CommonChatService {
 
     private Long getCurrentUserLastReadMessageId(Long userId, Long chatroomId) {
         return dmUserChatroomRepository
-                .findByUser_UserIdAndDmChatRoom_Id(userId, chatroomId)  // Repository 메소드명 수정
-                .map(DmUserChatroom::getLastReadMessageId)              // getId() -> getLastReadMessageId()
-                .orElse(0L);                                            // Optional 처리
+                .findByUser_UserIdAndDmChatRoom_Id(userId, chatroomId)
+                .map(DmUserChatroom::getLastReadMessageId)
+                .orElse(0L);
     }
 
     private Long getLatestMessageId(DmChatRoom chatRoom) {
@@ -515,6 +521,23 @@ public class DmChatService extends CommonChatService {
         // DM 특화 검증: 2명 참여 확인 및 현재 사용자 포함 확인
         if (userIds.size() != 2 || !userIds.contains(currentUserId)) {
             throw new BaseException(ChatResponseStatus.INVALID_DM_USER_COUNT);
+        }
+    }
+
+    private Boolean checkIfRecipientDeleted(List<DmUserChatroom> participants, Long userId) {
+        return participants.stream()
+                .map(DmUserChatroom::getUser)
+                .filter(user -> !user.getUserId().equals(userId))
+                .findFirst()
+                .map(user -> user.getIsDeleted() == 1)
+                .orElse(false);
+    }
+
+    private void validateRecipientNotDeleted(DmChatRoom chatRoom, Long senderId) {
+        List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom(chatRoom);
+
+        if (checkIfRecipientDeleted(participants, senderId)) {
+            throw new BaseException(ChatResponseStatus.RECIPIENT_USER_DELETED);
         }
     }
 }

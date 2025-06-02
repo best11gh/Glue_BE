@@ -217,36 +217,6 @@ public abstract class CommonChatService {
                 .collect(Collectors.toList());
     }
 
-    // 메시지 db에 저장
-    protected <C, M, R> R saveMessage(
-            Long chatRoomId,
-            Long senderId,
-            String content,
-            Function<Long, C> chatRoomFinder,
-            BiFunction<C, User, ?> memberValidator,
-            TriFunction<C, User, String, M> messageCreator,
-            Function<M, M> messageSaver,
-            Function<M, R> responseMapper) {
-
-        try {
-            // 채팅방 정보 확인 -> 발신자 정보 확인 -> 해당 유저가 채팅방에 참여 중인지 확인
-            C chatRoom = chatRoomFinder.apply(chatRoomId);
-            User sender = getUserById(senderId);
-            memberValidator.apply(chatRoom, sender);
-
-            // 메시지 생성
-            M message = messageCreator.apply(chatRoom, sender, content);
-
-            // 메시지 저장
-            M savedMessage = messageSaver.apply(message);
-
-            // 응답 생성
-            return responseMapper.apply(savedMessage);
-        } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.MESSAGE_SENDING_FAILED);
-        }
-    }
-
     // 사용자의 웹소켓 연결 상태를 확인
     public boolean isUserConnectedToWebSocket(Long userId, String deliveryType) {
         // 사용자의 구독 주소 확인

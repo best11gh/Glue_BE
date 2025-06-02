@@ -14,6 +14,15 @@ import org.glue.glue_be.common.config.LocalDateStringConverter;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
+    public static final int SYSTEM_LANGUAGE_KOREAN = 1;
+    public static final int SYSTEM_LANGUAGE_ENGLISH = 2;
+
+    public static final int VISIBILITY_PUBLIC = 1;
+    public static final int VISIBILITY_PRIVATE = 0;
+
+    public static final int IS_NOT_DELETED = 0;
+    public static final int IS_DELETED = 1;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -66,17 +75,11 @@ public class User extends BaseEntity {
     @Column(name = "language_learn_level", nullable = false) // default = 3
     private Integer languageLearnLevel;
 
-    public static final int SYSTEM_LANGUAGE_KOREAN = 1;
-    public static final int SYSTEM_LANGUAGE_ENGLISH = 2;
-
     @Column(name = "system_language", nullable = false) // default = 1
     private Integer systemLanguage;
 
     @Column(name = "fcm_token")
     private String fcmToken;
-
-    public static final int VISIBILITY_PUBLIC = 1;
-    public static final int VISIBILITY_PRIVATE = 0;
 
     @Column(name = "major_visibility", nullable = false) // default = 1
     private Integer majorVisibility;
@@ -89,6 +92,9 @@ public class User extends BaseEntity {
 
     @Column(name = "guestbooks_visibility", nullable = false) // default = 1
     private Integer guestbooksVisibility;
+
+    @Column(name = "is_deleted", nullable = false)
+    private Integer isDeleted;
 
 
     @Builder
@@ -116,6 +122,7 @@ public class User extends BaseEntity {
         this.meetingVisibility = (meetingVisibility == null) ? VISIBILITY_PUBLIC : meetingVisibility;
         this.likeVisibility = (likeVisibility == null) ? VISIBILITY_PUBLIC : likeVisibility;
         this.guestbooksVisibility = (guestbooksVisibility == null) ? VISIBILITY_PUBLIC : guestbooksVisibility;
+        this.isDeleted = IS_NOT_DELETED;
         this.role = UserRole.ROLE_USER;
     }
 
@@ -182,6 +189,34 @@ public class User extends BaseEntity {
         this.guestbooksVisibility = guestbooksVisibility;
     }
 
+    public void anonymizeForSignOut() {
+        // soft delete
+        this.isDeleted = IS_DELETED;
+
+        // not null 필드들을 기본값으로 설정
+        this.birthDate = LocalDate.parse("1900-01-01");
+        this.email = "deleted@deleted.com";
+        this.gender = -1;
+        this.guestbooksVisibility = VISIBILITY_PRIVATE;
+        this.languageLearn = -1;
+        this.languageLearnLevel = -1;
+        this.languageMain = -1;
+        this.languageMainLevel = -1;
+        this.likeVisibility = VISIBILITY_PRIVATE;
+        this.major = -1;
+        this.majorVisibility = -1;
+        this.meetingVisibility = -1;
+        this.nickname = "탈퇴한 사용자_" + this.userId;
+        this.oauthId = "deleted_oauth_id_" + this.oauthId;
+        this.school = -1;
+        this.systemLanguage = -1;
+
+        // nullable 필드들을 null로 설정
+        this.description = null;
+        this.fcmToken = null;
+        this.profileImageUrl = null;
+        this.realName = null;
+    }
     public void changeRole(UserRole newRole) {
         this.role = newRole;
     }

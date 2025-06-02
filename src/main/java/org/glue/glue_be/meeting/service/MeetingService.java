@@ -16,6 +16,8 @@ import org.glue.glue_be.user.response.UserResponseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.glue.glue_be.user.entity.User.IS_DELETED;
+
 
 @Service
 @RequiredArgsConstructor
@@ -71,11 +73,13 @@ public class MeetingService {
      */
     @Transactional
     public void joinMeeting(Long meetingId, Long userId) {
-        // 모임 존재 확인
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
 
-        // 사용자 존재 확인
+        if (meeting.getHost().getIsDeleted().equals(IS_DELETED)) {
+            throw new BaseException(MeetingResponseStatus.MEETING_HOST_DELETED);
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 

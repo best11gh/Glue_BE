@@ -17,7 +17,8 @@ public enum MeetingResponseStatus implements ResponseStatus {
     ALREADY_JOINED(HttpStatus.CONFLICT, false, 409, "이미 모임에 참여 중입니다"),
     NON_PARTICIPANT_INVITATION(HttpStatus.FORBIDDEN, false, 403, "모임 참가자만 초대장을 생성할 수 있습니다"),
     NOT_HOST_PERMISSION(HttpStatus.FORBIDDEN, false, 403, "모임 주최자만 이 작업을 수행할 수 있습니다"),
-    NOT_JOINED(HttpStatus.FORBIDDEN, false, 403, "모임에 참여하지 않은 사용자입니다");
+    NOT_JOINED(HttpStatus.FORBIDDEN, false, 403, "모임에 참여하지 않은 사용자입니다"),
+    MEETING_HOST_DELETED(HttpStatus.FORBIDDEN, false, 403, "탈퇴한 사용자가 주최한 모임에는 참여할 수 없습니다");
 
     private final HttpStatusCode httpStatusCode;
     private final boolean isSuccess;

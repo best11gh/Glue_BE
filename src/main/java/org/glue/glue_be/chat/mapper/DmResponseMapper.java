@@ -30,7 +30,7 @@ public class DmResponseMapper {
     }
 
     //DmChatRoom 엔티티와 참여자 목록을 DmChatRoomDetailResponse DTO로 변환
-    public DmChatRoomDetailResponse toChatRoomDetailResponse(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, Long userId, Integer invitationStatus) {
+    public DmChatRoomDetailResponse toChatRoomDetailResponse(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, Long userId, Integer invitationStatus, Boolean isOtherUserDeleted) {
         List<UserSummary> participantResponses = participants.stream()
                 .map(dmUserChatroom -> toChatUserResponse(dmUserChatroom.getUser()))
                 .collect(Collectors.toList());
@@ -50,6 +50,7 @@ public class DmResponseMapper {
                     .orElse(1); //default: 1
 
             builder.isPushNotificationOn(isPushNotificationOn);
+            builder.isOtherUserDeleted(isOtherUserDeleted);
         }
 
         if (invitationStatus != -1) {
