@@ -68,9 +68,7 @@ public class PostController {
 	// - bumpedAt 가 있는 글이 먼저 우선적으로 내림차순으로 최근 끌올순 구현
 	// - bumpedAt 가 없는 글들 중에선 createdAt 순
 	@GetMapping
-  @Operation(summary = "게시글 전체 조회")
-	public BaseResponse<GetPostsResponse> getPosts(
-		@RequestParam(required = false) Long lastPostId,
+    @Operation(summary = "게시글 전체 조회")
 	public BaseResponse<GetPostsResponse> getPosts(@RequestParam(required = false) Long lastPostId,
 		@RequestParam(defaultValue = "10") int size,
 		@RequestParam(required = false) Integer categoryId,
