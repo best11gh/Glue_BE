@@ -198,7 +198,7 @@ public class User extends BaseEntity {
         this.majorVisibility = -1;
         this.meetingVisibility = -1;
         this.nickname = "탈퇴한 사용자_" + this.userId;
-        this.oauthId = "deleted_oauth_id_" + this.userId;
+        this.oauthId = "deleted_oauth_id_" + this.oauthId;
         this.school = -1;
         this.systemLanguage = -1;
 
