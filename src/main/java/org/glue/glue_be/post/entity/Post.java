@@ -3,7 +3,6 @@ package org.glue.glue_be.post.entity;
 import lombok.*;
 
 import jakarta.persistence.*;
-import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.post.response.PostResponseStatus;
@@ -36,7 +35,6 @@ public class Post {
     private Integer viewCount;
 
     @Column(name = "bumped_at", nullable = true)
-    @Convert(converter = LocalDateTimeStringConverter.class)
     private LocalDateTime bumpedAt;
 
     public static final int BUMP_LIMIT = 3;

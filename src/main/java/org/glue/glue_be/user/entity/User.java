@@ -5,12 +5,11 @@ import java.time.*;
 
 import lombok.*;
 import org.glue.glue_be.common.BaseEntity;
-import org.glue.glue_be.common.config.LocalDateStringConverter;
 
 
 @Getter
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
@@ -45,7 +44,6 @@ public class User extends BaseEntity {
     private Integer gender;
 
     @Column(name = "birth_date", nullable = false)
-    @Convert(converter = LocalDateStringConverter.class)
     private LocalDate birthDate;
 
     @Column(name = "description", length = 50)
