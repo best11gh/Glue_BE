@@ -84,7 +84,7 @@ dependencies {
 	implementation 'io.micrometer:micrometer-registry-prometheus'
 
 	// 헬스포인트
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+//	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
 }
 
