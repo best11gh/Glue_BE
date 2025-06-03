@@ -67,6 +67,17 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ec2-user/glue-deploy
+      
+            # 1) was 컨테이너가 실행 중이면 중지
+            docker-compose stop was || true
+      
+            # 2) was 컨테이너를 완전히 삭제(포트 해제 포함)
+            docker-compose rm -f was || true
+      
+            # 3) was 이미지 최신 버전으로 내려받기
             docker-compose pull was
-            docker-compose up -d --force-recreate --no-deps was
+      
+            # 4) was 컨테이너를 백그라운드로 기동
+            docker-compose up -d was
+      
             echo "WAS redeployed via docker-compose"
