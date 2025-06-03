@@ -7,7 +7,7 @@ import org.glue.glue_be.common.BaseEntity;
 import org.glue.glue_be.user.entity.User;
 
 @Entity
-@Table(name = "like")
+@Table(name = "likes")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Like extends BaseEntity {
