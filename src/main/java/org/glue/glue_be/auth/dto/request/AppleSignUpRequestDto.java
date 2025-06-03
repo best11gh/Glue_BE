@@ -8,74 +8,74 @@ import java.time.LocalDate;
 
 public record AppleSignUpRequestDto(
 
-    @NotBlank(message = "Authorization code는 필수 입력값입니다.")
-    String authorizationCode,
+        @NotBlank(message = "id token은 필수 입력값입니다.")
+        String idToken,
 
-    @NotBlank(message = "본명은 필수 입력값입니다.")
-    String realName,
+        @NotBlank(message = "본명은 필수 입력값입니다.")
+        String realName,
 
-    @NotBlank(message = "닉네임은 필수 입력값입니다.")
-    String nickname,
+        @NotBlank(message = "닉네임은 필수 입력값입니다.")
+        String nickname,
 
-    @NotNull(message = "성별은 필수 입력값입니다.")
-    Integer gender,
+        @NotNull(message = "성별은 필수 입력값입니다.")
+        Integer gender,
 
-    @NotNull(message = "생년월일은 필수 입력값입니다.")
-    @Past(message = "생년월일은 과거 날짜여야 합니다.")
-    LocalDate birthDate,
+        @NotNull(message = "생년월일은 필수 입력값입니다.")
+        @Past(message = "생년월일은 과거 날짜여야 합니다.")
+        LocalDate birthDate,
 
-    @NotNull(message = "국가는 필수 입력값입니다.")
-    Integer nation,
+        @NotNull(message = "국가는 필수 입력값입니다.")
+        Integer nation,
 
-    String description,
+        String description,
 
-    @NotNull(message = "전공은 필수 입력값입니다.")
-    Integer major,
+        @NotNull(message = "전공은 필수 입력값입니다.")
+        Integer major,
 
-    @NotNull(message = "전공 노출 여부는 필수 입력값입니다.")
-    Integer majorVisibility,
+        @NotNull(message = "전공 노출 여부는 필수 입력값입니다.")
+        Integer majorVisibility,
 
-    @NotBlank(message = "이메일은 필수 입력값입니다.")
-    @Email(message = "이메일 형식이 올바르지 않습니다.")
-    String email,
+        @NotBlank(message = "이메일은 필수 입력값입니다.")
+        @Email(message = "이메일 형식이 올바르지 않습니다.")
+        String email,
 
-    Integer school,
+        Integer school,
 
-    String profileImageUrl,
+        String profileImageUrl,
 
-    Integer systemLanguage,
-    Integer languageMain,
-    Integer languageMainLevel,
-    Integer languageLearn,
-    Integer languageLearnLevel,
+        Integer systemLanguage,
+        Integer languageMain,
+        Integer languageMainLevel,
+        Integer languageLearn,
+        Integer languageLearnLevel,
 
-    Integer meetingVisibility,
-    Integer likeVisibility,
-    Integer guestbooksVisibility
+        Integer meetingVisibility,
+        Integer likeVisibility,
+        Integer guestbooksVisibility
 ) {
 
     // Apple의 경우 oauthId(subject)를 서비스에서 받아 사용!
     public User toEntity(String oauthId) {
         return User.builder()
-            .oauthId(oauthId)
-            .realName(realName())
-            .nickname(nickname())
-            .gender(gender())
-            .birthDate(birthDate())
-            .description(description())
-            .major(major())
-            .majorVisibility(majorVisibility())
-            .email(email())
-            .school(school())
-            .systemLanguage(systemLanguage())
-            .languageMain(languageMain())
-            .languageMainLevel(languageMainLevel())
-            .languageLearn(languageLearn())
-            .languageLearnLevel(languageLearnLevel())
-            .profileImageUrl(profileImageUrl())
-            .meetingVisibility(meetingVisibility())
-            .likeVisibility(likeVisibility())
-            .guestbooksVisibility(guestbooksVisibility())
-            .build();
+                .oauthId(oauthId)
+                .realName(realName())
+                .nickname(nickname())
+                .gender(gender())
+                .birthDate(birthDate())
+                .description(description())
+                .major(major())
+                .majorVisibility(majorVisibility())
+                .email(email())
+                .school(school())
+                .systemLanguage(systemLanguage())
+                .languageMain(languageMain())
+                .languageMainLevel(languageMainLevel())
+                .languageLearn(languageLearn())
+                .languageLearnLevel(languageLearnLevel())
+                .profileImageUrl(profileImageUrl())
+                .meetingVisibility(meetingVisibility())
+                .likeVisibility(likeVisibility())
+                .guestbooksVisibility(guestbooksVisibility())
+                .build();
     }
 }
