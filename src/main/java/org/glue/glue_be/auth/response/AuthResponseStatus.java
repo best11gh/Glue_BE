@@ -18,7 +18,7 @@ public enum AuthResponseStatus implements ResponseStatus {
 	JWT_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, false, 401, "JWT 인증에 실패했습니다."),
 
 	// 애플 관련
-	INVALID_AUTHORIZATION_CODE(HttpStatus.UNAUTHORIZED, false, 401, "인증 코드가 유효하지 않습니다."),
+	INVALID_AUTHORIZATION_CODE(HttpStatus.UNAUTHORIZED, false, 401, "Apple 인증 코드가 유효하지 않습니다."),
 	FAIL_APPLE_PRIVATE_KEY(HttpStatus.INTERNAL_SERVER_ERROR, false, 500, "Apple 개인 키 처리에 실패했습니다."),
 	INVALID_ID_TOKEN(HttpStatus.UNAUTHORIZED, false, 401, "Apple ID 토큰이 유효하지 않습니다."),
 	EXPIRED_ID_TOKEN(HttpStatus.UNAUTHORIZED, false, 401, "Apple ID 토큰이 만료되었습니다."),
