@@ -94,7 +94,7 @@ public class AuthService {
 
     public AppleSignUpResponseDto appleSignUp(AppleSignUpRequestDto requestDto) {
 
-        AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.authorizationCode());
+        AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.idToken());
 
         String appleOauthId = appleUserInfo.getSubject();
 
@@ -113,7 +113,7 @@ public class AuthService {
     }
 
     public AppleSignInResponseDto appleSignIn(AppleSignInRequestDto requestDto) {
-        AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.authorizationCode());
+        AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.idToken());
 
         User user = userRepository.findByOauthId(appleUserInfo.getSubject())
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
