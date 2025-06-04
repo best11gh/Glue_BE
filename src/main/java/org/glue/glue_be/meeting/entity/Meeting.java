@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 import lombok.Builder;
 import org.glue.glue_be.common.BaseEntity;
-import org.glue.glue_be.common.config.LocalDateTimeStringConverter;
 import org.glue.glue_be.user.entity.User;
 
 import java.time.LocalDateTime;
@@ -39,7 +38,6 @@ public class Meeting extends BaseEntity {
     public static final long UPDATE_LIMIT_HOUR = 3; // 모임 수정이 불가능한 남은 모임시간
 
     @Column(name = "meeting_time", nullable = false)
-    @Convert(converter = LocalDateTimeStringConverter.class)
     private LocalDateTime meetingTime;
 
     @Column(name = "current_participants", nullable = false)

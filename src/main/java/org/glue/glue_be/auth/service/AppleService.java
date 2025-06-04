@@ -53,15 +53,15 @@ public class AppleService {
     }
 
 
-    public AppleUserInfoResponseDto getAppleUserProfile(String authorizationCode) {
-        // 1) Apple 서버에서 토큰 교환
-        AppleSocialTokenInfoResponseDto tokenInfo = requestToken(authorizationCode);
+    public AppleUserInfoResponseDto getAppleUserProfile(String idToken) {
+//        // 1) Apple 서버에서 토큰 교환
+//        AppleSocialTokenInfoResponseDto tokenInfo = requestToken(authorizationCode);
 
         // 2) 토큰 검증
-        verifyIdentityToken(tokenInfo.idToken());
+        verifyIdentityToken(idToken);
 
         // 3) ID 토큰에서 사용자 정보 추출
-        return parseUserInfo(tokenInfo.idToken());
+        return parseUserInfo(idToken);
     }
 
     public AppleSocialTokenInfoResponseDto requestToken(String code) {
