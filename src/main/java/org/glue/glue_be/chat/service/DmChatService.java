@@ -233,8 +233,8 @@ public class DmChatService extends CommonChatService {
                     pageSize,
                     userId,
                     this::getUserById,
-                    dmChatRoomRepository::findByMeetingHostOrderByIdDesc,
-                    dmChatRoomRepository::findByMeetingHostAndIdLessThanOrderByIdDesc,
+                    dmChatRoomRepository::findByMeetingHostOrderByUpdatedAtDesc,
+                    dmChatRoomRepository::findByMeetingHostAndUpdatedAtLessThanOrderByUpdatedAtDesc,
                     this::convertToChatRoomResponses
             );
         } catch (BaseException e) {
@@ -432,6 +432,8 @@ public class DmChatService extends CommonChatService {
                     .build();
 
             DmMessage savedMessage = dmMessageRepository.save(message);
+            chatRoom.updateLastActivity();
+
             return responseMapper.toMessageResponse(savedMessage);
         } catch (BaseException e) {
             throw e;
