@@ -233,8 +233,8 @@ public class DmChatService extends CommonChatService {
                     pageSize,
                     userId,
                     this::getUserById,
-                    dmChatRoomRepository::findByMeetingHostOrderByIdDesc,
-                    dmChatRoomRepository::findByMeetingHostAndIdLessThanOrderByIdDesc,
+                    dmChatRoomRepository::findByMeetingHostOrderByUpdatedAtDesc,
+                    dmChatRoomRepository::findByMeetingHostAndUpdatedAtLessThanOrderByUpdatedAtDesc,
                     this::convertToChatRoomResponses
             );
         } catch (BaseException e) {
@@ -253,8 +253,8 @@ public class DmChatService extends CommonChatService {
                     pageSize,
                     userId,
                     this::getUserById,
-                    (user, pageable) -> dmUserChatroomRepository.findDmChatRoomsByUserOrderByDmChatRoomIdDesc(user.getUserId(), pageable),
-                    (user, curId, pageable) -> dmUserChatroomRepository.findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc(user.getUserId(), curId, pageable),
+                    (user, pageable) -> dmUserChatroomRepository.findDmChatRoomsByUserOrderByUpdatedAtDesc(user.getUserId(), pageable),
+                    (user, curId, pageable) -> dmUserChatroomRepository.findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByUpdatedAtDesc(user.getUserId(), curId, pageable),
                     (chatRooms, user) -> {
                         // 내가 호스트가 아닌 미팅의 DM 채팅방만 필터링 후 변환
                         List<DmChatRoom> filteredChatRooms = chatRooms.stream()
@@ -432,6 +432,8 @@ public class DmChatService extends CommonChatService {
                     .build();
 
             DmMessage savedMessage = dmMessageRepository.save(message);
+            chatRoom.updateLastActivity();
+
             return responseMapper.toMessageResponse(savedMessage);
         } catch (BaseException e) {
             throw e;
