@@ -35,4 +35,7 @@ public class DmChatRoom extends BaseEntity {
 		dmUserChatroom.updateChatRoom(this);
 	}
 
+	public void updateLastActivity() {
+		this.touchUpdatedAt();
+	}
 }

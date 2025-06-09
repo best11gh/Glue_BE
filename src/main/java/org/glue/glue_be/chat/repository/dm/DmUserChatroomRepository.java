@@ -31,16 +31,16 @@ public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, 
     @Query(value = "SELECT DISTINCT dc.* FROM dm_chatroom dc " +
             "JOIN dm_user_chatroom duc ON dc.dm_chatroom_id = duc.dm_chatroom_id " +
             "WHERE duc.user_id = :userId " +
-            "ORDER BY dc.dm_chatroom_id DESC",
+            "ORDER BY dc.updated_at DESC",
             nativeQuery = true)
-    List<DmChatRoom> findDmChatRoomsByUserOrderByDmChatRoomIdDesc(@Param("userId") Long userId, Pageable pageable);
+    List<DmChatRoom> findDmChatRoomsByUserOrderByUpdatedAtDesc(@Param("userId") Long userId, Pageable pageable);
 
     @Query(value = "SELECT DISTINCT dc.* FROM dm_chatroom dc " +
             "JOIN dm_user_chatroom duc ON dc.dm_chatroom_id = duc.dm_chatroom_id " +
             "WHERE duc.user_id = :userId AND dc.dm_chatroom_id < :cursorId " +
-            "ORDER BY dc.dm_chatroom_id DESC",
+            "ORDER BY dc.updated_at DESC",
             nativeQuery = true)
-    List<DmChatRoom> findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByDmChatRoomIdDesc(@Param("userId") Long userId, @Param("cursorId") Long cursorId, Pageable pageable);
+    List<DmChatRoom> findDmChatRoomsByUserAndDmChatRoomIdLessThanOrderByUpdatedAtDesc(@Param("userId") Long userId, @Param("cursorId") Long cursorId, Pageable pageable);
 
     Optional<DmUserChatroom> findByUser_UserIdAndDmChatRoom_Id(Long userId, Long dmChatRoomId);
 

@@ -1,7 +1,6 @@
 package org.glue.glue_be.chat.repository.dm;
 
 import org.glue.glue_be.chat.entity.dm.DmChatRoom;
-import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -26,12 +25,16 @@ public interface DmChatRoomRepository extends JpaRepository<DmChatRoom, Long> {
             @Param("userId1") Long userId1,
             @Param("userId2") Long userId2);
 
-    // 호스트 기준 첫 페이지 조회
-    List<DmChatRoom> findByMeetingHostOrderByIdDesc(User host, Pageable pageable);
-
-    // 호스트 기준 커서 조회
-    List<DmChatRoom> findByMeetingHostAndIdLessThanOrderByIdDesc(User host, Long cursorId, Pageable pageable);
-
 	List<DmChatRoom> findByMeeting_MeetingId(Long meetingMeetingId);
+
+    // 첫 페이지 조회
+    List<DmChatRoom> findByMeetingHostOrderByUpdatedAtDesc(User host, Pageable pageable);
+
+    // 커서 기반 조회 - LocalDateTime 파라미터 사용
+    @Query("SELECT dcr FROM DmChatRoom dcr WHERE dcr.meeting.host = :host AND dcr.id < :cursorId ORDER BY dcr.updatedAt DESC")
+    List<DmChatRoom> findByMeetingHostAndUpdatedAtLessThanOrderByUpdatedAtDesc(
+            @Param("host") User host,
+            @Param("cursorId") Long cursorId,
+            Pageable pageable);
 
 }
