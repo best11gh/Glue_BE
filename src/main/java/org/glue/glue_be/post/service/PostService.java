@@ -93,7 +93,7 @@ public class PostService {
 			.meetingPlaceName(meetingRequest.getMeetingPlaceName())
 			.minParticipants(0) // 1.0에선 최소인원이 안쓰이기에 일단 0으로 고정
 			.maxParticipants(meetingRequest.getMaxParticipants())
-			.currentParticipants(1)
+			.currentParticipants(0)
 			.status(1)
 			.categoryId(meetingRequest.getCategoryId())
 			.meetingMainLanguageId(meetingRequest.getMainLanguageId())
