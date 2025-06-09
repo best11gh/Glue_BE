@@ -179,8 +179,8 @@ public class GroupChatService extends CommonChatService {
                     pageSize,
                     userId,
                     this::getUserById,
-                    groupChatRoomRepository::findByUserOrderByGroupChatroomIdDesc,
-                    groupChatRoomRepository::findByUserAndGroupChatroomIdLessThanOrderByGroupChatroomIdDesc,
+                    groupChatRoomRepository::findByUserOrderByGroupChatroomUpdatedAtDesc,
+                    groupChatRoomRepository::findByUserAndGroupChatroomUpdatedAtLessThanOrderByGroupChatroomIdDesc,
                     this::convertToGroupChatRoomResponses
             );
         } catch (BaseException e) {
@@ -356,6 +356,8 @@ public class GroupChatService extends CommonChatService {
             );
 
             GroupMessage savedMessage = groupMessageRepository.save(message);
+            chatRoom.updateLastActivity();
+
             return responseMapper.toMessageResponse(savedMessage);
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.MESSAGE_SENDING_FAILED);

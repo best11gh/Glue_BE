@@ -24,15 +24,15 @@ public interface GroupChatRoomRepository extends JpaRepository<GroupChatRoom, Lo
     @Query("SELECT DISTINCT gc FROM GroupChatRoom gc " +
             "JOIN gc.groupUserChatrooms guc " +
             "WHERE guc.user = :user " +
-            "ORDER BY gc.groupChatroomId DESC")
-    List<GroupChatRoom> findByUserOrderByGroupChatroomIdDesc(@Param("user") User user, Pageable pageable);
+            "ORDER BY gc.updatedAt DESC")
+    List<GroupChatRoom> findByUserOrderByGroupChatroomUpdatedAtDesc(@Param("user") User user, Pageable pageable);
 
     @Query("SELECT DISTINCT gc FROM GroupChatRoom gc " +
             "JOIN gc.groupUserChatrooms guc " +
             "WHERE guc.user = :user " +
             "AND gc.groupChatroomId < :cursorId " +
-            "ORDER BY gc.groupChatroomId DESC")
-    List<GroupChatRoom> findByUserAndGroupChatroomIdLessThanOrderByGroupChatroomIdDesc(
+            "ORDER BY gc.updatedAt DESC")
+    List<GroupChatRoom> findByUserAndGroupChatroomUpdatedAtLessThanOrderByGroupChatroomIdDesc(
             @Param("user") User user,
             @Param("cursorId") Long cursorId,
             Pageable pageable);
