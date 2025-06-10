@@ -190,11 +190,18 @@ public class DmChatService extends CommonChatService {
                 return INVITE_NOT_NECESSARY;
             }
 
-            // 4. 초대 상태 직접 조회
-            return invitationRepository.findStatusByMeetingAndParticipantIds(
-                    meetingId, userId, otherParticipantUserId.get());
+            // 4. 초대 상태 직접 조회 - 예외 발생 시 기본값 반환
+            try {
+                Integer status = invitationRepository.findStatusByMeetingAndParticipantIds(
+                        meetingId, userId, otherParticipantUserId.get());
+                return status != null ? status : INVITE_AVAILABLE;
+            } catch (Exception queryException) {
+                // 쿼리 실행 중 예외 발생 시 초대 가능 상태로 기본 설정
+                return INVITE_AVAILABLE;
+            }
         } catch (Exception e) {
-            throw new BaseException(ChatResponseStatus.INVITATION_STATUS_ERROR);
+            // 전체 로직에서 예외 발생 시 초대 불필요 상태로 설정
+            return INVITE_NOT_NECESSARY;
         }
     }
     // =====

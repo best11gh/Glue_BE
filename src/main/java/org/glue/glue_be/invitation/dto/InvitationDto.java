@@ -75,6 +75,18 @@ public class InvitationDto {
 
     @Getter
     @NoArgsConstructor
+    public static class ParticipationCheckResponse {
+        private Boolean isParticipating;
+        private String message;
+
+        public ParticipationCheckResponse(Boolean isParticipating, String message) {
+            this.isParticipating = isParticipating;
+            this.message = message;
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor
     public static class StatusResponse {
         private Long invitationId;
         private String code;

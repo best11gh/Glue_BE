@@ -65,6 +65,15 @@ public class InvitationController {
         return new BaseResponse<>(invitationService.getInvitationStatus(code));
     }
 
+    // 모임 참가 여부 확인 API
+    @GetMapping("/check-participation/{meetingId}/{userId}")
+    @Operation(summary = "모임 참가 여부 확인", description = "특정 사용자가 해당 모임에 참가하고 있는지 확인합니다")
+    public BaseResponse<InvitationDto.ParticipationCheckResponse> checkMeetingParticipation(
+            @PathVariable Long meetingId, 
+            @PathVariable Long userId) {
+        return new BaseResponse<>(invitationService.checkMeetingParticipation(meetingId, userId));
+    }
+
     // 현재 로그인한 사용자 ID 가져오기
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

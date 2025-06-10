@@ -149,6 +149,26 @@ public class InvitationService {
     }
 
     /**
+     * 모임 참가 여부 확인
+     */
+    @Transactional(readOnly = true)
+    public InvitationDto.ParticipationCheckResponse checkMeetingParticipation(Long meetingId, Long userId) {
+        // 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
+
+        // 사용자가 해당 모임의 참가자인지 확인
+        boolean isParticipating = participantRepository.existsByUserAndMeeting(user, meeting);
+        
+        String message = isParticipating ? "이미 모임에 참가하고 있습니다." : "모임에 참가하지 않았습니다.";
+        
+        return new InvitationDto.ParticipationCheckResponse(isParticipating, message);
+    }
+
+    /**
      * 고유한 초대 코드 생성
      */
     private String generateUniqueCode() {
