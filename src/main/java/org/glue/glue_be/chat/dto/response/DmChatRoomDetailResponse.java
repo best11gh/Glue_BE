@@ -19,6 +19,8 @@ import java.util.List;
 public class DmChatRoomDetailResponse {
     private Long dmChatRoomId;
     private Long meetingId;
+    private Long postId;
+    private String postTitle;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<UserSummary> participants;
