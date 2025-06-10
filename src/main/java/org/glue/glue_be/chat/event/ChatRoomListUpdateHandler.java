@@ -1,5 +1,7 @@
 package org.glue.glue_be.chat.event;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +27,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.glue.glue_be.common.dto.UserSummary;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class ChatRoomListUpdateHandler {
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -52,9 +58,11 @@ public class ChatRoomListUpdateHandler {
         }
     }
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional
     public void handleMessageRead(MessageReadEvent event) {
+        entityManager.clear();
+
         switch (event.chatRoomType()) {
             case "DM" -> updateDmChatRoomList(event.chatRoomId(), event.userId(), null);
             case "GROUP" -> updateGroupChatRoomList(event.chatRoomId(), event.userId(), null);
@@ -158,7 +166,8 @@ public class ChatRoomListUpdateHandler {
     }
 
     private Long getCurrentUserLastReadMessageId(Long userId, Long chatRoomId) {
-        return dmUserChatroomRepository.findByUser_UserIdAndDmChatRoom_Id(userId, chatRoomId)
+        return dmUserChatroomRepository
+                .findByUser_UserIdAndDmChatRoom_Id(userId, chatRoomId)
                 .map(DmUserChatroom::getLastReadMessageId)
                 .orElse(0L);
     }

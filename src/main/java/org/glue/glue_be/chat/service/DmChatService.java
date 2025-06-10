@@ -380,16 +380,13 @@ public class DmChatService extends CommonChatService {
                     dmUserChatroomRepository::updateLastReadMessageId
             );
 
-            publishReadEvent(userId, dmChatRoomId);
+            eventPublisher.publishEvent(new MessageReadEvent(userId, dmChatRoomId, "DM"));
+
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.MESSAGES_READ_FAILED);
         }
-    }
-
-    private void publishReadEvent(Long userId, Long dmChatRoomId) {
-        eventPublisher.publishEvent(new MessageReadEvent(userId, dmChatRoomId, "DM"));
     }
 
     // 메시지 읽음 알림 전송(푸시 알림 아님, 실시간 알림)
