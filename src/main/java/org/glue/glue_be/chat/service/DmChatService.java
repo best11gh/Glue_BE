@@ -17,6 +17,8 @@ import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.common.response.BaseResponseStatus;
 import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
+import org.glue.glue_be.post.entity.Post;
+import org.glue.glue_be.post.repository.PostRepository;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class DmChatService extends CommonChatService {
     private final DmMessageRepository dmMessageRepository;
     private final DmResponseMapper responseMapper;
     private final InvitationRepository invitationRepository;
+    private final PostRepository postRepository;
     private final FcmService fcmService;
 
     // ===== 채팅방 생성 =====
@@ -135,9 +138,12 @@ public class DmChatService extends CommonChatService {
                 invitationStatus = INVITE_AVAILABLE;
             }
 
+            // Post 정보 조회
+            Post post = postRepository.findByMeetingId(dmChatRoom.getMeeting().getMeetingId()).orElse(null);
+
             // 응답 생성
             DmChatRoomDetailResponse responseWithoutHostInfo = responseMapper.toChatRoomDetailResponse(
-                    dmChatRoom, participants, userId.orElse(null), invitationStatus, isOtherUserDeleted);
+                    dmChatRoom, participants, userId.orElse(null), invitationStatus, isOtherUserDeleted, post);
 
             // 호스트 정보를 추가한 참가자 목록 생성
             List<UserSummaryWithHostInfo> participantsWithHostInfo = participants.stream()
