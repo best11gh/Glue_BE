@@ -74,7 +74,7 @@ public class InvitationService {
      * 미팅 초대장 수락
      */
     @Transactional
-    public void acceptInvitation(String code, Long userId) {
+    public InvitationDto.AcceptResponse acceptInvitation(String code, Long userId) {
         // 비관적 락을 사용하여 동시성 제어
         Invitation invitation = invitationRepository.findByCodeWithLock(code)
                 .orElseThrow(() -> new BaseException(InvitationResponseStatus.INVITATION_NOT_FOUND));
@@ -119,6 +119,8 @@ public class InvitationService {
 
         // 미팅을 활성화 상태로 변경
         meeting.activateMeeting();
+        
+        return new InvitationDto.AcceptResponse(meeting.getMeetingId(), "초대장이 성공적으로 수락되었습니다.");
     }
 
     /**
@@ -132,6 +134,18 @@ public class InvitationService {
 
         return invitationRepository.findByCreator(creator, pageable)
                 .map(InvitationDto.Response::from);
+    }
+
+    /**
+     * 초대장 상태 조회
+     */
+    @Transactional(readOnly = true)
+    public InvitationDto.StatusResponse getInvitationStatus(String code) {
+        Invitation invitation = invitationRepository.findByCode(code)
+                .orElseThrow(() -> new BaseException(InvitationResponseStatus.INVITATION_NOT_FOUND));
+
+        // 만료된 초대장의 상태를 업데이트 (읽기 전용이므로 상태 변경은 하지 않음)
+        return InvitationDto.StatusResponse.from(invitation);
     }
 
     /**

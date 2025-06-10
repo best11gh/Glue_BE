@@ -60,4 +60,72 @@ public class InvitationDto {
         @NotBlank(message = "초대장 코드는 필수 입력값입니다.")
         private String code;
     }
+
+    @Getter
+    @NoArgsConstructor
+    public static class AcceptResponse {
+        private Long meetingId;
+        private String message;
+
+        public AcceptResponse(Long meetingId, String message) {
+            this.meetingId = meetingId;
+            this.message = message;
+        }
+    }
+
+    @Getter
+    @NoArgsConstructor
+    public static class StatusResponse {
+        private Long invitationId;
+        private String code;
+        private LocalDateTime expiresAt;
+        private Integer maxUses;
+        private Integer usedCount;
+        private String status;
+        private String statusDescription;
+        private Boolean isValid;
+        private Long meetingId;
+        private String meetingTitle;
+        private Long inviteeId;
+        private LocalDateTime createdAt;
+
+        public static StatusResponse from(Invitation invitation) {
+            StatusResponse response = new StatusResponse();
+            response.invitationId = invitation.getInvitationId();
+            response.code = invitation.getCode();
+            response.expiresAt = invitation.getExpiresAt();
+            response.maxUses = invitation.getMaxUses();
+            response.usedCount = invitation.getUsedCount();
+            response.status = getStatusString(invitation.getStatus());
+            response.statusDescription = getStatusDescription(invitation);
+            response.isValid = invitation.isValid();
+            response.meetingId = invitation.getMeeting() != null ? invitation.getMeeting().getMeetingId() : null;
+            response.meetingTitle = invitation.getMeeting() != null ? invitation.getMeeting().getMeetingTitle() : null;
+            response.inviteeId = invitation.getInviteeId();
+            response.createdAt = invitation.getCreatedAt();
+            return response;
+        }
+
+        private static String getStatusString(Integer status) {
+            return switch (status) {
+                case 1 -> "ACTIVE";
+                case 2 -> "EXPIRED";
+                case 3 -> "FULLY_USED";
+                default -> "UNKNOWN";
+            };
+        }
+
+        private static String getStatusDescription(Invitation invitation) {
+            if (!invitation.isValid()) {
+                if (LocalDateTime.now().isAfter(invitation.getExpiresAt())) {
+                    return "초대장이 만료되었습니다";
+                } else if (invitation.getUsedCount() >= invitation.getMaxUses()) {
+                    return "초대장 사용 횟수가 초과되었습니다";
+                } else {
+                    return "초대장이 비활성화 상태입니다";
+                }
+            }
+            return "초대장이 사용 가능한 상태입니다";
+        }
+    }
 } 
