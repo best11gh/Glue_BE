@@ -8,6 +8,8 @@ import org.glue.glue_be.chat.entity.dm.DmChatRoom;
 import org.glue.glue_be.chat.entity.dm.DmMessage;
 import org.glue.glue_be.chat.entity.dm.DmUserChatroom;
 import org.glue.glue_be.chat.dto.response.ChatResponseStatus;
+import org.glue.glue_be.chat.event.MessageCreatedEvent;
+import org.glue.glue_be.chat.event.MessageReadEvent;
 import org.glue.glue_be.chat.repository.dm.DmChatRoomRepository;
 import org.glue.glue_be.chat.repository.dm.DmMessageRepository;
 import org.glue.glue_be.chat.repository.dm.DmUserChatroomRepository;
@@ -19,6 +21,8 @@ import org.glue.glue_be.invitation.repository.InvitationRepository;
 import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.glue.glue_be.chat.mapper.DmResponseMapper;
@@ -43,6 +47,8 @@ public class DmChatService extends CommonChatService {
     private final DmResponseMapper responseMapper;
     private final InvitationRepository invitationRepository;
     private final FcmService fcmService;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     // ===== 채팅방 생성 =====
     @Transactional
@@ -373,11 +379,17 @@ public class DmChatService extends CommonChatService {
                     this::getLatestMessageId,
                     dmUserChatroomRepository::updateLastReadMessageId
             );
+
+            publishReadEvent(userId, dmChatRoomId);
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.MESSAGES_READ_FAILED);
         }
+    }
+
+    private void publishReadEvent(Long userId, Long dmChatRoomId) {
+        eventPublisher.publishEvent(new MessageReadEvent(userId, dmChatRoomId, "DM"));
     }
 
     // 메시지 읽음 알림 전송(푸시 알림 아님, 실시간 알림)
@@ -417,6 +429,9 @@ public class DmChatService extends CommonChatService {
             // 메시지 db에 저장
             DmMessageResponse response = saveDmMessage(dmChatRoom, sender, request.getContent());
 
+            // 채팅방 목록 업데이트 이벤트 발행
+            publishChatRoomListUpdateEvent(response, dmChatRoom.getId(), userId);
+
             // 메시지 전송 및 알림
             // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
             broadcastMessage(dmChatRoomId, response, userId);
@@ -449,6 +464,18 @@ public class DmChatService extends CommonChatService {
         }
     }
 
+    // 채팅방 목록 업데이트 이벤트 발행
+    private void publishChatRoomListUpdateEvent(DmMessageResponse messageResponse, Long chatRoomId, Long senderId) {
+        eventPublisher.publishEvent(new MessageCreatedEvent(
+                messageResponse.getDmMessageId(),
+                chatRoomId,
+                senderId,
+                messageResponse.getContent(),
+                messageResponse.getCreatedAt(),
+                "DM"
+        ));
+    }
+
     // 알림 전송: 웹소켓(실시간) + 푸시(비실시간)
     private void broadcastMessage(Long chatroomId, DmMessageResponse messageResponse, Long senderId) {
         try {
@@ -458,7 +485,6 @@ public class DmChatService extends CommonChatService {
             if (messageOpt.isEmpty()) {
                 throw new BaseException(ChatResponseStatus.MESSAGE_NOT_FOUND);
             }
-
             DmMessage message = messageOpt.get();
             DmChatRoomDetailResponse chatRoom = getDmChatRoomDetail(chatroomId, Optional.ofNullable(senderId));
 
