@@ -44,10 +44,10 @@ public class InvitationController {
     // 초대장 수락 API
     @PostMapping("/accept")
     @Operation(summary = "모임 초대장 수락")
-    public BaseResponse<Void> acceptInvitation(@Valid @RequestBody InvitationDto.AcceptRequest request) {
+    public BaseResponse<InvitationDto.AcceptResponse> acceptInvitation(@Valid @RequestBody InvitationDto.AcceptRequest request) {
         Long currentUserId = getCurrentUserId();
-        invitationService.acceptInvitation(request.getCode(), currentUserId);
-        return new BaseResponse<>();
+        InvitationDto.AcceptResponse response = invitationService.acceptInvitation(request.getCode(), currentUserId);
+        return new BaseResponse<>(response);
     }
 
     // 초대장 목록 조회 API
@@ -58,12 +58,34 @@ public class InvitationController {
         return new BaseResponse<>(invitationService.getInvitations(currentUserId, pageable));
     }
 
+    // 초대장 상태 조회 API
+    @GetMapping("/status/{code}")
+    @Operation(summary = "초대장 상태 조회", description = "초대장 코드로 초대장의 상태를 조회합니다")
+    public BaseResponse<InvitationDto.StatusResponse> getInvitationStatus(@PathVariable String code) {
+        return new BaseResponse<>(invitationService.getInvitationStatus(code));
+    }
+
+    // 모임 참가 여부 확인 API
+    @GetMapping("/check-participation/{meetingId}/{userId}")
+    @Operation(summary = "모임 참가 여부 확인", description = "특정 사용자가 해당 모임에 참가하고 있는지 확인합니다")
+    public BaseResponse<InvitationDto.ParticipationCheckResponse> checkMeetingParticipation(
+            @PathVariable Long meetingId, 
+            @PathVariable Long userId) {
+        return new BaseResponse<>(invitationService.checkMeetingParticipation(meetingId, userId));
+    }
+
     // 현재 로그인한 사용자 ID 가져오기
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new IllegalStateException("인증 정보를 찾을 수 없습니다.");
         }
-        return Long.parseLong(authentication.getPrincipal().toString());
+        
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof org.glue.glue_be.auth.jwt.CustomUserDetails) {
+            return ((org.glue.glue_be.auth.jwt.CustomUserDetails) principal).getUserId();
+        }
+        
+        throw new IllegalStateException("잘못된 인증 정보입니다.");
     }
 }
