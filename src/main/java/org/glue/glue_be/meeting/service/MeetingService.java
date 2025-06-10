@@ -2,7 +2,9 @@ package org.glue.glue_be.meeting.service;
 
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.common.exception.BaseException;
+import org.glue.glue_be.common.dto.MeetingSummary;
 import org.glue.glue_be.meeting.dto.MeetingDto;
+import org.glue.glue_be.meeting.dto.response.MyMeetingsResponse;
 import org.glue.glue_be.meeting.entity.*;
 import org.glue.glue_be.meeting.repository.*;
 import org.glue.glue_be.meeting.response.MeetingResponseStatus;
@@ -15,6 +17,9 @@ import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.glue.glue_be.user.entity.User.IS_DELETED;
 
@@ -118,5 +123,47 @@ public class MeetingService {
                 .orElseThrow(() -> new BaseException(MeetingResponseStatus.MEETING_NOT_FOUND));
 
         return MeetingDto.Response.from(meeting);
+    }
+
+    /**
+     * 내가 참여중인 모임 조회 (주최/참여 구분)
+     */
+    @Transactional(readOnly = true)
+    public MyMeetingsResponse getMyMeetings(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+
+        // 주최한 모임
+        List<Meeting> hostedMeetings = meetingRepository.findByHost_UserId(userId);
+        List<MeetingSummary> hostedMeetingSummaries = hostedMeetings.stream()
+                .map(this::convertToMeetingSummary)
+                .collect(Collectors.toList());
+
+        // 참여한 모임 (주최한 모임 제외)
+        List<Participant> participants = participantRepository.findByUser_UserId(userId);
+        List<MeetingSummary> joinedMeetingSummaries = participants.stream()
+                .map(Participant::getMeeting)
+                .filter(meeting -> !meeting.getHost().getUserId().equals(userId))
+                .map(this::convertToMeetingSummary)
+                .collect(Collectors.toList());
+
+        return MyMeetingsResponse.builder()
+                .hostedMeetings(hostedMeetingSummaries)
+                .joinedMeetings(joinedMeetingSummaries)
+                .build();
+    }
+
+    private MeetingSummary convertToMeetingSummary(Meeting meeting) {
+        // 첫 번째 Post 이미지를 가져오기
+        String imageUrl = postRepository.findByMeetingId(meeting.getMeetingId())
+                .map(post -> post.getImages().isEmpty() ? null : post.getImages().get(0).getImageUrl())
+                .orElse(null);
+
+        return new MeetingSummary(
+                meeting.getMeetingId(),
+                meeting.getMeetingTitle(),
+                imageUrl,
+                meeting.getCurrentParticipants()
+        );
     }
 }

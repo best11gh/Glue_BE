@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.auth.jwt.CustomUserDetails;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.meeting.dto.MeetingDto;
+import org.glue.glue_be.meeting.dto.response.MyMeetingsResponse;
 import org.glue.glue_be.meeting.service.MeetingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,6 +41,12 @@ public class MeetingController {
     @Operation(summary = "모임 상세 조회")
     public BaseResponse<MeetingDto.Response> getMeeting(@PathVariable Long meetingId) {
         return new BaseResponse<>(meetingService.getMeeting(meetingId));
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "내가 참여중인 모임 조회 (주최/참여 구분)")
+    public BaseResponse<MyMeetingsResponse> getMyMeetings(@AuthenticationPrincipal CustomUserDetails auth) {
+        return new BaseResponse<>(meetingService.getMyMeetings(auth.getUserId()));
     }
 
 }
