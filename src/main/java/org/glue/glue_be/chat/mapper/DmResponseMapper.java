@@ -7,6 +7,7 @@ import org.glue.glue_be.chat.entity.dm.DmChatRoom;
 import org.glue.glue_be.chat.entity.dm.DmMessage;
 import org.glue.glue_be.chat.entity.dm.DmUserChatroom;
 import org.glue.glue_be.common.dto.UserSummary;
+import org.glue.glue_be.post.entity.Post;
 import org.glue.glue_be.user.entity.User;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +31,7 @@ public class DmResponseMapper {
     }
 
     //DmChatRoom 엔티티와 참여자 목록을 DmChatRoomDetailResponse DTO로 변환
-    public DmChatRoomDetailResponse toChatRoomDetailResponse(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, Long userId, Integer invitationStatus, Boolean isOtherUserDeleted) {
+    public DmChatRoomDetailResponse toChatRoomDetailResponse(DmChatRoom dmChatRoom, List<DmUserChatroom> participants, Long userId, Integer invitationStatus, Boolean isOtherUserDeleted, Post post) {
         List<UserSummary> participantResponses = participants.stream()
                 .map(dmUserChatroom -> toChatUserResponse(dmUserChatroom.getUser()))
                 .collect(Collectors.toList());
@@ -38,6 +39,8 @@ public class DmResponseMapper {
         DmChatRoomDetailResponse.DmChatRoomDetailResponseBuilder builder = DmChatRoomDetailResponse.builder()
                 .dmChatRoomId(dmChatRoom.getId())
                 .meetingId(dmChatRoom.getMeeting().getMeetingId())
+                .postId(post != null ? post.getId() : null)
+                .postTitle(post != null ? post.getTitle() : null)
                 .participants(participantResponses)
                 .createdAt(dmChatRoom.getCreatedAt())
                 .updatedAt(dmChatRoom.getUpdatedAt());
