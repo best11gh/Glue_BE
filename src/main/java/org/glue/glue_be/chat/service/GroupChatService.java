@@ -7,6 +7,8 @@ import org.glue.glue_be.chat.dto.response.*;
 import org.glue.glue_be.chat.entity.group.GroupChatRoom;
 import org.glue.glue_be.chat.entity.group.GroupMessage;
 import org.glue.glue_be.chat.entity.group.GroupUserChatRoom;
+import org.glue.glue_be.chat.event.MessageCreatedEvent;
+import org.glue.glue_be.chat.event.MessageReadEvent;
 import org.glue.glue_be.chat.mapper.GroupResponseMapper;
 import org.glue.glue_be.chat.repository.group.GroupChatRoomRepository;
 import org.glue.glue_be.chat.repository.group.GroupMessageRepository;
@@ -19,6 +21,7 @@ import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.glue.glue_be.util.fcm.service.FcmService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +38,9 @@ public class GroupChatService extends CommonChatService {
     private final GroupMessageRepository groupMessageRepository;
     private final GroupResponseMapper responseMapper;
     private final FcmService fcmService;
+
+    private final ApplicationEventPublisher eventPublisher;
+
 
     // ===== 그룹 채팅방 생성 =====
     @Transactional
@@ -289,6 +295,9 @@ public class GroupChatService extends CommonChatService {
                     this::getLatestMessageIdInChatRoom,
                     groupUserChatRoomRepository::updateLastReadMessageId
             );
+
+            eventPublisher.publishEvent(new MessageReadEvent(userId, groupChatroomId, "GROUP"));
+
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
@@ -332,6 +341,9 @@ public class GroupChatService extends CommonChatService {
             // 메시지 db에 저장
             GroupMessageResponse response = saveGroupMessage(groupChatRoom, sender, request.content());
 
+            // 채팅방 목록 업데이트 이벤트 발행
+            publishChatRoomListUpdateEvent(response, groupChatroomId, userId);
+
             // 메시지 전송 및 알림
             // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
             broadcastMessage(groupChatroomId, response, userId);
@@ -362,6 +374,18 @@ public class GroupChatService extends CommonChatService {
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.MESSAGE_SENDING_FAILED);
         }
+    }
+
+    // 채팅방 목록 업데이트 이벤트 발행
+    private void publishChatRoomListUpdateEvent(GroupMessageResponse messageResponse, Long chatRoomId, Long senderId) {
+        eventPublisher.publishEvent(new MessageCreatedEvent(
+                messageResponse.groupMessageId(),
+                chatRoomId,
+                senderId,
+                messageResponse.message(),
+                messageResponse.createdAt(),
+                "GROUP"
+        ));
     }
 
     // 온라인 유저에게 메시지 웹소켓으로 브로드캐스트, 오프라인 유저에겐 푸시 알림 전송

@@ -25,7 +25,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import org.glue.glue_be.common.dto.UserSummary;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -51,42 +50,25 @@ public class ChatRoomListUpdateHandler {
     @EventListener
     @Transactional
     public void handleNewMessage(MessageCreatedEvent event) {
-        switch (event.type()) {
-            case "DM" -> updateDmChatRoomList(event.chatRoomId(), event.senderId(), event.createdAt());
-            case "GROUP" -> updateGroupChatRoomList(event.chatRoomId(), event.senderId(), event.createdAt());
-            default -> log.warn("알 수 없는 채팅 타입: {}", event.type());
-        }
+        updateChatRoomList(event.chatRoomId(), event.senderId(), event.type());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional
     public void handleMessageRead(MessageReadEvent event) {
-        entityManager.clear();
-
-        switch (event.chatRoomType()) {
-            case "DM" -> updateDmChatRoomList(event.chatRoomId(), event.userId(), null);
-            case "GROUP" -> updateGroupChatRoomList(event.chatRoomId(), event.userId(), null);
-            default -> log.warn("알 수 없는 채팅 타입: {}", event.chatRoomType());
-        }
+        entityManager.clear(); // JPA 1차 캐싱 삭제
+        updateChatRoomList(event.chatRoomId(), event.userId(), event.chatRoomType());
     }
 
-    private void updateDmChatRoomList(Long chatRoomId, Long targetUserId, LocalDateTime updateTime) {
-        // DM 채팅방의 모든 참가자들 조회
-        List<DmUserChatroom> participants = dmUserChatroomRepository.findByDmChatRoom_Id(chatRoomId);
+    private void updateChatRoomList(Long chatRoomId, Long targetUserId, String chatRoomType) {
+        List<? extends Object> participants = getChatRoomParticipants(chatRoomId, chatRoomType);
 
-        // 모든 참가자에게 알림 전송 (읽음 처리한 사용자 포함)
+        // DM과 GROUP 모두 개별 전송으로 통일
         participants.forEach(participant -> {
-            User receiver = participant.getUser();
+            User receiver = extractUser(participant, chatRoomType);
 
-            // 수신자 관점에서의 DM 채팅방 정보 생성 (읽음 상태 자동 계산됨)
-            DmChatRoomListResponse updatedChatRoom = createDmChatRoomResponse(
-                    chatRoomId, receiver);
-
-            // WebSocket으로 수신자에게 전송
-            ChatRoomListUpdateDto updateDto = ChatRoomListUpdateDto.fromDm(
-                    updatedChatRoom,
-                    LocalDateTime.now() // 읽음 처리 시간
-            );
+            // 각 사용자별로 개인화된 DTO 생성
+            ChatRoomListUpdateDto updateDto = createChatRoomUpdateDto(chatRoomId, receiver, chatRoomType);
 
             messagingTemplate.convertAndSendToUser(
                     receiver.getUserId().toString(),
@@ -94,40 +76,39 @@ public class ChatRoomListUpdateHandler {
                     updateDto
             );
 
-            log.debug("DM 읽음 처리 업데이트 알림 전송: receiverId={}, chatRoomId={}, targetUserId={}",
-                    receiver.getUserId(), chatRoomId, targetUserId);
+            log.debug("{} 채팅방 목록 업데이트 알림 전송: receiverId={}, chatRoomId={}, targetUserId={}",
+                    chatRoomType, receiver.getUserId(), chatRoomId, targetUserId);
         });
     }
 
-    private void updateGroupChatRoomList(Long chatRoomId, Long otherUserId, LocalDateTime updateTime) {
-//        // 그룹 채팅방의 모든 참가자들 조회
-//        List<GroupUserChatRoom> participants = groupUserChatroomRepository.findByGroupChatRoomId(chatRoomId);
-//
-//        // 제외할 사용자를 제외한 모든 참가자에게 알림
-//        participants.stream()
-//                .filter(participant -> !participant.getUser().getUserId().equals(otherUserId))
-//                .forEach(participant -> {
-//                    User receiver = participant.getUser();
-//
-//                    // 수신자 관점에서의 그룹 채팅방 정보 생성
-//                    GroupChatRoomListResponse updatedChatRoom = createGroupChatRoomResponse(
-//                            chatRoomId, receiver);
-//
-//                    // WebSocket으로 수신자에게 전송
-//                    ChatRoomListUpdateDto updateDto = ChatRoomListUpdateDto.fromMeeting(
-//                            updatedChatRoom,
-//                            updateTime
-//                    );
-//
-//                    messagingTemplate.convertAndSendToUser(
-//                            receiver.getUserId().toString(),
-//                            "/queue/chatroom-list-update",
-//                            updateDto
-//                    );
-//
-//                    log.debug("그룹 채팅방 목록 업데이트 알림 전송: receiverId={}, chatRoomId={}, otherUserId={}",
-//                            receiver.getUserId(), chatRoomId, otherUserId);
-//                });
+    private ChatRoomListUpdateDto createChatRoomUpdateDto(Long chatRoomId, User currentUser, String chatRoomType) {
+        return switch (chatRoomType) {
+            case "DM" -> {
+                DmChatRoomListResponse dmResponse = createDmChatRoomResponse(chatRoomId, currentUser);
+                yield ChatRoomListUpdateDto.fromDm(dmResponse, LocalDateTime.now());
+            }
+            case "GROUP" -> {
+                GroupChatRoomListResponse groupResponse = createGroupChatRoomResponse(chatRoomId, currentUser);
+                yield ChatRoomListUpdateDto.fromGroup(groupResponse, LocalDateTime.now());
+            }
+            default -> throw new IllegalArgumentException("알 수 없는 채팅 타입: " + chatRoomType);
+        };
+    }
+
+    private List<? extends Object> getChatRoomParticipants(Long chatRoomId, String chatRoomType) {
+        return switch (chatRoomType) {
+            case "DM" -> dmUserChatroomRepository.findByDmChatRoom_Id(chatRoomId);
+            case "GROUP" -> groupUserChatroomRepository.findByGroupChatroom_GroupChatroomId(chatRoomId);
+            default -> throw new IllegalArgumentException("알 수 없는 채팅 타입: " + chatRoomType);
+        };
+    }
+
+    private User extractUser(Object participant, String chatRoomType) {
+        return switch (chatRoomType) {
+            case "DM" -> ((DmUserChatroom) participant).getUser();
+            case "GROUP" -> ((GroupUserChatRoom) participant).getUser();
+            default -> throw new IllegalArgumentException("알 수 없는 채팅 타입: " + chatRoomType);
+        };
     }
 
     // DM 채팅방 정보 생성
@@ -165,6 +146,49 @@ public class ChatRoomListUpdateHandler {
                 .build();
     }
 
+    // 그룹 채팅방 정보 생성
+    private GroupChatRoomListResponse createGroupChatRoomResponse(Long chatRoomId, User currentUser) {
+        // 그룹 채팅방 조회
+        GroupChatRoom groupChatRoom = groupChatRoomRepository.findById(chatRoomId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹 채팅방을 찾을 수 없습니다: " + chatRoomId));
+
+        // 마지막 메시지 조회
+        GroupMessage lastMessage = groupMessageRepository.findTopByGroupChatroomOrderByCreatedAtDesc(groupChatRoom)
+                .orElse(null);
+
+        // 현재 사용자의 마지막 읽은 메시지 ID 조회
+        Long currentUserLastReadMessageId = getCurrentUserLastReadMessageIdForGroup(currentUser.getUserId(), chatRoomId);
+
+        // 채팅방의 가장 최신 메시지 ID 조회
+        long latestMessageId = getLatestMessageIdForGroup(groupChatRoom);
+
+        // 안읽은 메시지 여부 확인
+        boolean hasUnreadMessages = currentUserLastReadMessageId < latestMessageId;
+
+        System.out.println("현재 사용자의 마지막 읽은 메시지 ID: " + currentUserLastReadMessageId);
+        System.out.println("채팅방의 가장 최신 메시지 ID: " + latestMessageId);
+
+        // 참여자 수 조회
+        int memberCount = groupUserChatroomRepository.findByGroupChatroom_GroupChatroomId(chatRoomId).size();
+
+        // MeetingSummary 생성
+        MeetingSummary meetingSummary = new MeetingSummary(
+                groupChatRoom.getMeeting().getMeetingId(),
+                groupChatRoom.getMeeting().getMeetingTitle(),
+                groupChatRoom.getMeeting().getMeetingImageUrl(),
+                memberCount
+        );
+
+        return GroupChatRoomListResponse.builder()
+                .groupChatroomId(chatRoomId)
+                .meeting(meetingSummary)
+                .lastMessage(lastMessage != null ? lastMessage.getMessage() : null)
+                .lastMessageTime(lastMessage != null ? lastMessage.getCreatedAt() : null)
+                .hasUnreadMessages(hasUnreadMessages)
+                .build();
+    }
+
+    // DM 관련 헬퍼 메서드들
     private Long getCurrentUserLastReadMessageId(Long userId, Long chatRoomId) {
         return dmUserChatroomRepository
                 .findByUser_UserIdAndDmChatRoom_Id(userId, chatRoomId)
@@ -178,15 +202,16 @@ public class ChatRoomListUpdateHandler {
                 .orElse(0L);
     }
 
-//    private Long getCurrentUserLastReadMessageIdForGroup(Long userId, Long chatRoomId) {
-//        return groupUserChatroomRepository.findByUserUserIdAndGroupChatRoomId(userId, chatRoomId)
-//                .map(GroupUserChatRoom::getLastReadMessageId)
-//                .orElse(0L);
-//    }
-//
-//    private long getLatestMessageIdForGroup(Long chatRoomId) {
-//        return groupMessageRepository.findTopByGroupChatRoomIdOrderByCreatedAtDesc(chatRoomId)
-//                .map(GroupMessage::getId)
-//                .orElse(0L);
-//    }
+    // 그룹 관련 헬퍼 메서드들
+    private Long getCurrentUserLastReadMessageIdForGroup(Long userId, Long chatRoomId) {
+        return groupUserChatroomRepository.findByUser_UserIdAndGroupChatroom_GroupChatroomId(userId, chatRoomId)
+                .map(GroupUserChatRoom::getLastReadMessageId)
+                .orElse(0L);
+    }
+
+    private long getLatestMessageIdForGroup(GroupChatRoom groupChatRoom) {
+        return groupMessageRepository.findTopByGroupChatroomOrderByCreatedAtDesc(groupChatRoom)
+                .map(GroupMessage::getGroupMessageId)
+                .orElse(0L);
+    }
 }
