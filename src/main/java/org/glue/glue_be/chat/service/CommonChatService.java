@@ -339,8 +339,16 @@ public abstract class CommonChatService {
                     content
             );
 
-            // 알림 전송
-            notificationSender.accept(notification);
+            // 알림 전송 (FCM 전송 실패 시에도 채팅 전송은 성공하도록 예외 처리)
+            try {
+                notificationSender.accept(notification);
+            } catch (Exception e) {
+                log.error("[FCM 전송 실패] 수신자: {}, 제목: {}, 내용: {}, 오류: {}", 
+                    recipientUser.getNickname(), 
+                    notification.toString(), 
+                    content, 
+                    e.getMessage());
+            }
         }
     }
 
