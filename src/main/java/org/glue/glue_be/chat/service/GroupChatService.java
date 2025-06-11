@@ -404,13 +404,7 @@ public class GroupChatService extends CommonChatService {
             // 모든 참여자에게 웹소켓 전송
             // 웹소켓에 연결된 사용자만 실제 수신
             // 오프라인 수신자는 받지도 않고 에러를 내지도 않고 그냥 무시
-            for (UserSummary participant : chatRoom.participants()) {
-                Long participantId = participant.getUserId();
-
-                if (!participantId.equals(senderId)) {
-                    messagingTemplate.convertAndSend("/topic/group/" + participantId, messageResponse);
-                }
-            }
+            messagingTemplate.convertAndSend("/topic/group/" + groupChatroomId, messageResponse);
 
             // 모든 오프라인 참여자에게 푸시 알림 전송
             sendPushNotificationsToOfflineReceivers(
