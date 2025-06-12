@@ -217,25 +217,21 @@ public abstract class CommonChatService {
                 .collect(Collectors.toList());
     }
 
-    // 사용자의 웹소켓 연결 상태를 확인
-    public boolean isUserConnectedToWebSocket(Long userId, String deliveryType) {
-        // 사용자의 구독 주소 확인
-        String destination = deliveryType + "/" + userId;
-
-        // 모든 사용자 순회
+    // 사용자의 구독 여부를 확인 (현재 사용자가 채팅 화면을 보고 있는지 판단하기 위함) (이는 푸시 알림 핸들러로 쓰임)
+    // 특정 사용자가 특정 채팅방을 구독하고 있는지 확인
+    public boolean isUserSubscribedToChat(Long userId, String destination) {
         for (SimpUser user : simpUserRegistry.getUsers()) {
-            // 각 사용자의 모든 세션 순회
-            for (SimpSession session : user.getSessions()) {
-                // 해당 세션의 모든 구독 확인
-                for (SimpSubscription subscription : session.getSubscriptions()) {
-                    // 구독 주소가 일치하면 연결된 것으로 판단
-                    if (subscription.getDestination().equals(destination)) {
-                        return true;
+            // 사용자 ID가 일치하는 사용자만 확인
+            if (user.getName().equals(userId.toString())) {
+                for (SimpSession session : user.getSessions()) {
+                    for (SimpSubscription subscription : session.getSubscriptions()) {
+                        if (subscription.getDestination().equals(destination)) {
+                            return true;
+                        }
                     }
                 }
             }
         }
-
         return false;
     }
 
@@ -278,7 +274,7 @@ public abstract class CommonChatService {
         }
     }
 
-    // 알림 전송
+    // 알림 전송 (지금은 안 씀)
     protected <T> void sendNotificationToUser(Long userId, String endpoint, T payload) {
         messagingTemplate.convertAndSend("/queue/" + endpoint + "/" + userId, payload);
     }
