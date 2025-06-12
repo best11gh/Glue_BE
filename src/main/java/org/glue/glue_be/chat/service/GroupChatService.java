@@ -7,6 +7,8 @@ import org.glue.glue_be.chat.dto.response.*;
 import org.glue.glue_be.chat.entity.group.GroupChatRoom;
 import org.glue.glue_be.chat.entity.group.GroupMessage;
 import org.glue.glue_be.chat.entity.group.GroupUserChatRoom;
+import org.glue.glue_be.chat.event.MessageCreatedEvent;
+import org.glue.glue_be.chat.event.MessageReadEvent;
 import org.glue.glue_be.chat.mapper.GroupResponseMapper;
 import org.glue.glue_be.chat.repository.group.GroupChatRoomRepository;
 import org.glue.glue_be.chat.repository.group.GroupMessageRepository;
@@ -19,6 +21,7 @@ import org.glue.glue_be.meeting.entity.Meeting;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.glue.glue_be.util.fcm.service.FcmService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +38,9 @@ public class GroupChatService extends CommonChatService {
     private final GroupMessageRepository groupMessageRepository;
     private final GroupResponseMapper responseMapper;
     private final FcmService fcmService;
+
+    private final ApplicationEventPublisher eventPublisher;
+
 
     // ===== 그룹 채팅방 생성 =====
     @Transactional
@@ -182,8 +188,8 @@ public class GroupChatService extends CommonChatService {
                     pageSize,
                     userId,
                     this::getUserById,
-                    groupChatRoomRepository::findByUserOrderByGroupChatroomIdDesc,
-                    groupChatRoomRepository::findByUserAndGroupChatroomIdLessThanOrderByGroupChatroomIdDesc,
+                    groupChatRoomRepository::findByUserOrderByGroupChatroomUpdatedAtDesc,
+                    groupChatRoomRepository::findByUserAndGroupChatroomUpdatedAtLessThanOrderByGroupChatroomIdDesc,
                     this::convertToGroupChatRoomResponses
             );
         } catch (BaseException e) {
@@ -296,6 +302,9 @@ public class GroupChatService extends CommonChatService {
                     this::getLatestMessageIdInChatRoom,
                     groupUserChatRoomRepository::updateLastReadMessageId
             );
+
+            eventPublisher.publishEvent(new MessageReadEvent(userId, groupChatroomId, "GROUP"));
+
         } catch (BaseException e) {
             throw e;
         } catch (Exception e) {
@@ -340,6 +349,9 @@ public class GroupChatService extends CommonChatService {
             // 메시지 db에 저장
             GroupMessageResponse response = saveGroupMessage(groupChatRoom, sender, request.content());
 
+            // 채팅방 목록 업데이트 이벤트 발행
+            publishChatRoomListUpdateEvent(response, groupChatroomId, userId);
+
             // 메시지 전송 및 알림
             // 온라인: 웹소켓으로, 오프라인: 푸시알림으로
             broadcastMessage(groupChatroomId, response, userId);
@@ -364,10 +376,24 @@ public class GroupChatService extends CommonChatService {
             );
 
             GroupMessage savedMessage = groupMessageRepository.save(message);
+            chatRoom.updateLastActivity();
+
             return responseMapper.toMessageResponse(savedMessage);
         } catch (Exception e) {
             throw new BaseException(ChatResponseStatus.MESSAGE_SENDING_FAILED);
         }
+    }
+
+    // 채팅방 목록 업데이트 이벤트 발행
+    private void publishChatRoomListUpdateEvent(GroupMessageResponse messageResponse, Long chatRoomId, Long senderId) {
+        eventPublisher.publishEvent(new MessageCreatedEvent(
+                messageResponse.groupMessageId(),
+                chatRoomId,
+                senderId,
+                messageResponse.message(),
+                messageResponse.createdAt(),
+                "GROUP"
+        ));
     }
 
     // 온라인 유저에게 메시지 웹소켓으로 브로드캐스트, 오프라인 유저에겐 푸시 알림 전송
@@ -386,13 +412,7 @@ public class GroupChatService extends CommonChatService {
             // 모든 참여자에게 웹소켓 전송
             // 웹소켓에 연결된 사용자만 실제 수신
             // 오프라인 수신자는 받지도 않고 에러를 내지도 않고 그냥 무시
-            for (UserSummary participant : chatRoom.participants()) {
-                Long participantId = participant.getUserId();
-
-                if (!participantId.equals(senderId)) {
-                    messagingTemplate.convertAndSend("/topic/group/" + participantId, messageResponse);
-                }
-            }
+            messagingTemplate.convertAndSend("/topic/group/" + groupChatroomId, messageResponse);
 
             // 모든 오프라인 참여자에게 푸시 알림 전송
             sendPushNotificationsToOfflineReceivers(

@@ -1,5 +1,6 @@
 package org.glue.glue_be.chat.repository.group;
 
+import org.glue.glue_be.chat.entity.dm.DmUserChatroom;
 import org.glue.glue_be.chat.entity.group.GroupChatRoom;
 import org.glue.glue_be.chat.entity.group.GroupUserChatRoom;
 import org.glue.glue_be.user.entity.User;
@@ -18,6 +19,8 @@ public interface GroupUserChatRoomRepository extends JpaRepository<GroupUserChat
 
     // 채팅방의 모든 참여자 조회
     List<GroupUserChatRoom> findByGroupChatroom(GroupChatRoom groupChatroom);
+
+    List<GroupUserChatRoom> findByGroupChatroom_GroupChatroomId(Long Id);
 
     // 채팅방과 유저로 삭제
     void deleteByGroupChatroomAndUser(GroupChatRoom groupChatroom, User user);
