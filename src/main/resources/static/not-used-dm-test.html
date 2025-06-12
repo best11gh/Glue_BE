@@ -283,7 +283,7 @@
             logEvent(`${userId}번 사용자 WebSocket 연결 성공 (UUID: ${userUuids[userId]})`);
 
             // 사용자별 메시지 구독
-            stompClient.subscribe(`/queue/dm/${userId}`, function(message) {
+            stompClient.subscribe(`/topic/dm/${userId}`, function(message) {
                 const data = JSON.parse(message.body);
                 logEvent(`${data.senderId}번 사용자가 ${userId}번 사용자에게 메시지 전송: "${data.content}"`);
 
@@ -305,7 +305,7 @@
             });
 
             // 읽음 상태 업데이트 구독
-            stompClient.subscribe(`/queue/dm/read/${userId}`, function(message) {
+            stompClient.subscribe(`/topic/dm/read/${userId}`, function(message) {
                 const data = JSON.parse(message.body);
                 const readMessages = data.readMessages || [];
 

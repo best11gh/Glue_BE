@@ -17,6 +17,5 @@ public class DmMessageResponse {
     private Long dmChatRoomId;
     private UserSummary sender;
     private String content;
-    private Integer isRead;
     private LocalDateTime createdAt;
 }
