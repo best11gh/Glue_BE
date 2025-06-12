@@ -37,4 +37,8 @@ public class GroupChatRoom extends BaseEntity {
     public void updateMeeting(Meeting meeting) {
         this.meeting = meeting;
     }
+
+    public void updateLastActivity() {
+        this.touchUpdatedAt();
+    }
 }

@@ -17,6 +17,8 @@ import java.util.Optional;
 public interface DmUserChatroomRepository extends JpaRepository<DmUserChatroom, Long> {
     List<DmUserChatroom> findByDmChatRoom(DmChatRoom dmChatRoom);
 
+    List<DmUserChatroom> findByDmChatRoom_Id(Long Id);
+
     void deleteByDmChatRoomAndUser(DmChatRoom dmChatRoom, User user);
 
     Optional<DmUserChatroom> findByDmChatRoomAndUser(DmChatRoom dmChatRoom, User sender);
