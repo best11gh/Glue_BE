@@ -419,13 +419,13 @@ public class GroupChatService extends CommonChatService {
                     message,
                     groupChatRoom,
                     senderId,
-                    "/topic/group",
+                    "/topic/group/"+groupChatroomId,
                     GroupMessage::getMessage,
                     GroupMessage::getUser,
                     groupUserChatRoomRepository::findByGroupChatroom,
                     GroupUserChatRoom::getUser,
                     GroupUserChatRoom::getPushNotificationOn,
-                    this::isUserConnectedToWebSocket,
+                    this::isUserSubscribedToChat,
                     (sender, recipient, content) -> FcmSendDto.builder()
                             .title(sender.getNickname() + "님의 그룹 메시지")
                             .body(content)

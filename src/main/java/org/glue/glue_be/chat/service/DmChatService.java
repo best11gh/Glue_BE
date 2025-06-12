@@ -515,7 +515,7 @@ public class DmChatService extends CommonChatService {
                     dmUserChatroomRepository::findByDmChatRoom,
                     DmUserChatroom::getUser,
                     DmUserChatroom::getPushNotificationOn,
-                    this::isUserConnectedToWebSocket,
+                    this::isUserSubscribedToChat,
                     (sender, recipient, content) -> {
                         String body = content.startsWith("[INVITATION]")
                                 ? "초대장이 도착했습니다"
