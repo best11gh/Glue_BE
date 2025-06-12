@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 연결 및 구독 테스트</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        h2 {
+            color: #333;
+            margin-top: 0;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .danger {
+            background-color: #dc3545;
+        }
+
+        .danger:hover {
+            background-color: #c82333;
+        }
+
+        .success {
+            background-color: #28a745;
+        }
+
+        .success:hover {
+            background-color: #218838;
+        }
+
+        #log {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .subscription-item {
+            background-color: #e9ecef;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .message-item {
+            background-color: #d1ecf1;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid #bee5eb;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+<h1>WebSocket 연결 및 구독 테스트</h1>
+
+<div class="container">
+    <!-- 연결 패널 -->
+    <div class="panel">
+        <h2>🔗 연결 설정</h2>
+
+        <div class="form-group">
+            <label for="serverUrl">서버 URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:8080/ws" placeholder="http://localhost:8080/ws">
+        </div>
+
+        <div class="form-group">
+            <label for="token">인증 토큰:</label>
+            <input type="password" id="token" placeholder="JWT 토큰을 입력하세요">
+        </div>
+
+        <div class="form-group">
+            <label for="userId">사용자 ID:</label>
+            <input type="number" id="userId" value="1" placeholder="1">
+        </div>
+
+        <div id="connectionStatus" class="status disconnected">연결 안됨</div>
+
+        <button id="connectBtn" onclick="connect()">연결</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>연결 해제</button>
+    </div>
+
+    <!-- 구독 패널 -->
+    <div class="panel">
+        <h2>📡 구독 관리</h2>
+
+        <div class="form-group">
+            <label for="subscriptionType">구독 타입:</label>
+            <select id="subscriptionType" onchange="updateDestination()">
+                <option value="dm">DM</option>
+                <option value="group">그룹</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="chatRoomId">채팅방 ID:</label>
+            <input type="number" id="chatRoomId" value="1" onchange="updateDestination()">
+        </div>
+
+        <div class="form-group">
+            <label for="destination">구독 주소:</label>
+            <input type="text" id="destination" value="/topic/dm/1" readonly>
+        </div>
+
+        <button id="subscribeBtn" onclick="subscribe()" disabled>구독</button>
+        <button onclick="clearSubscriptions()" class="danger">모든 구독 해제</button>
+
+        <div id="subscriptions">
+            <h3>활성 구독:</h3>
+            <div id="subscriptionList"></div>
+        </div>
+    </div>
+
+    <!-- 메시지 전송 패널 -->
+    <div class="panel">
+        <h2>📤 메시지 전송</h2>
+
+        <div class="form-group">
+            <label for="sendChatRoomId">채팅방 ID:</label>
+            <input type="number" id="sendChatRoomId" value="1" onchange="updateSendDestination()">
+        </div>
+
+        <div class="form-group">
+            <label for="sendDestination">전송 주소:</label>
+            <input type="text" id="sendDestination" value="/api/dm/1/send-message" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="messageContent">메시지 내용:</label>
+            <textarea id="messageContent" rows="3" placeholder="테스트 메시지"></textarea>
+        </div>
+
+        <button id="sendBtn" onclick="sendMessage()" disabled>메시지 전송</button>
+    </div>
+
+    <!-- 수신 메시지 패널 -->
+    <div class="panel">
+        <h2>📥 수신 메시지</h2>
+
+        <button onclick="clearMessages()" class="danger">메시지 초기화</button>
+
+        <div id="messages">
+            <div id="messageList"></div>
+        </div>
+    </div>
+
+    <!-- 로그 패널 -->
+    <div class="panel full-width">
+        <h2>📋 로그</h2>
+        <button onclick="clearLog()" class="danger">로그 초기화</button>
+        <div id="log"></div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let subscriptions = new Map();
+
+    function log(message) {
+        const logDiv = document.getElementById('log');
+        const timestamp = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateConnectionStatus(connected) {
+        const statusDiv = document.getElementById('connectionStatus');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const subscribeBtn = document.getElementById('subscribeBtn');
+        const sendBtn = document.getElementById('sendBtn');
+
+        if (connected) {
+            statusDiv.textContent = '연결됨';
+            statusDiv.className = 'status connected';
+            connectBtn.disabled = true;
+            disconnectBtn.disabled = false;
+            subscribeBtn.disabled = false;
+            sendBtn.disabled = false; // WebSocket 연결과 관계없이 HTTP 요청은 가능
+        } else {
+            statusDiv.textContent = '연결 안됨';
+            statusDiv.className = 'status disconnected';
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            subscribeBtn.disabled = true;
+            sendBtn.disabled = false; // HTTP 요청은 WebSocket 연결 없이도 가능
+        }
+    }
+
+    function updateSendDestination() {
+        const chatRoomId = document.getElementById('sendChatRoomId').value;
+        const destination = `/api/dm/${chatRoomId}/send-message`;
+        document.getElementById('sendDestination').value = destination;
+    }
+
+    function updateDestination() {
+        const type = document.getElementById('subscriptionType').value;
+        const chatRoomId = document.getElementById('chatRoomId').value;
+        const destination = `/topic/${type}/${chatRoomId}`;
+        document.getElementById('destination').value = destination;
+    }
+
+    function connect() {
+        const serverUrl = document.getElementById('serverUrl').value;
+        const token = document.getElementById('token').value;
+        const userId = document.getElementById('userId').value;
+
+        if (!token.trim()) {
+            alert('인증 토큰을 입력해주세요.');
+            return;
+        }
+
+        // 토큰을 쿼리 파라미터로 추가
+        const urlWithToken = `${serverUrl}?token=${encodeURIComponent(token)}`;
+
+        log(`연결 시도: ${urlWithToken}`);
+
+        const socket = new SockJS(urlWithToken);
+        stompClient = Stomp.over(socket);
+
+        // 디버그 모드 활성화
+        stompClient.debug = function(str) {
+            log(`STOMP: ${str}`);
+        };
+
+        stompClient.connect({
+            'user-id': userId,
+            'Authorization': `Bearer ${token}`
+        }, function(frame) {
+            log('연결 성공: ' + frame);
+            updateConnectionStatus(true);
+        }, function(error) {
+            log('연결 실패: ' + error);
+            updateConnectionStatus(false);
+        });
+    }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            // 모든 구독 해제
+            clearSubscriptions();
+
+            stompClient.disconnect(function() {
+                log('연결 해제됨');
+                updateConnectionStatus(false);
+            });
+        }
+    }
+
+    function subscribe() {
+        const destination = document.getElementById('destination').value;
+
+        if (subscriptions.has(destination)) {
+            log(`이미 구독 중: ${destination}`);
+            return;
+        }
+
+        const subscription = stompClient.subscribe(destination, function(message) {
+            log(`메시지 수신: ${destination}`);
+            displayMessage(destination, message.body);
+        });
+
+        subscriptions.set(destination, subscription);
+        updateSubscriptionList();
+        log(`구독 시작: ${destination}`);
+    }
+
+    function unsubscribe(destination) {
+        const subscription = subscriptions.get(destination);
+        if (subscription) {
+            subscription.unsubscribe();
+            subscriptions.delete(destination);
+            updateSubscriptionList();
+            log(`구독 해제: ${destination}`);
+        }
+    }
+
+    function clearSubscriptions() {
+        subscriptions.forEach((subscription, destination) => {
+            subscription.unsubscribe();
+            log(`구독 해제: ${destination}`);
+        });
+        subscriptions.clear();
+        updateSubscriptionList();
+    }
+
+    function updateSubscriptionList() {
+        const listDiv = document.getElementById('subscriptionList');
+        listDiv.innerHTML = '';
+
+        if (subscriptions.size === 0) {
+            listDiv.innerHTML = '<div style="color: #6c757d; font-style: italic;">구독 없음</div>';
+            return;
+        }
+
+        subscriptions.forEach((subscription, destination) => {
+            const item = document.createElement('div');
+            item.className = 'subscription-item';
+            item.innerHTML = `
+                    <span>${destination}</span>
+                    <button onclick="unsubscribe('${destination}')" class="danger" style="padding: 5px 10px; margin: 0;">해제</button>
+                `;
+            listDiv.appendChild(item);
+        });
+    }
+
+    function sendMessage() {
+        const destination = document.getElementById('sendDestination').value;
+        const content = document.getElementById('messageContent').value;
+        const token = document.getElementById('token').value;
+
+        if (!content.trim()) {
+            alert('메시지 내용을 입력해주세요.');
+            return;
+        }
+
+        if (!token.trim()) {
+            alert('토큰이 필요합니다.');
+            return;
+        }
+
+        const message = {
+            content: content
+        };
+
+        // 실제 HTTP POST 요청 전송
+        fetch(destination, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(message)
+        })
+            .then(response => {
+                if (response.ok) {
+                    log(`메시지 전송 성공: ${destination} - ${content}`);
+                    document.getElementById('messageContent').value = '';
+                } else {
+                    log(`메시지 전송 실패: ${response.status} ${response.statusText}`);
+                }
+                return response.text();
+            })
+            .then(responseText => {
+                if (responseText) {
+                    log(`서버 응답: ${responseText}`);
+                }
+            })
+            .catch(error => {
+                log(`메시지 전송 오류: ${error.message}`);
+            });
+    }
+
+    function displayMessage(destination, messageBody) {
+        const messagesDiv = document.getElementById('messageList');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message-item';
+
+        const timestamp = new Date().toLocaleTimeString();
+
+        try {
+            const parsedMessage = JSON.parse(messageBody);
+            messageDiv.innerHTML = `
+                    <div><strong>채널:</strong> ${destination}</div>
+                    <div><strong>내용:</strong> ${JSON.stringify(parsedMessage, null, 2)}</div>
+                    <div class="message-time">${timestamp}</div>
+                `;
+        } catch (e) {
+            messageDiv.innerHTML = `
+                    <div><strong>채널:</strong> ${destination}</div>
+                    <div><strong>내용:</strong> ${messageBody}</div>
+                    <div class="message-time">${timestamp}</div>
+                `;
+        }
+
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function clearMessages() {
+        document.getElementById('messageList').innerHTML = '';
+    }
+
+    function clearLog() {
+        document.getElementById('log').innerHTML = '';
+    }
+
+    // 페이지 로드 시 초기화
+    window.addEventListener('beforeunload', function() {
+        if (stompClient !== null) {
+            disconnect();
+        }
+    });
+
+    // 초기 destination 설정
+    updateDestination();
+    updateSendDestination();
+</script>
+</body>
+</html>

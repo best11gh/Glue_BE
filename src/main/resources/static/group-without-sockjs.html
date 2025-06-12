@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그룹 채팅 테스트 (네이티브 WebSocket)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .user-panel {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-width: 32%;
+        }
+        .user-header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+            position: relative;
+        }
+        .message-list {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            max-width: 70%;
+            word-break: break-word;
+        }
+        .sent {
+            background-color: #DCF8C6;
+            margin-left: auto;
+            text-align: right;
+        }
+        .received {
+            background-color: #ECECEC;
+        }
+        .message-input {
+            width: 100%;
+            display: flex;
+            margin-top: 10px;
+        }
+        .message-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .message-input button {
+            padding: 10px 15px;
+            margin-left: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .connection-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        .connected {
+            background-color: #DFF2BF;
+            color: #4F8A10;
+        }
+        .disconnected {
+            background-color: #FFBABA;
+            color: #D8000C;
+        }
+        .message-meta {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 4px;
+        }
+        .chat-controls {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .read-count {
+            font-size: 0.8em;
+            color: #888;
+        }
+        .read-all-btn {
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .token-display {
+            font-size: 0.7em;
+            color: #888;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+        .logs {
+            margin-top: 20px;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f5f5f5;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .user-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .user-controls button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .connect-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .disconnect-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .websocket-type {
+            background-color: #e7f3ff;
+            color: #0066cc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>그룹 채팅 테스트 (네이티브 WebSocket)</h1>
+    <div class="websocket-type">
+        <strong>🔧 변경사항:</strong> SockJS와 STOMP.js 라이브러리를 제거하고 네이티브 WebSocket API를 사용합니다.
+    </div>
+    <p>채팅방 ID: 1 | 엔드포인트: 메시지 전송(/api/group/{groupChatroomId}/send-message), 읽음처리(/app/group/{groupChatRoomId}/read-message), 메시지 목록(/api/group/{groupChatroomId}/messages)</p>
+    <p style="color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px;">SQLite 락 오류 주의: 동시에 여러 사용자를 연결하면 데이터베이스 락 오류가 발생할 수 있습니다. 한 번에 한 사용자만 연결하는 것을 권장합니다.</p>
+</div>
+
+<div class="container">
+    <!-- 사용자 1 패널 -->
+    <div class="user-panel" id="user-panel-1">
+        <div class="user-header">
+            <strong>사용자 1</strong>
+            <span class="connection-status disconnected" id="connection-status-1">연결 대기 중</span>
+            <div id="token-display-1" class="token-display"></div>
+        </div>
+
+        <div class="user-controls">
+            <button class="connect-btn" id="connect-btn-1" onclick="connect(1)">연결하기</button>
+            <button class="disconnect-btn" id="disconnect-btn-1" onclick="disconnect(1)" disabled>연결 끊기</button>
+        </div>
+
+        <div class="message-list" id="message-list-1">
+            <div class="alert" style="text-align: center; padding: 10px; color: #856404; background-color: #fff3cd; border-radius: 5px;">
+                네이티브 WebSocket으로 연결됩니다. 각 패널을 순차적으로 연결하세요.
+            </div>
+        </div>
+
+        <button class="read-all-btn" id="read-all-btn-1" onclick="markAllAsRead(1)">모든 메시지 읽음 처리</button>
+
+        <div class="message-input">
+            <input type="text" id="message-input-1" placeholder="메시지를 입력하세요..." onkeyup="handleKeyPress(event, 1)">
+            <button onclick="sendMessage(1)">전송</button>
+        </div>
+    </div>
+
+    <!-- 사용자 2 패널 -->
+    <div class="user-panel" id="user-panel-2">
+        <div class="user-header">
+            <strong>사용자 2</strong>
+            <span class="connection-status disconnected" id="connection-status-2">연결 대기 중</span>
+            <div id="token-display-2" class="token-display"></div>
+        </div>
+
+        <div class="user-controls">
+            <button class="connect-btn" id="connect-btn-2" onclick="connect(2)">연결하기</button>
+            <button class="disconnect-btn" id="disconnect-btn-2" onclick="disconnect(2)" disabled>연결 끊기</button>
+        </div>
+
+        <div class="message-list" id="message-list-2">
+            <div class="alert" style="text-align: center; padding: 10px; color: #856404; background-color: #fff3cd; border-radius: 5px;">
+                네이티브 WebSocket으로 연결됩니다. 각 패널을 순차적으로 연결하세요.
+            </div>
+        </div>
+
+        <button class="read-all-btn" id="read-all-btn-2" onclick="markAllAsRead(2)">모든 메시지 읽음 처리</button>
+
+        <div class="message-input">
+            <input type="text" id="message-input-2" placeholder="메시지를 입력하세요..." onkeyup="handleKeyPress(event, 2)">
+            <button onclick="sendMessage(2)">전송</button>
+        </div>
+    </div>
+
+    <!-- 사용자 3 패널 -->
+    <div class="user-panel" id="user-panel-3">
+        <div class="user-header">
+            <strong>사용자 3</strong>
+            <span class="connection-status disconnected" id="connection-status-3">연결 대기 중</span>
+            <div id="token-display-3" class="token-display"></div>
+        </div>
+
+        <div class="user-controls">
+            <button class="connect-btn" id="connect-btn-3" onclick="connect(3)">연결하기</button>
+            <button class="disconnect-btn" id="disconnect-btn-3" onclick="disconnect(3)" disabled>연결 끊기</button>
+        </div>
+
+        <div class="message-list" id="message-list-3">
+            <div class="alert" style="text-align: center; padding: 10px; color: #856404; background-color: #fff3cd; border-radius: 5px;">
+                네이티브 WebSocket으로 연결됩니다. 각 패널을 순차적으로 연결하세요.
+            </div>
+        </div>
+
+        <button class="read-all-btn" id="read-all-btn-3" onclick="markAllAsRead(3)">모든 메시지 읽음 처리</button>
+
+        <div class="message-input">
+            <input type="text" id="message-input-3" placeholder="메시지를 입력하세요..." onkeyup="handleKeyPress(event, 3)">
+            <button onclick="sendMessage(3)">전송</button>
+        </div>
+    </div>
+</div>
+
+<div class="logs" id="logs">
+    <div>로그 기록... (네이티브 WebSocket 사용)</div>
+</div>
+
+<script>
+    // 전역 변수
+    const groupChatroomId = 1;
+    const webSockets = {};
+    const messagesPerUser = {
+        1: [],
+        2: [],
+        3: []
+    };
+
+    // 사용자 정보
+    const users = {
+        1: { userId: 1, nickname: "사용자 1", profileImage: null, token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDg5NDcxNTcsImV4cCI6MTc1NzU4NzE1NywibWVtYmVySWQiOjEsIm1lbWJlck5pY2tuYW1lIjoi6rmA66-87IiYIiwibWVtYmVyUm9sZSI6IlJPTEVfVVNFUiJ9.Qiclk_eBFJwWhrINtwCKPbNqz_-Qtg96bCa6LwsxslroGE2PY6p7hjcWVs0lwQJiYsTBTZmeGaT_YAtyTN6ILQ" },
+        2: { userId: 1, nickname: "사용자 2", profileImage: null, token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDg5NDcxNTcsImV4cCI6MTc1NzU4NzE1NywibWVtYmVySWQiOjIsIm1lbWJlck5pY2tuYW1lIjoi7IKs6528IiwibWVtYmVyUm9sZSI6IlJPTEVfVVNFUiJ9.JJOTPUa3gUouyQ3na7m8rZDm2oSPUr81DNVZP3IODc0h5G5vvUdkQZLYfIdnw3FqAVHuSYrHixDYi8xC3QQoBQ" },
+        3: { userId: 1, nickname: "사용자 3", profileImage: null, token: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE3NDg5NDcxNTcsImV4cCI6MTc1NzU4NzE1NywibWVtYmVySWQiOjQsIm1lbWJlck5pY2tuYW1lIjoi66as64KYIiwibWVtYmVyUm9sZSI6IlJPTEVfVVNFUiJ9.aeSHZz-cVmbVa1pbAINi-v2cp7tNKZdG1Otelnnr6vZPOqt27yD4bA5qgExBeqWK-WIX9DnVRq7nJ_6Hp3xLQw" }
+    };
+
+    // 로그 추가 함수
+    function addLog(message) {
+        const logs = document.getElementById('logs');
+        const logEntry = document.createElement('div');
+        logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        logs.appendChild(logEntry);
+        logs.scrollTop = logs.scrollHeight;
+    }
+
+    // 각 사용자 패널 초기화
+    function initializeUserPanels() {
+        for (let userId = 1; userId <= 3; userId++) {
+            // 토큰 정보 표시 (일부만)
+            const tokenDisplay = document.getElementById(`token-display-${userId}`);
+            const token = users[userId].token;
+            const shortToken = token.substring(0, 10) + '...' + token.substring(token.length - 10);
+            tokenDisplay.textContent = `토큰: ${shortToken}`;
+        }
+
+        // 모든 사용자에 대해 메시지 로드
+        loadAllMessagesForAllUsers();
+    }
+
+    // 연결 상태 업데이트 함수
+    function updateConnectionStatus(userId, isConnected) {
+        const statusElement = document.getElementById(`connection-status-${userId}`);
+
+        if (isConnected) {
+            statusElement.textContent = `연결됨 (네이티브 WS)`;
+            statusElement.classList.remove('disconnected');
+            statusElement.classList.add('connected');
+
+            document.getElementById(`connect-btn-${userId}`).disabled = true;
+            document.getElementById(`disconnect-btn-${userId}`).disabled = false;
+        } else {
+            statusElement.textContent = '연결 대기 중';
+            statusElement.classList.remove('connected');
+            statusElement.classList.add('disconnected');
+
+            document.getElementById(`connect-btn-${userId}`).disabled = false;
+            document.getElementById(`disconnect-btn-${userId}`).disabled = true;
+        }
+    }
+
+    // WebSocket 연결 함수 (네이티브 WebSocket 사용)
+    function connect(userId) {
+        if (webSockets[userId]) {
+            addLog(`사용자 ${userId}는 이미 연결되어 있습니다.`);
+            return;
+        }
+
+        // SQLite 락 문제를 방지하기 위한 경고
+        const connectedUsers = Object.keys(webSockets).filter(id => webSockets[id] !== null).length;
+        if (connectedUsers > 0) {
+            const proceed = confirm("SQLite 락 문제가 발생할 수 있습니다. 계속 진행하시겠습니까?");
+            if (!proceed) return;
+        }
+
+        // WebSocket URL 생성 (STOMP 엔드포인트가 아닌 일반 WebSocket 엔드포인트)
+        // 실제 서버에서는 /ws-native 같은 별도 엔드포인트를 만들어야 할 수 있습니다
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws?token=${users[userId].token}`;
+
+        addLog(`사용자 ${userId}: WebSocket 연결 시도 - ${wsUrl}`);
+
+        try {
+            webSockets[userId] = new WebSocket(wsUrl);
+
+            webSockets[userId].onopen = function(event) {
+                addLog(`사용자 ${userId}: 네이티브 WebSocket 연결 성공`);
+                updateConnectionStatus(userId, true);
+
+                // 연결 후 채팅방 구독 요청
+                const subscribeMessage = {
+                    type: 'SUBSCRIBE',
+                    groupChatroomId: groupChatroomId,
+                    userId: userId
+                };
+                webSockets[userId].send(JSON.stringify(subscribeMessage));
+
+                // 연결 후 메시지 목록 불러오기
+                setTimeout(() => loadMessages(userId), 300);
+            };
+
+            webSockets[userId].onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    onMessageReceived(userId, message);
+                } catch (error) {
+                    addLog(`사용자 ${userId}: 메시지 파싱 오류: ${error.message}`);
+                }
+            };
+
+            webSockets[userId].onclose = function(event) {
+                addLog(`사용자 ${userId}: WebSocket 연결 해제 (code: ${event.code}, reason: ${event.reason})`);
+                updateConnectionStatus(userId, false);
+                webSockets[userId] = null;
+            };
+
+            webSockets[userId].onerror = function(error) {
+                addLog(`사용자 ${userId}: WebSocket 오류: ${error}`);
+                updateConnectionStatus(userId, false);
+                webSockets[userId] = null;
+            };
+
+        } catch (error) {
+            addLog(`사용자 ${userId}: WebSocket 생성 오류: ${error.message}`);
+            updateConnectionStatus(userId, false);
+        }
+    }
+
+    // 연결 해제 함수
+    function disconnect(userId) {
+        if (webSockets[userId]) {
+            webSockets[userId].close();
+            webSockets[userId] = null;
+            addLog(`사용자 ${userId}: WebSocket 연결 해제`);
+            updateConnectionStatus(userId, false);
+        }
+    }
+
+    // 메시지 전송 함수 (REST API 사용 - 변경 없음)
+    function sendMessage(userId) {
+        if (!webSockets[userId]) {
+            alert(`사용자 ${userId}가 연결되지 않았습니다.`);
+            return;
+        }
+
+        const messageInput = document.getElementById(`message-input-${userId}`);
+        const content = messageInput.value.trim();
+
+        if (content === '') {
+            return;
+        }
+
+        // 입력 필드 초기화
+        messageInput.value = '';
+
+        // REST API로 메시지 전송 요청
+        fetch(`/api/group/${groupChatroomId}/send-message`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${users[userId].token}`
+            },
+            body: JSON.stringify({
+                content: content
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('메시지 전송 실패');
+                }
+                return response.json();
+            })
+            .then(data => {
+                addLog(`사용자 ${userId}: 메시지 전송 성공: ${content}`);
+            })
+            .catch(error => {
+                addLog(`사용자 ${userId}: 오류: ${error.message}`);
+                // 오류 발생 시 메시지 입력창에 텍스트 복원
+                messageInput.value = content;
+            });
+    }
+
+    // 엔터 키 처리 함수
+    function handleKeyPress(event, userId) {
+        if (event.key === 'Enter') {
+            sendMessage(userId);
+        }
+    }
+
+    // 메시지 수신 처리 함수 (네이티브 WebSocket용)
+    function onMessageReceived(userId, message) {
+        addLog(`사용자 ${userId}: 메시지 수신: ${JSON.stringify(message)}`);
+
+        // 메시지 타입에 따라 처리
+        if (message.type === 'GROUP_MESSAGE') {
+            // 모든 연결된 사용자의 UI에 메시지 추가
+            for (let id = 1; id <= 3; id++) {
+                if (webSockets[id]) {
+                    addMessageToUI(id, message.data);
+                }
+            }
+        } else if (message.type === 'READ_STATUS_UPDATE') {
+            // 읽음 상태 업데이트
+            for (let id = 1; id <= 3; id++) {
+                if (webSockets[id]) {
+                    updateMessagesReadStatus(id, message.data);
+                }
+            }
+        }
+    }
+
+    // 메시지 UI에 추가 함수 (변경 없음)
+    function addMessageToUI(userId, message) {
+        // 해당 사용자의 메시지 배열에 추가
+        if (!messagesPerUser[userId].some(m => m.groupMessageId === message.groupMessageId)) {
+            messagesPerUser[userId].push(message);
+        }
+
+        const messageList = document.getElementById(`message-list-${userId}`);
+
+        // 이미 UI에 해당 메시지가 있는지 확인
+        const existingMessage = document.querySelector(`#message-list-${userId} .message[data-message-id="${message.groupMessageId}"]`);
+        if (existingMessage) {
+            return; // 이미 존재하면 추가하지 않음
+        }
+
+        const messageElement = document.createElement('div');
+
+        // 발신자가 현재 사용자인지 확인
+        const isSentByCurrentUser = message.sender.userId === userId;
+
+        messageElement.classList.add('message');
+        messageElement.classList.add(isSentByCurrentUser ? 'sent' : 'received');
+        messageElement.dataset.messageId = message.groupMessageId;
+
+        // 메시지 내용
+        messageElement.innerHTML = `
+            ${!isSentByCurrentUser ? `<strong>${message.sender.nickname}</strong><br>` : ''}
+            ${message.content}
+            <div class="message-meta">
+                ${new Date(message.sendTime).toLocaleTimeString()}
+                ${isSentByCurrentUser ? `<span class="read-count">읽지 않음: ${message.unreadCount}</span>` : ''}
+            </div>
+        `;
+
+        messageList.appendChild(messageElement);
+        messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    // 읽음 상태 업데이트 함수 (변경 없음)
+    function updateMessagesReadStatus(userId, readStatus) {
+        readStatus.updatedMessages.forEach(updatedMessage => {
+            const messageElements = document.querySelectorAll(`#message-list-${userId} .message[data-message-id="${updatedMessage.groupMessageId}"]`);
+
+            messageElements.forEach(element => {
+                const metaElement = element.querySelector('.message-meta');
+                if (metaElement) {
+                    const readCountElement = metaElement.querySelector('.read-count');
+                    if (readCountElement) {
+                        readCountElement.textContent = `읽지 않음: ${updatedMessage.unreadCount}`;
+                    }
+                }
+            });
+
+            const messageIndex = messagesPerUser[userId].findIndex(m => m.groupMessageId === updatedMessage.groupMessageId);
+            if (messageIndex !== -1) {
+                messagesPerUser[userId][messageIndex].unreadCount = updatedMessage.unreadCount;
+            }
+        });
+    }
+
+    // 모든 메시지 읽음 처리 함수 (WebSocket 메시지로 변경)
+    function markAllAsRead(userId) {
+        if (!webSockets[userId]) {
+            alert(`사용자 ${userId}가 연결되지 않았습니다.`);
+            return;
+        }
+
+        // WebSocket을 통해 읽음 처리 요청 전송
+        const readMessage = {
+            type: 'MARK_AS_READ',
+            groupChatroomId: groupChatroomId,
+            receiverId: userId
+        };
+
+        webSockets[userId].send(JSON.stringify(readMessage));
+        addLog(`사용자 ${userId}: 모든 메시지 읽음 처리 요청 전송`);
+    }
+
+    // 모든 사용자에 대해 메시지 로드
+    function loadAllMessagesForAllUsers() {
+        for (let userId = 1; userId <= 3; userId++) {
+            document.getElementById(`token-display-${userId}`).textContent =
+                `토큰: ${users[userId].token.substring(0, 10)}...${users[userId].token.substring(users[userId].token.length - 10)}`;
+        }
+        addLog("모든 패널 초기화 완료. 각 사용자를 개별적으로 연결하세요.");
+    }
+
+    // 메시지 목록 불러오기 함수 (변경 없음)
+    function loadMessages(userId, updateUI = true) {
+        fetch(`/api/group/${groupChatroomId}/all-messages`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${users[userId].token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('메시지 목록 불러오기 실패');
+                }
+                return response.json();
+            })
+            .then(data => {
+                addLog(`사용자 ${userId}: 메시지 목록 로드 성공`);
+
+                if (updateUI) {
+                    document.getElementById(`message-list-${userId}`).innerHTML = '';
+                    messagesPerUser[userId] = [];
+                }
+
+                if (Array.isArray(data)) {
+                    data.forEach(message => {
+                        if (updateUI) {
+                            addMessageToUI(userId, message);
+                        } else {
+                            if (!messagesPerUser[userId].some(m => m.groupMessageId === message.groupMessageId)) {
+                                messagesPerUser[userId].push(message);
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                addLog(`사용자 ${userId}: 메시지 목록 로드 오류: ${error.message}`);
+
+                if (updateUI) {
+                    document.getElementById(`message-list-${userId}`).innerHTML = '';
+                    messagesPerUser[userId] = [];
+                }
+            });
+    }
+
+    // 페이지 로드 시 초기화
+    window.onload = function() {
+        initializeUserPanels();
+        addLog("네이티브 WebSocket을 사용합니다. SQLite 락 문제를 방지하기 위해 한 번에 한 사용자만 연결하는 것을 권장합니다.");
+    };
+</script>
+</body>
+</html>
