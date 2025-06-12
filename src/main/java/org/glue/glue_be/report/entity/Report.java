@@ -28,18 +28,31 @@ public class Report extends BaseEntity {
     @JoinColumn(name = "reason_id", nullable = false)
     private ReportReason reason;
 
-    @Column(name = "handled", nullable = false)
-    private boolean handled;
+    // 0: 모임글, 1: 채팅, 2: 방명록
+    @Column(name = "report_route", nullable = false)
+    private Integer reportRoute;
 
-    public void markHandled() {
-        this.handled = true;
+    @Column(name = "detail", length = 500)
+    private String detail;
+
+    @Column(name = "accepted")
+    private Boolean accepted;
+
+    public void accept() {
+        this.accepted = true;
+    }
+
+    public void reject() {
+        this.accepted = false;
     }
 
     @Builder
-    public Report(User reporter, User reported, ReportReason reason) {
+    public Report(User reporter, User reported, ReportReason reason, Integer reportRoute, String detail) {
         this.reporter = reporter;
         this.reported = reported;
         this.reason = reason;
-        this.handled = false;
+        this.reportRoute = reportRoute;
+        this.detail = detail;
+        this.accepted = null;
     }
 }

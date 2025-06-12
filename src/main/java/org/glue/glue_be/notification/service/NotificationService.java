@@ -27,10 +27,9 @@ public class NotificationService {
 
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
-
     private final FcmService fcmService;
 
-    // 알림 작성(단일) - 백엔드 내부에서만 사용
+    // 알림 작성(단일)
     public void create(CreateNotificationRequest request) {
         User receiver = findUserById(request.getReceiverId());
 
@@ -45,15 +44,18 @@ public class NotificationService {
 
         notificationRepository.save(notification);
 
-        // fcm을 이용해서 사용자 기기에 알림 전송
         fcmService.sendMessage(FcmSendDto.builder()
                 .title(notification.getTitle())
                 .body(notification.getContent())
                 .token(receiver.getFcmToken())
+                .type(notification.getType())
+                .id(notification.getTargetId())
+                .guestbookHostId(
+                        notification.getGuestbookHost() != null ? notification.getGuestbookHost().getUserId() : null)
                 .build());
     }
 
-    // 알림 작성(다수) - 백엔드 내부에서만 사용
+    // 알림 작성(다수)
     public void createBulk(BulkNotificationRequest request) {
         List<String> tokens = new ArrayList<>();
 
@@ -78,14 +80,16 @@ public class NotificationService {
                 .title(request.getTitle())
                 .body(request.getContent())
                 .tokens(tokens)
+                .type(request.getType())
+                .id(request.getTargetId())
+                .guestbookHostId(request.getGuestbookHostId())
                 .build());
     }
 
-
-    // 알림 삭제 - 본인 알림만
+    // 알림 삭제
     public void delete(Long notificationId, Long currentUserId) {
-        Notification notification = notificationRepository.findById(notificationId).orElseThrow(() -> new BaseException(
-                NotificationResponseStatus.NOTIFICATION_NOT_FOUND));
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BaseException(NotificationResponseStatus.NOTIFICATION_NOT_FOUND));
 
         if (!notification.getReceiver().getUserId().equals(currentUserId)) {
             throw new BaseException(NotificationResponseStatus.NOT_OWNER_OF_NOTIFICATION);
@@ -94,7 +98,7 @@ public class NotificationService {
         notificationRepository.delete(notification);
     }
 
-    // 전체 읽기
+    // 알림 목록 조회
     @Transactional(readOnly = true)
     public NotificationResponse[] getNotifications(Long currentUserId, Long cursorId, Integer pageSize,
                                                    boolean isNotice) {
@@ -135,7 +139,6 @@ public class NotificationService {
                 .toArray(NotificationResponse[]::new);
     }
 
-
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
@@ -157,5 +160,4 @@ public class NotificationService {
 
         return builder.build();
     }
-
 }

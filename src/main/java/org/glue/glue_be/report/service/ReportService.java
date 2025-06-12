@@ -1,15 +1,20 @@
 package org.glue.glue_be.report.service;
 
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.report.dto.request.CreateReportRequest;
+import org.glue.glue_be.report.dto.request.ReportHandledRequest;
+import org.glue.glue_be.report.dto.response.ReportResponse;
 import org.glue.glue_be.report.entity.*;
 import org.glue.glue_be.report.repository.*;
 import org.glue.glue_be.report.response.ReportResponseStatus;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,31 +37,50 @@ public class ReportService {
                 .reporter(reporter)
                 .reported(reported)
                 .reason(reason)
+                .reportRoute(request.reportRoute())
+                .detail(request.detail())
                 .build();
 
         reportRepository.save(report);
     }
 
-    // TODO: 신고 조회 기능들은 어드민 페이지 확정 난 후 추가 예정
     // 신고 전체 조회
+    // 신고 사유, 조치 상태, keyword로 검색 가능
     @Transactional(readOnly = true)
-    public void getReports(Long cursorId, Integer pageSize) {
+    public List<ReportResponse> getReports(Long cursorId, Integer pageSize, Integer reasonId, Boolean handled,
+                                           String keyword) {
+        System.out.println("=== keyword: " + keyword);
+        System.out.println("=== keyword class: " + (keyword != null ? keyword.getClass().getName() : "null"));
+
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
+        List<Report> reports = reportRepository.findReportsWithFilters(cursorId, reasonId, handled, keyword, pageable);
+
+        boolean hasNext = reports.size() > pageSize;
+        if (hasNext) {
+            reports = reports.subList(0, pageSize);
+        }
+
+        return reports.stream()
+                .map(ReportResponse::from)
+                .toList();
     }
 
     // 신고 상세 조회
     @Transactional(readOnly = true)
-    public void getReport(Long reportId) {
+    public ReportResponse getReport(Long reportId) {
+        Report report = findReport(reportId);
+        return ReportResponse.from(report);
     }
 
-    // 신고 처리 완료로 표시
-    public void markReportHandled(Long reportId) {
+    // 신고 처리
+    public void handleReport(Long reportId, ReportHandledRequest request) {
         Report report = findReport(reportId);
 
-        if (report.isHandled()) {
-            throw new BaseException(ReportResponseStatus.ALREADY_HANDLED_REPORT);
+        if (request.accept()) {
+            report.accept();
+        } else {
+            report.reject();
         }
-
-        report.markHandled();
     }
 
 

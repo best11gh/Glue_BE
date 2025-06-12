@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.glue.glue_be.common.response.BaseResponse;
 import org.glue.glue_be.util.fcm.dto.FcmSendDto;
 import org.glue.glue_be.util.fcm.dto.MultiFcmSendDto;
-import org.glue.glue_be.util.fcm.response.FcmResponseStatus;
 import org.glue.glue_be.util.fcm.service.FcmService;
 import org.springframework.web.bind.annotation.*;
 
