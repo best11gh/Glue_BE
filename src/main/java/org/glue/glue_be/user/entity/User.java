@@ -91,6 +91,9 @@ public class User extends BaseEntity {
     @Column(name = "guestbooks_visibility", nullable = false) // default = 1
     private Integer guestbooksVisibility;
 
+    @Column(name = "accepted_report_count", nullable = false) // default = 0
+    private Integer acceptedReportCount;
+
     @Column(name = "is_deleted", nullable = false)
     private Integer isDeleted;
 
@@ -120,6 +123,7 @@ public class User extends BaseEntity {
         this.meetingVisibility = (meetingVisibility == null) ? VISIBILITY_PUBLIC : meetingVisibility;
         this.likeVisibility = (likeVisibility == null) ? VISIBILITY_PUBLIC : likeVisibility;
         this.guestbooksVisibility = (guestbooksVisibility == null) ? VISIBILITY_PUBLIC : guestbooksVisibility;
+        this.acceptedReportCount = 0;
         this.isDeleted = IS_NOT_DELETED;
         this.role = UserRole.ROLE_USER;
     }
@@ -215,8 +219,21 @@ public class User extends BaseEntity {
         this.profileImageUrl = null;
         this.realName = null;
     }
+
     public void changeRole(UserRole newRole) {
         this.role = newRole;
+    }
+
+    public void increaseAcceptedReportCount() {
+        this.acceptedReportCount++;
+    }
+
+    public void resetAcceptedReportCount() {
+        this.acceptedReportCount = 0;
+    }
+
+    public boolean isBlockedByReport() {
+        return this.acceptedReportCount != null && this.acceptedReportCount >= 2;
     }
 
 }

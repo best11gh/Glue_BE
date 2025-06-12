@@ -1,23 +1,17 @@
 package org.glue.glue_be.auth.service;
 
+
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.glue.glue_be.auth.jwt.CustomUserDetails;
-import org.glue.glue_be.auth.jwt.JwtTokenProvider;
-import org.glue.glue_be.auth.jwt.UserAuthentication;
-import org.glue.glue_be.auth.dto.request.AppleSignInRequestDto;
-import org.glue.glue_be.auth.dto.request.AppleSignUpRequestDto;
-import org.glue.glue_be.auth.dto.request.KakaoSignInRequestDto;
-import org.glue.glue_be.auth.dto.request.KakaoSignUpRequestDto;
-import org.glue.glue_be.auth.dto.response.AppleSignInResponseDto;
-import org.glue.glue_be.auth.dto.response.AppleSignUpResponseDto;
-import org.glue.glue_be.auth.dto.response.AppleUserInfoResponseDto;
-import org.glue.glue_be.auth.dto.response.KakaoSignInResponseDto;
-import org.glue.glue_be.auth.dto.response.KakaoSignUpResponseDto;
-import org.glue.glue_be.auth.dto.response.KakaoUserInfoResponseDto;
+import org.glue.glue_be.auth.dto.request.*;
+import org.glue.glue_be.auth.dto.response.*;
+import org.glue.glue_be.auth.jwt.*;
 import org.glue.glue_be.auth.response.AuthResponseStatus;
 import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.redis.RedisUtil;
+import org.glue.glue_be.report.dto.response.ReportResponse;
+import org.glue.glue_be.report.repository.ReportRepository;
 import org.glue.glue_be.user.entity.User;
 import org.glue.glue_be.user.entity.UserRole;
 import org.glue.glue_be.user.repository.UserRepository;
@@ -45,6 +39,7 @@ public class AuthService {
     // repositories
     private final UserRepository userRepository;
     private final MailService mailService;
+    private final ReportRepository reportRepository;
 
 
     // todo: 추후 리팩토링 시 과정 중 역할의 책임을 나눌만한 부분이 있는지 보기
@@ -82,12 +77,16 @@ public class AuthService {
                 () -> new BaseException(UserResponseStatus.USER_NOT_FOUND)
         );
 
+        validateUserCanLogin(user);
         // 2.75. 로그인 시 fcm 토큰을 엔티티에 넣어줌
         user.changeFcmToken(requestDto.fcmToken());
 
         // 3. 자체 엑세스 토큰을 발행 후 리턴
+
         return KakaoSignInResponseDto.builder()
                 .accessToken(getToken(user))
+                .acceptedReportCount(user.getAcceptedReportCount())
+                .acceptedReports(getAcceptedReportResponses(user))
                 .build();
 
     }
@@ -112,25 +111,23 @@ public class AuthService {
                 .build();
     }
 
+
     public AppleSignInResponseDto appleSignIn(AppleSignInRequestDto requestDto) {
         AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.idToken());
 
         User user = userRepository.findByOauthId(appleUserInfo.getSubject())
                 .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
 
+        validateUserCanLogin(user);
         user.changeFcmToken(requestDto.fcmToken());
 
         return AppleSignInResponseDto.builder()
                 .accessToken(getToken(user))
+                .acceptedReportCount(user.getAcceptedReportCount())
+                .acceptedReports(getAcceptedReportResponses(user))
                 .build();
     }
 
-    private String getToken(User user) {
-        CustomUserDetails customUserDetails = new CustomUserDetails(user.getUserId(), user.getNickname(), user.getRole());
-        UserAuthentication authentication = new UserAuthentication(customUserDetails, null, null);
-
-        return jwtTokenProvider.generateToken(authentication);
-    }
 
     public void sendCode(String email) {
 
@@ -168,17 +165,18 @@ public class AuthService {
     }
 
 
-
     // 닉네임 중복체크(중복말고도 추후 적절한 닉넴 검증등에 대한 추가 로직이 들어올수도 있단 생각에 일반화된 네이밍 사용)
-	public void checkNickname(String nickname) {
-        if(userRepository.existsByNickname(nickname))
+    public void checkNickname(String nickname) {
+        if (userRepository.existsByNickname(nickname)) {
             throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 닉네임입니다.");
+        }
     }
 
 
     public void checkEmail(String email) {
-        if (userRepository.existsByEmail(email))
+        if (userRepository.existsByEmail(email)) {
             throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "중복된 이메일입니다.");
+        }
     }
 
     public String toggleRole(Long id) {
@@ -190,6 +188,28 @@ public class AuthService {
         user.changeRole(newRole);
 
         return newRole.name();
+    }
 
+    /// / 내부 유틸
+
+    private String getToken(User user) {
+        CustomUserDetails customUserDetails = new CustomUserDetails(user.getUserId(), user.getNickname(),
+                user.getRole());
+        UserAuthentication authentication = new UserAuthentication(customUserDetails, null, null);
+
+        return jwtTokenProvider.generateToken(authentication);
+    }
+
+    private void validateUserCanLogin(User user) {
+        if (user.isBlockedByReport()) {
+            throw new BaseException(AuthResponseStatus.BLOCKED_BY_REPORT);
+        }
+    }
+
+    private List<ReportResponse> getAcceptedReportResponses(User user) {
+        return reportRepository.findByReportedAndAcceptedTrue(user)
+                .stream()
+                .map(ReportResponse::from)
+                .toList();
     }
 }

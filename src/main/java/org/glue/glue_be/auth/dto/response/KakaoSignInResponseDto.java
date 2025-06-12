@@ -1,15 +1,17 @@
 package org.glue.glue_be.auth.dto.response;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-
+import java.util.List;
+import lombok.*;
+import org.glue.glue_be.report.dto.response.ReportResponse;
 
 @Getter
 @Builder
 public class KakaoSignInResponseDto {
 
-	String accessToken;
+    private String accessToken;
 
+    private int acceptedReportCount;
+
+    private List<ReportResponse> acceptedReports;
 }

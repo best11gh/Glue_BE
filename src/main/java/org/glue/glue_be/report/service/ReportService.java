@@ -49,8 +49,6 @@ public class ReportService {
     @Transactional(readOnly = true)
     public List<ReportResponse> getReports(Long cursorId, Integer pageSize, Integer reasonId, Boolean handled,
                                            String keyword) {
-        System.out.println("=== keyword: " + keyword);
-        System.out.println("=== keyword class: " + (keyword != null ? keyword.getClass().getName() : "null"));
 
         Pageable pageable = PageRequest.of(0, pageSize + 1);
         List<Report> reports = reportRepository.findReportsWithFilters(cursorId, reasonId, handled, keyword, pageable);
@@ -78,6 +76,9 @@ public class ReportService {
 
         if (request.accept()) {
             report.accept();
+
+            User reportedUser = report.getReported();
+            reportedUser.increaseAcceptedReportCount();
         } else {
             report.reject();
         }

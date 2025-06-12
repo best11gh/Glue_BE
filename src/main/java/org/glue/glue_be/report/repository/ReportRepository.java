@@ -2,6 +2,7 @@ package org.glue.glue_be.report.repository;
 
 import java.util.List;
 import org.glue.glue_be.report.entity.Report;
+import org.glue.glue_be.user.entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,5 +34,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
+
+    List<Report> findByReportedAndAcceptedTrue(User reported);
 
 }
