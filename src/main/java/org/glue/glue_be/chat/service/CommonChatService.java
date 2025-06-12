@@ -217,7 +217,7 @@ public abstract class CommonChatService {
                 .collect(Collectors.toList());
     }
 
-    // 사용자의 웹소켓 연결 상태를 확인
+    // 사용자의 구독 여부를 확인 (현재 사용자가 채팅 화면을 보고 있는지 판단하기 위함) (이는 푸시 알림 핸들러로 쓰임)
     public boolean isUserConnectedToWebSocket(Long userId, String deliveryType) {
         // 사용자의 구독 주소 확인
         String destination = deliveryType + "/" + userId;
@@ -278,7 +278,7 @@ public abstract class CommonChatService {
         }
     }
 
-    // 알림 전송
+    // 알림 전송 (지금은 안 씀)
     protected <T> void sendNotificationToUser(Long userId, String endpoint, T payload) {
         messagingTemplate.convertAndSend("/queue/" + endpoint + "/" + userId, payload);
     }
