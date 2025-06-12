@@ -22,6 +22,8 @@ public class User extends BaseEntity {
     public static final int IS_NOT_DELETED = 0;
     public static final int IS_DELETED = 1;
 
+    public static final int REPORT_BLOCK_THRESHOLD = 2;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
@@ -233,7 +235,7 @@ public class User extends BaseEntity {
     }
 
     public boolean isBlockedByReport() {
-        return this.acceptedReportCount != null && this.acceptedReportCount >= 2;
+        return this.acceptedReportCount != null && this.acceptedReportCount >= REPORT_BLOCK_THRESHOLD;
     }
 
 }
