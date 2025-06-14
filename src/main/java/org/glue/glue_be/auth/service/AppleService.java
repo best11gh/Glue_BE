@@ -85,7 +85,7 @@ public class AppleService {
                     .block();
         } catch (WebClientResponseException e) {
             log.error("[애플 로그인 실패 - 응답 본문]: {}", e.getResponseBodyAsString(), e);
-            throw new BaseException(AuthResponseStatus.INVALID_AUTHORIZATION_CODE);
+            throw new BaseException(AuthResponseStatus.INVALID_AUTHORIZATION_CODE, "Apple 인증 코드가 유효하지 않습니다.");
         } catch (Exception e) {
             log.error("[애플 로그인 실패 - 예외]: {}", e.getMessage(), e);
             throw new BaseException(AuthResponseStatus.SOCIAL_API_REQUEST_FAILED);
@@ -146,6 +146,7 @@ public class AppleService {
             throw new BaseException(AuthResponseStatus.FAIL_APPLE_PRIVATE_KEY);
         }
     }
+
     private SignedJWT parseToken(String idToken) {
         try {
             return SignedJWT.parse(idToken);
