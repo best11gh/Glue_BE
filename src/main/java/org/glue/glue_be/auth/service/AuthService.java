@@ -12,8 +12,7 @@ import org.glue.glue_be.common.exception.BaseException;
 import org.glue.glue_be.redis.RedisUtil;
 import org.glue.glue_be.report.dto.response.ReportResponse;
 import org.glue.glue_be.report.repository.ReportRepository;
-import org.glue.glue_be.user.entity.User;
-import org.glue.glue_be.user.entity.UserRole;
+import org.glue.glue_be.user.entity.*;
 import org.glue.glue_be.user.repository.UserRepository;
 import org.glue.glue_be.user.response.UserResponseStatus;
 import org.springframework.stereotype.Service;
@@ -44,7 +43,7 @@ public class AuthService {
 
 
     // todo: 추후 리팩토링 시 과정 중 역할의 책임을 나눌만한 부분이 있는지 보기
-    public KakaoSignUpResponseDto kakaoSignUp(KakaoSignUpRequestDto requestDto) {
+    public SignUpResponseDto kakaoSignUp(KakaoSignUpRequestDto requestDto) {
 
         // 1. 중복되는 oauthID의 유저가 db에 있는지 재검증
         userRepository.findByOauthId(requestDto.oauthId())
@@ -59,13 +58,13 @@ public class AuthService {
         User newUser = userRepository.save(user);
 
         // 4. 자체 엑세스 토큰 발급 및 리턴
-        return KakaoSignUpResponseDto.builder()
+        return SignUpResponseDto.builder()
                 .accessToken(getToken(newUser))
                 .build();
 
     }
 
-    public KakaoSignInResponseDto kakaoSignIn(KakaoSignInRequestDto requestDto) {
+    public SignInResponseDto kakaoSignIn(KakaoSignInRequestDto requestDto) {
 
         // 1. 토큰을 카카오 서버에 보내 유저 정보를 받는다.
         KakaoUserInfoResponseDto userInfo = kakaoService.getUserInfo(requestDto.kakaoToken());
@@ -84,7 +83,7 @@ public class AuthService {
 
         // 3. 자체 엑세스 토큰을 발행 후 리턴
 
-        return KakaoSignInResponseDto.builder()
+        return SignInResponseDto.builder()
                 .accessToken(getToken(user))
                 .acceptedReportCount(user.getAcceptedReportCount())
                 .acceptedReports(getAcceptedReportResponses(user))
@@ -92,7 +91,7 @@ public class AuthService {
 
     }
 
-    public AppleSignUpResponseDto appleSignUp(AppleSignUpRequestDto requestDto) {
+    public SignUpResponseDto appleSignUp(AppleSignUpRequestDto requestDto) {
 
         AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.idToken());
 
@@ -107,13 +106,13 @@ public class AuthService {
 
         User newUser = userRepository.save(user);
 
-        return AppleSignUpResponseDto.builder()
+        return SignUpResponseDto.builder()
                 .accessToken(getToken(newUser))
                 .build();
     }
 
 
-    public AppleSignInResponseDto appleSignIn(AppleSignInRequestDto requestDto) {
+    public SignInResponseDto appleSignIn(AppleSignInRequestDto requestDto) {
         AppleUserInfoResponseDto appleUserInfo = appleService.getAppleUserProfile(requestDto.idToken());
 
         User user = userRepository.findByOauthId(appleUserInfo.getSubject())
@@ -122,14 +121,14 @@ public class AuthService {
         validateUserCanLogin(user);
         user.changeFcmToken(requestDto.fcmToken());
 
-        return AppleSignInResponseDto.builder()
+        return SignInResponseDto.builder()
                 .accessToken(getToken(user))
                 .acceptedReportCount(user.getAcceptedReportCount())
                 .acceptedReports(getAcceptedReportResponses(user))
                 .build();
     }
 
-    public GoogleSignUpResponseDto googleSignUp(GoogleSignUpRequestDto requestDto) {
+    public SignUpResponseDto googleSignUp(GoogleSignUpRequestDto requestDto) {
 
         // 1. Authorization Code로 Google 유저 정보 획득
         GoogleUserInfoResponseDto userInfo = googleService.getGoogleUserInfo(requestDto.authorizationCode());
@@ -146,12 +145,12 @@ public class AuthService {
         User newUser = userRepository.save(user);
 
         // 4. Access Token 발급
-        return GoogleSignUpResponseDto.builder()
+        return SignUpResponseDto.builder()
                 .accessToken(getToken(newUser))
                 .build();
     }
 
-    public GoogleSignInResponseDto googleSignIn(GoogleSignInRequestDto requestDto) {
+    public SignInResponseDto googleSignIn(GoogleSignInRequestDto requestDto) {
 
         // 1. Authorization Code로 유저 정보 획득
         GoogleUserInfoResponseDto userInfo = googleService.getGoogleUserInfo(requestDto.authorizationCode());
@@ -167,7 +166,7 @@ public class AuthService {
         user.changeFcmToken(requestDto.fcmToken());
 
         // 4. Access Token 발급
-        return GoogleSignInResponseDto.builder()
+        return SignInResponseDto.builder()
                 .accessToken(getToken(user))
                 .acceptedReportCount(user.getAcceptedReportCount())
                 .acceptedReports(getAcceptedReportResponses(user))
