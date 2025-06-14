@@ -31,6 +31,7 @@ public class AuthService {
     // services
     private final KakaoService kakaoService;
     private final AppleService appleService;
+    private final GoogleService googleService;
 
     // utils
     private final JwtTokenProvider jwtTokenProvider;
@@ -122,6 +123,51 @@ public class AuthService {
         user.changeFcmToken(requestDto.fcmToken());
 
         return AppleSignInResponseDto.builder()
+                .accessToken(getToken(user))
+                .acceptedReportCount(user.getAcceptedReportCount())
+                .acceptedReports(getAcceptedReportResponses(user))
+                .build();
+    }
+
+    public GoogleSignUpResponseDto googleSignUp(GoogleSignUpRequestDto requestDto) {
+
+        // 1. Authorization Code로 Google 유저 정보 획득
+        GoogleUserInfoResponseDto userInfo = googleService.getGoogleUserInfo(requestDto.authorizationCode());
+
+        // 2. 동일 oauthId 존재하는지 확인
+        String oauthId = userInfo.id();
+        userRepository.findByOauthId(oauthId)
+                .ifPresent(user -> {
+                    throw new BaseException(UserResponseStatus.ALREADY_EXISTS, "해당 소셜 계정으로 가입된 유저가 이미 존재합니다.");
+                });
+
+        // 3. 유저 생성 및 저장
+        User user = requestDto.toEntity(oauthId);
+        User newUser = userRepository.save(user);
+
+        // 4. Access Token 발급
+        return GoogleSignUpResponseDto.builder()
+                .accessToken(getToken(newUser))
+                .build();
+    }
+
+    public GoogleSignInResponseDto googleSignIn(GoogleSignInRequestDto requestDto) {
+
+        // 1. Authorization Code로 유저 정보 획득
+        GoogleUserInfoResponseDto userInfo = googleService.getGoogleUserInfo(requestDto.authorizationCode());
+
+        String oauthId = userInfo.id();
+
+        // 2. 유저 존재 여부 확인
+        User user = userRepository.findByOauthId(oauthId)
+                .orElseThrow(() -> new BaseException(UserResponseStatus.USER_NOT_FOUND));
+
+        // 3. 로그인 유효성 검사 및 FCM 업데이트
+        validateUserCanLogin(user);
+        user.changeFcmToken(requestDto.fcmToken());
+
+        // 4. Access Token 발급
+        return GoogleSignInResponseDto.builder()
                 .accessToken(getToken(user))
                 .acceptedReportCount(user.getAcceptedReportCount())
                 .acceptedReports(getAcceptedReportResponses(user))
